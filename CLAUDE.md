@@ -95,15 +95,19 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   keys. Logs in as a team member on every refresh (tokens last 1h), looks up
   the team-member id, and returns one person per contact with an open task
   assigned to the user: task (kind, rule, follow type, due, note),
-  `phone_e164`, and a pipeline stage (`stageOf`). The user's pipeline, top
-  first: Installment (`splatka` task), Waiting for Payment ("Prodáno" or
+  `phone_e164`, and a pipeline stage (`stageOf`). The stage belongs to the
+  person, not the current task. The user's pipeline, top
+  first: Installment (any `splatka` task, open or closed, or a "Prodej na
+  splátky" / "Upraveny platby" note; not once the contact is `paid` or a later
+  lost note), Waiting for Payment ("Prodáno" or
   "Domluveno — čeká se na platbu" note, unless a later "Uzavřeno jako
   ztracené" note), Thinking about it (the consultation happened: follow-up
   `follow_typ=konzultace`, a "Neprodáno" / "Bez nabídky" / "Konzultace bez
   nabídky" note, a task closed "(show_offer)" / "(show_no_offer)", or call
   result `neprodej`), No Show (cancelled-consultation rule, a "Nedorazil"
   note or task note, a task closed "(no_show)"), then the furthest call
-  result: Meeting Confirmed, Meeting Booked, Answered, Not answered, New lead.
+  result: Meeting Confirmed, Meeting Booked (also a "Domluvená schůzka" /
+  "domluvenou schůzku" / "rezervoval si sám" note or task note), Answered, Not answered, New lead.
   Notes and all the contact's tasks (closed ones too) are read for these.
   "LTO nákup" (bought LTO) tasks are just new leads to the user: no special
   stage, they follow the same call-result rules.
@@ -136,7 +140,8 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   prefilled and counts as sent), regenerates or cancels with an optional
   note. A person with a generating/pending draft can't get another. The AI
   sees the last 30 messages, its unsent drafts with the user's notes, and
-  drafts sent since the last refresh. The CRM stays read-only.
+  drafts sent since the last refresh. Every time it sees is Prague time
+  (Europe/Prague), whatever the Mac's timezone. The CRM stays read-only.
   WhatsApp is offered only for numbers the bridge knows (`whatsappKnown`: a
   lid in `whatsmeow_lid_map` or a chat); otherwise email, or WhatsApp flagged
   "not found" when there's no email.

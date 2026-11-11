@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { stageOf, toPeople, isSoldNote, isConsultedNote, isNoShowNote, STAGES } from '../lib/resultson.js';
+import { stageOf, toPeople, isSoldNote, isConsultedNote, isNoShowNote, isBookedNote, isInstallmentNote, STAGES } from '../lib/resultson.js';
 
 const label = (task, results = [], flags = {}) => stageOf(task, results, flags).label;
 
@@ -98,4 +98,25 @@ test('a later "lost" note cancels waiting for payment; an earlier one does not',
   const [z, y] = toPeople(tasks, [], [], notes);
   assert.equal(z.stage.label, 'New lead');
   assert.equal(y.stage.label, 'Waiting for Payment');
+});
+
+test('a booked meeting from notes or task notes is Meeting Booked, even with only a "follow" call', () => {
+  for (const t of ['Domluvená schůzka 12. 11. 10:00', ' | uzavřeno: klient má domluvenou schůzku', 'Kvalifikovat a potvrdit termín — rezervoval si sám.'])
+    assert.ok(isBookedNote(t), t);
+  assert.ok(!isBookedNote('Napsal na WA, že bude řídit'));
+  const tasks = [{ task_id: 2, contact_id: 'f', name: 'Flori', kind: 'call', due_at: '2026-11-10T00:00:00Z', note: 'Kvalifikovat a potvrdit termín — rezervoval si sám.' }];
+  const [f] = toPeople(tasks, [], [{ contact_id: 'f', vysledek: 'follow' }]);
+  assert.equal(f.stage.label, 'Meeting Booked');
+});
+
+test('installment is the person\'s stage: a closed installment task or sale note keeps a new call task there', () => {
+  for (const t of ['Prodej na splátky — UM PRO · 2× 5 000 Kč', 'Upraveny platby: UM PRO · 30 000 Kč v 3 platbách']) assert.ok(isInstallmentNote(t), t);
+  assert.ok(!isInstallmentNote('Prodej — UM PRO'));
+  const tasks = [{ task_id: 5, contact_id: 't', name: 'Tomáš', kind: 'call', due_at: '2026-11-10T00:00:00Z', note: 'Odloženo z fronty' },
+    { task_id: 6, contact_id: 'n', name: 'Nora', kind: 'call', due_at: '2026-11-10T00:00:00Z' },
+    { task_id: 7, contact_id: 'p', name: 'Paid', kind: 'call', due_at: '2026-11-10T00:00:00Z' }];
+  const past = [{ id: 1, contact_id: 't', kind: 'splatka', note: 'Splátka 2/3' }, { id: 2, contact_id: 'p', kind: 'splatka' }];
+  const notes = [{ contact_id: 'n', created_at: '2026-10-20T00:00:00Z', text: 'Prodej na splátky — UM PRO' }];
+  const people = toPeople(tasks, [{ id: 'p', paid: true }], [{ contact_id: 't', vysledek: 'triage' }], notes, {}, past);
+  assert.deepEqual(Object.fromEntries(people.map((p) => [p.name, p.stage.label])), { Tomáš: 'Installment', Nora: 'Installment', Paid: 'New lead' });
 });
