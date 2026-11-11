@@ -10,10 +10,15 @@
     --accent: #2f5bd3; --email: #2f5bd3; --wa: #1f7f50; --me: #eef2fd; --sel: #eef2fd; --err: #b3261e;
     --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px;
     --fs-sm: 12px; --fs: 14px; --fs-lg: 16px; --radius: 6px; --width: 860px; --gh: 32px;
+    /* Pipeline stage colours, top stage first (each ≥4.5:1 on bg, panel and sel) */
+    --st-1: #1a7a45; --st-2: #0e7480; --st-3: #8a6a00; --st-4: #b8461b; --st-5: #1f6aa5;
+    --st-6: #5a52c4; --st-7: #8b47ad; --st-8: #776c60; --st-9: #646c78;
   }
   @media (prefers-color-scheme: dark) {
     :root { --bg: #161615; --panel: #1f1f1d; --text: #ecebe6; --muted: #a3a29c; --line: #33322f;
-      --accent: #7b9cf2; --email: #7b9cf2; --wa: #4cc28a; --me: #252c40; --sel: #252c40; --err: #ff8a80; }
+      --accent: #7b9cf2; --email: #7b9cf2; --wa: #4cc28a; --me: #252c40; --sel: #252c40; --err: #ff8a80;
+      --st-1: #5cc98f; --st-2: #45bccb; --st-3: #d9b440; --st-4: #ff8a5c; --st-5: #5fb0ea;
+      --st-6: #a39af2; --st-7: #cf92e8; --st-8: #ab9f92; --st-9: #959ca8; }
   }
   * { box-sizing: border-box; }
   body { margin: 0; font: var(--fs)/1.45 -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text);
@@ -40,14 +45,20 @@
 
   /* Task feed: groups per pipeline stage, one row per person, one open at a time */
   main { flex: 1; overflow-y: auto; min-height: 0; }
-  .group + .group { margin-top: var(--s4); }
-  .group h2 { position: sticky; top: 0; z-index: 2; margin: 0; height: var(--gh); line-height: var(--gh); padding: 0 var(--s4);
+  .group + .group { margin-top: var(--s1); }
+  .group h2 { position: sticky; top: 0; z-index: 2; margin: 0; height: var(--gh); padding: 0 var(--s4);
     background: var(--bg); border-bottom: 1px solid var(--line); font-size: var(--fs-sm); font-weight: 600; color: var(--muted); }
   .group h2 .over { color: var(--err); }
+  .gt { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: var(--s2); width: 100%; height: 100%; cursor: pointer; }
+  .gt:hover .label { color: var(--text); }
+  .gt:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .chev { transition: transform .15s; } .gt[aria-expanded=true] .chev { transform: rotate(90deg); }
+  .sd { width: 8px; height: 8px; border-radius: 50%; background: var(--st); flex: none; }
+  @media (prefers-reduced-motion: reduce) { .chev { transition: none; } }
   .rows { list-style: none; margin: 0; padding: 0; background: var(--panel); border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
   .head { position: relative; padding: var(--s3) var(--s4); border-bottom: 1px solid var(--line); background: var(--panel); scroll-margin-top: var(--gh); }
   .head:hover { background: var(--sel); }
-  .head.open { position: sticky; top: var(--gh); z-index: 1; background: var(--sel); box-shadow: inset 3px 0 var(--accent); }
+  .head.open { position: sticky; top: var(--gh); z-index: 1; background: var(--sel); box-shadow: inset 3px 0 var(--st, var(--accent)); }
   /* The row button covers the whole head (click anywhere); copy buttons sit above it. */
   .row { all: unset; box-sizing: border-box; width: 100%; display: flex; justify-content: space-between; gap: var(--s3); cursor: pointer; }
   .row::after { content: ""; position: absolute; inset: 0; }
@@ -119,6 +130,7 @@ const RECENT = 20;
 // App state. Only one person is open at a time.
 let sources = {}, sync = { running: false, at: null, errors: {} }, people = [];
 let open = null;            // { id, data, filter, all }
+const expanded = new Set(); // stage ranks the user opened; all collapsed at launch
 const hist = new Map();     // id -> history from the current snapshot
 
 async function api(path, opts) {
@@ -166,6 +178,7 @@ function renderHeader() {
 // ---- task feed
 const KIND = { call: 'Call', followup: 'Follow up', confirm: 'Confirm consultation', splatka: 'Installment' };
 const OTHER = { rank: 99, label: 'Other' };
+const stageColor = (rank) => (rank >= 1 && rank <= 9 ? `var(--st-${rank})` : 'var(--muted)');
 const isOverdue = (p) => p.task?.dueAt && new Date(p.task.dueAt) < Date.now();
 // Only tasks due today or overdue are shown; later ones wait until their day.
 const endOfToday = () => new Date(new Date().setHours(24, 0, 0, 0));
@@ -229,8 +242,9 @@ function renderRow(p) {
   </li>`;
 }
 
-// Stage groups, furthest along first; inside a group the most overdue task first.
-function renderGroups(rows) {
+// Stage groups in pipeline order, collapsed unless opened (or matching a
+// search); inside a group the most overdue task first. Empty groups aren't shown.
+function renderGroups(rows, searching) {
   const groups = new Map();
   const sorted = [...rows].sort((a, b) => (a.stage || OTHER).rank - (b.stage || OTHER).rank
     || (a.task?.dueAt ?? '9').localeCompare(b.task?.dueAt ?? '9') || a.name.localeCompare(b.name));
@@ -241,9 +255,13 @@ function renderGroups(rows) {
   }
   return [...groups.entries()].map(([rank, g]) => {
     const over = g.people.filter(isOverdue).length;
-    return `<section class="group" aria-labelledby="g-${rank}">
-      <h2 id="g-${rank}">${esc(g.label)} <span>· ${g.people.length}</span>${over ? ` <span class="over">· ${over} overdue</span>` : ''}</h2>
-      <ul class="rows">${g.people.map(renderRow).join('')}</ul>
+    const isOpen = searching || expanded.has(rank);
+    return `<section class="group" style="--st: ${stageColor(rank)}">
+      <h2><button type="button" class="gt" data-rank="${rank}" aria-expanded="${isOpen}" aria-controls="g-${rank}-rows">
+        <span class="chev" aria-hidden="true">▸</span><span class="sd" aria-hidden="true"></span>
+        <span class="label">${esc(g.label)}</span> <span>· ${g.people.length}</span>${over ? ` <span class="over">· ${over} overdue</span>` : ''}
+      </button></h2>
+      <ul class="rows" id="g-${rank}-rows"${isOpen ? '' : ' hidden'}>${isOpen ? g.people.map(renderRow).join('') : ''}</ul>
     </section>`;
   }).join('');
 }
@@ -261,7 +279,7 @@ function renderList() {
   const rows = current.filter((p) => matches(p, q));
   const empty = q ? 'No matches' : 'Nothing due today.';
   list.innerHTML = (q ? `<p class="count">${rows.length} of ${current.length}</p>` : '') +
-    (rows.length ? renderGroups(rows) : `<p class="empty">${empty}</p>`) +
+    (rows.length ? renderGroups(rows, Boolean(q)) : `<p class="empty">${empty}</p>`) +
     (later ? `<p class="count">${later} later task${later > 1 ? 's' : ''} hidden until their day</p>` : '');
 }
 
@@ -362,14 +380,26 @@ function toggle(id) {
   if (open && !open.data) loadHistory(id);
 }
 
+// Opens or closes a stage group; closing it also closes the person open in it.
+function toggleGroup(rank) {
+  if ($('#q').value.trim()) return; // while searching, every group with matches is open
+  if (expanded.has(rank)) {
+    expanded.delete(rank);
+    if (open && (people.find((p) => p.id === open.id)?.stage || OTHER).rank === rank) open = null;
+  } else expanded.add(rank);
+  renderList();
+  document.querySelector(`.gt[data-rank="${rank}"]`)?.focus({ preventScroll: true });
+}
+
 // ---- refresh
 async function loadPeople() {
   people = await api('/api/people');
   hist.clear();
   if (open && !people.some((p) => p.id === open.id)) open = null;
-  const focusedId = document.activeElement?.dataset?.id;
+  const focusedId = document.activeElement?.dataset?.id, focusedRank = document.activeElement?.dataset?.rank;
   renderList();
   if (focusedId) document.getElementById(`row-${focusedId}`)?.focus({ preventScroll: true });
+  if (focusedRank) document.querySelector(`.gt[data-rank="${focusedRank}"]`)?.focus({ preventScroll: true });
   if (open) { open.data = null; rerenderOpen(); loadHistory(open.id); }
 }
 
@@ -399,10 +429,16 @@ async function startRefresh() {
 
 // ---- events
 $('#refresh').addEventListener('click', startRefresh);
-$('#q').addEventListener('input', renderList);
+$('#q').addEventListener('input', () => {
+  renderList();
+  const q = $('#q').value.trim();
+  if (q) $('#announce').textContent = `${document.querySelectorAll('.row').length} matches in ${document.querySelectorAll('.group').length} stages`;
+});
 $('#people').addEventListener('click', (e) => {
   const c = e.target.closest('[data-copy]');
   if (c) return copy(c);
+  const g = e.target.closest('.gt');
+  if (g) return toggleGroup(Number(g.dataset.rank));
   const row = e.target.closest('.row');
   if (row) return toggle(row.dataset.id);
   const f = e.target.closest('[data-filter]');
@@ -418,10 +454,12 @@ $('#people').addEventListener('click', (e) => {
 });
 // ↑/↓/Home/End move between people; Esc closes the open person.
 $('#people').addEventListener('keydown', (e) => {
-  const rows = [...document.querySelectorAll('.row')];
+  // Arrows move through group headers and the rows of open groups, in order.
+  const rows = [...document.querySelectorAll('.gt, .rows:not([hidden]) .row')];
   if (e.key === 'Escape' && open) { e.preventDefault(); return toggle(open.id); }
   // From a row's copy buttons too, arrows move between rows.
-  const current = document.activeElement.closest('.head')?.querySelector('.row');
+  const a = document.activeElement;
+  const current = a.classList.contains('gt') ? a : a.closest('.head')?.querySelector('.row');
   const i = rows.indexOf(current);
   if (i < 0) return;
   const next = { ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: rows.length - 1 }[e.key];

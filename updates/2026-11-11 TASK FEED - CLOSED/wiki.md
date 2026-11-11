@@ -9,3 +9,9 @@
   below N; filter `uid > lastUid` after fetching.
 - Cached emails store the sender address, not `fromMe`: the same email can
   match two people, so `fromMe` is computed per person when read.
+- Pipeline v2 (user, 2026-11-11): Installment, Waiting for Payment, Thinking
+  about it, No Show, Meeting Confirmed, Meeting Booked, Answered, Not
+  answered, New lead. Sold notes say "Prodáno" (match as a whole word so
+  "Neprodáno" doesn't count); only 2 exist company-wide so far, in
+  `poznamky`, naming the product. `tasks.follow_typ` (not in v_queue):
+  `konzultace` (after a consultation) or `domluveny` (agreed call).

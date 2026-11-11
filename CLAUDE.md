@@ -94,9 +94,16 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
 - **CRM is ResultsON** (Supabase/PostgREST), `lib/resultson.js`, `RESULTSON_*`
   keys. Logs in as a team member on every refresh (tokens last 1h), looks up
   the team-member id, and returns one person per contact with an open task
-  assigned to the user: task (kind, rule, due, note), `phone_e164`, and a
-  pipeline stage derived from call results + task (`stageOf`, 9 stages
-  agreed with the user, furthest reached wins).
+  assigned to the user: task (kind, rule, follow type, due, note),
+  `phone_e164`, and a pipeline stage (`stageOf`). The user's pipeline, top
+  first: Installment (`splatka` task), Waiting for Payment (a "Prodáno"
+  note), Thinking about it (follow-up after a consultation,
+  `follow_typ=konzultace`), No Show (cancelled-consultation rule), then the
+  furthest call result: Meeting Confirmed, Meeting Booked, Answered, Not
+  answered, New lead.
+- **UI feed:** only tasks due today or overdue; stage groups collapsed by
+  default (expanded state in memory only), empty ones hidden, colour per
+  stage (`--st-1..9`).
 - **Local cache** (`lib/cache.js`, node:sqlite) lives in
   `~/Library/Application Support/Outreach/`, never in the repo: last
   snapshot, email headers/bodies per folder, fully fetched WhatsApp chats.
