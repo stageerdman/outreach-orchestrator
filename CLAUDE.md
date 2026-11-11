@@ -91,10 +91,15 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
 - **Refresh flow:** `lib/sync.js` pulls the CRM list, then each person's
   history through each source's `<channel>Session()` into an in-memory
   snapshot that the API serves. Register new channels in its `SOURCES`.
-- **CRM is ResultsON** (Supabase/PostgREST). The app logs in with a
-  team-member email/password on every refresh (tokens last 1h). People =
-  contacts with an open task assigned to the user; phones come from
-  `phone_e164` because the raw `phone` is often local format.
+- **CRM is ResultsON** (Supabase/PostgREST), `lib/resultson.js`, `RESULTSON_*`
+  keys. Logs in as a team member on every refresh (tokens last 1h), looks up
+  the team-member id, and returns one person per contact with an open task
+  assigned to the user: task (kind, rule, due, note), `phone_e164`, and a
+  pipeline stage derived from call results + task (`stageOf`, 9 stages
+  agreed with the user, furthest reached wins).
+- **Local cache** (`lib/cache.js`, node:sqlite) lives in
+  `~/Library/Application Support/Outreach/`, never in the repo: last
+  snapshot, email headers/bodies per folder, fully fetched WhatsApp chats.
 - WhatsApp matching is by phone digits → `<digits>@s.whatsapp.net` plus the
   `<lid>@lid` chats mapped to that phone in the bridge's `whatsapp.db`
   (`whatsmeow_lid_map`, read-only). CRM phones must include the country code.

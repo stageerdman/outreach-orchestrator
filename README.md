@@ -13,8 +13,8 @@ npm start              # http://localhost:3000
 Without any settings it runs on `data/people.sample.json`. Opening the page (or pressing
 **Refresh**) pulls the people from the CRM and everyone's email and WhatsApp history; click
 a person to expand their merged history. The status line under the search shows which
-sources are connected, off, or failing. History is kept in memory only, so after a restart
-the first page load refreshes again.
+sources are connected, off, or failing. History is cached in `~/Library/Application Support/Outreach/` (outside the repo), so the
+app opens with the last data and a refresh only fetches what's new.
 
 ## Mac app
 
