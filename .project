@@ -1,0 +1,40 @@
+---
+name: Outreach Orchestrator
+github: https://github.com/stageerdman/outreach-orchestrator
+visibility: private
+adopted: 2026-11-11
+claude_md_generated: 2026-11-11
+modules: [WORKFLOW, STRUCTURE, CODING, UX]
+secrets: [CRM_TOKEN, IMAP_PASS]
+---
+
+# Outreach Orchestrator
+
+A small **local web UI** for outreach: the list of people to reach out to
+(pulled from a custom CRM), and for each person their full **email (IMAP)**
+and **WhatsApp** history merged into one timeline.
+
+## How to use
+```sh
+cp .env.example .env   # fill in CRM + IMAP settings
+npm start              # http://localhost:3000
+```
+Without settings it runs on `data/people.sample.json`. WhatsApp needs the
+`whatsapp-mcp` bridge running (see README.md). Status dots top-left show which
+sources are connected.
+
+## Stack
+Plain Node (ESM, no build step, Node 22.5+ for `node:sqlite`), `imapflow` +
+`mailparser` for email, the whatsapp-mcp bridge's SQLite DB (read-only) for
+WhatsApp, and a single static `public/index.html`.
+
+## Secrets
+- `CRM_TOKEN` — auth for the CRM endpoint (`CRM_URL`).
+- `IMAP_PASS` — IMAP app password.
+
+Non-secret config (`CRM_URL`, field mappings, `IMAP_HOST`/`USER`, `PORT`, …)
+is documented in `.env.example`.
+
+## Status
+Adopted under AI Control on 2026-11-11. Working first version; no tests yet.
+See `issues.txt`.

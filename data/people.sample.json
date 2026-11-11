@@ -1,0 +1,5 @@
+[
+  { "id": "1", "name": "Sample Contact A", "company": "Example Co", "email": "a@example.com", "phone": "+63 900 000 0001" },
+  { "id": "2", "name": "Sample Contact B", "company": "Example Ltd", "email": "b@example.com", "phone": "+63 900 000 0002" },
+  { "id": "3", "name": "Sample Contact C", "company": "", "email": ["c@example.com", "c.work@example.com"], "phone": "" }
+]

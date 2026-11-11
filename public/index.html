@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Outreach</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --panel: #fff; --text: #1d1d1b; --muted: #75746f; --line: #e6e5e0;
+    --accent: #2f5bd3; --email: #2f5bd3; --wa: #1f8f5a; --me: #eef2fd; --sel: #eef2fd;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #161615; --panel: #1f1f1d; --text: #ecebe6; --muted: #9b9a94; --line: #33322f;
+      --accent: #7b9cf2; --email: #7b9cf2; --wa: #4cc28a; --me: #252c40; --sel: #252c40; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); }
+  .app { display: grid; grid-template-columns: 300px 1fr; height: 100vh; }
+  aside { border-right: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; min-height: 0; }
+  header { padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  h1 { font-size: 15px; margin: 0 0 10px; }
+  input[type=search] { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); font: inherit; }
+  .status { margin-top: 8px; font-size: 12px; color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; }
+  .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; background: var(--muted); }
+  .on { background: var(--wa); }
+  ul { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
+  li button { all: unset; display: block; width: 100%; padding: 10px 16px; border-bottom: 1px solid var(--line); cursor: pointer; box-sizing: border-box; }
+  li button:hover, li button[aria-current=true] { background: var(--sel); }
+  .name { font-weight: 600; }
+  .sub { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  main { overflow-y: auto; min-height: 0; }
+  .empty { color: var(--muted); padding: 40px; text-align: center; }
+  .head { position: sticky; top: 0; background: var(--bg); padding: 16px 24px; border-bottom: 1px solid var(--line); }
+  .head h2 { margin: 0; font-size: 18px; }
+  .filters { margin-top: 8px; display: flex; gap: 6px; }
+  .filters button { font: inherit; font-size: 12px; padding: 3px 10px; border-radius: 99px; border: 1px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer; }
+  .filters button[aria-pressed=true] { border-color: var(--accent); color: var(--accent); }
+  .timeline { padding: 16px 24px 40px; display: flex; flex-direction: column; gap: 10px; max-width: 820px; }
+  .day { color: var(--muted); font-size: 12px; margin-top: 10px; }
+  .msg { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--email); border-radius: 6px; padding: 10px 12px; max-width: 85%; }
+  .msg.whatsapp { border-left-color: var(--wa); }
+  .msg.me { align-self: flex-end; background: var(--me); }
+  .meta { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .tag { font-weight: 600; }
+  .email .tag { color: var(--email); } .whatsapp .tag { color: var(--wa); }
+  .subject { font-weight: 600; margin-bottom: 4px; }
+  .body { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .body.clamp { max-height: 9.5em; overflow: hidden; }
+  .more { all: unset; color: var(--accent); font-size: 12px; cursor: pointer; margin-top: 4px; }
+  .err { color: #c0392b; font-size: 12px; padding: 0 24px; }
+  @media (max-width: 700px) {
+    .app { grid-template-columns: 1fr; grid-template-rows: 40vh 1fr; }
+    aside { border-right: 0; border-bottom: 1px solid var(--line); }
+    .head, .timeline { padding-left: 16px; padding-right: 16px; }
+    .msg { max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <header>
+      <h1>People to reach out to</h1>
+      <input type="search" id="q" placeholder="Search name, company, email…">
+      <div class="status" id="status"></div>
+    </header>
+    <ul id="people"></ul>
+  </aside>
+  <main id="detail"><div class="empty">Pick someone to see their history.</div></main>
+</div>
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let people = [], current = null, filter = 'all', loaded = null;
+
+async function api(path) {
+  const res = await fetch(path);
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.error || res.statusText);
+  return body;
+}
+
+async function init() {
+  const s = await api('/api/status');
+  $('#status').innerHTML = [
+    ['People: ' + (s.people === 'crm' ? 'CRM' : 'sample data'), s.people === 'crm'],
+    ['Email', s.email], ['WhatsApp', s.whatsapp],
+  ].map(([l, ok]) => `<span><span class="dot ${ok ? 'on' : ''}"></span>${esc(l)}</span>`).join('');
+  try { people = await api('/api/people'); renderList(); }
+  catch (e) { $('#people').innerHTML = `<li class="err" style="padding:16px">${esc(e.message)}</li>`; }
+}
+
+function renderList() {
+  const q = $('#q').value.trim().toLowerCase();
+  const rows = people.filter((p) => !q || [p.name, p.company, ...p.emails, ...p.phones].join(' ').toLowerCase().includes(q));
+  $('#people').innerHTML = rows.map((p) => `
+    <li><button data-id="${esc(p.id)}" aria-current="${p.id === current}">
+      <div class="name">${esc(p.name)}</div>
+      <div class="sub">${esc([p.company, p.emails[0], p.phones[0]].filter(Boolean).join(' · '))}</div>
+    </button></li>`).join('') || '<li class="empty">No matches</li>';
+}
+
+async function open(id) {
+  current = id; renderList();
+  $('#detail').innerHTML = '<div class="empty">Loading history…</div>';
+  try {
+    const data = await api(`/api/people/${encodeURIComponent(id)}/history`);
+    if (current !== id) return;
+    loaded = data; renderDetail();
+  } catch (e) { $('#detail').innerHTML = `<div class="empty err">${esc(e.message)}</div>`; }
+}
+
+function renderDetail() {
+  const { person: p, messages, errors } = loaded;
+  const shown = messages.filter((m) => filter === 'all' || m.channel === filter);
+  const count = (c) => messages.filter((m) => m.channel === c).length;
+  let lastDay = '';
+  const items = shown.map((m) => {
+    const d = new Date(m.at);
+    const day = d.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+    const sep = day !== lastDay ? `<div class="day">${esc(day)}</div>` : '';
+    lastDay = day;
+    const who = m.fromMe ? 'You' : (m.channel === 'email' ? m.from : p.name);
+    const long = m.text.length > 600;
+    return sep + `<div class="msg ${m.channel} ${m.fromMe ? 'me' : ''}">
+      <div class="meta"><span class="tag">${m.channel === 'email' ? 'Email' : 'WhatsApp'}</span> · ${esc(who)} · ${esc(d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}</div>
+      ${m.subject ? `<div class="subject">${esc(m.subject)}</div>` : ''}
+      <div class="body ${long ? 'clamp' : ''}">${esc(m.text)}</div>
+      ${long ? '<button class="more">Show more</button>' : ''}
+    </div>`;
+  }).join('');
+  const errs = Object.entries(errors).map(([k, v]) => `<p class="err">${esc(k)}: ${esc(v)}</p>`).join('');
+  $('#detail').innerHTML = `
+    <div class="head">
+      <h2>${esc(p.name)}</h2>
+      <div class="sub">${esc([p.company, ...p.emails, ...p.phones].filter(Boolean).join(' · '))}</div>
+      <div class="filters">
+        ${[['all', `All ${messages.length}`], ['email', `Email ${count('email')}`], ['whatsapp', `WhatsApp ${count('whatsapp')}`]]
+          .map(([k, l]) => `<button data-filter="${k}" aria-pressed="${filter === k}">${l}</button>`).join('')}
+      </div>
+    </div>${errs}
+    <div class="timeline">${items || '<div class="empty">No messages found.</div>'}</div>`;
+  $('#detail').scrollTop = $('#detail').scrollHeight;
+}
+
+$('#q').addEventListener('input', renderList);
+$('#people').addEventListener('click', (e) => { const b = e.target.closest('button[data-id]'); if (b) open(b.dataset.id); });
+$('#detail').addEventListener('click', (e) => {
+  const f = e.target.closest('[data-filter]');
+  if (f) { filter = f.dataset.filter; renderDetail(); }
+  if (e.target.matches('.more')) { e.target.previousElementSibling.classList.remove('clamp'); e.target.remove(); }
+});
+init();
+</script>
+</body>
+</html>
