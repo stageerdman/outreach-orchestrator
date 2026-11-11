@@ -406,6 +406,15 @@ const endOfToday = () => new Date(new Date().setHours(24, 0, 0, 0));
 const MEETING_STAGES = ['Meeting Booked', 'Meeting Confirmed'];
 const isMeetingTask = (p) => MEETING_STAGES.includes(p.stage?.label) || p.task?.kind === 'confirm';
 const isCurrent = (p) => !p.task?.dueAt || new Date(p.task.dueAt) < (isMeetingTask(p) ? Date.now() : endOfToday());
+// Already messaged today (Prague day), from the history or a draft sent from
+// the app since: the CRM still lists the task, but it's done for today
+// unless the client wrote back after it.
+const pragueDay = (at) => new Date(at).toLocaleDateString('sv-SE', { timeZone: 'Europe/Prague' });
+function messagedToday(p) {
+  const sent = requests.filter((r) => r.personId === p.id && ['sent', 'done'].includes(r.status)).map((r) => r.updatedAt);
+  const last = [p.lastSentAt, ...sent].filter(Boolean).sort().at(-1);
+  return Boolean(last) && pragueDay(last) === pragueDay(Date.now()) && !(p.lastClientAt && p.lastClientAt > last);
+}
 const matches = (p, q) => !q || [p.name, p.company, p.stage?.label, p.task && KIND[p.task.kind], p.task?.rule, ...p.emails, ...p.phones]
   .join(' ').toLowerCase().includes(q);
 
@@ -501,11 +510,13 @@ function renderList() {
   }
   list.removeAttribute('aria-busy');
   const q = $('#q').value.trim().toLowerCase();
-  const current = people.filter(isCurrent), later = people.length - current.length;
+  const due = people.filter(isCurrent), later = people.length - due.length;
+  const current = due.filter((p) => !messagedToday(p)), done = due.length - current.length;
   const rows = current.filter((p) => matches(p, q));
   const empty = q ? 'No matches' : 'Nothing due today.';
   list.innerHTML = (q ? `<p class="count">${rows.length} of ${current.length}</p>` : '') +
     (rows.length ? renderGroups(rows, Boolean(q)) : `<p class="empty">${empty}</p>`) +
+    (done ? `<p class="count">${done} already messaged today</p>` : '') +
     (later ? `<p class="count">${later} later task${later > 1 ? 's' : ''} hidden until their day</p>` : '');
 }
 
@@ -990,6 +1001,7 @@ async function approve(card, r, btn) {
   const text = card.querySelector('[data-edit=text]')?.value, subject = card.querySelector('[data-edit=subject]')?.value;
   try {
     await requestAction(r, 'send', { text, subject });
+    rerenderTasks(); // messaged today: drops out of Tasks
     $('#announce').textContent = r.kind === 'meeting' ? `Meeting offer done for ${r.personName}` : r.channel === 'email' ? `Email sent to ${r.personName}` : `Opened WhatsApp for ${r.personName}`;
   } catch (e) {
     btn.innerHTML = label; btn.removeAttribute('aria-disabled');

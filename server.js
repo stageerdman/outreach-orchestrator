@@ -107,7 +107,9 @@ createServer(async (req, res) => {
     }
     // The list without message bodies; history is fetched per person on expand.
     if (url.pathname === '/api/people') {
-      return json(res, 200, snapshotPeople().map(({ messages, ...p }) => p));
+      // lastSentAt / lastClientAt: the UI hides people already messaged today.
+      return json(res, 200, snapshotPeople().map(({ messages = [], ...p }) => ({ ...p,
+        lastSentAt: messages.findLast((m) => m.fromMe)?.at ?? null, lastClientAt: messages.findLast((m) => !m.fromMe)?.at ?? null })));
     }
     const m = url.pathname.match(/^\/api\/people\/([^/]+)\/history$/);
     if (m) {
