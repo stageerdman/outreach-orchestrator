@@ -112,7 +112,8 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
 - WhatsApp matching is by phone digits → `<digits>@s.whatsapp.net` plus the
   `<lid>@lid` chats mapped to that phone in the bridge's `whatsapp.db`
   (`whatsmeow_lid_map`, read-only). CRM phones must include the country code.
-- **Sections:** a left rail switches views (Tasks, Templates); a new section
+- **Sections:** a left rail switches views (Tasks, AI Requests, Templates,
+  Settings); a new section
   = a link in `.rail`, a `#view-<name>` block, and its name in `SECTIONS`.
 - **Templates** (`lib/templates.js`, `/api/templates`) live in
   `templates.json` in the app data folder (never the repo); the first run
@@ -122,3 +123,18 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   refresh publishes, `whatsappBackfill` pages back via the bridge's
   `/api/history` (50 per request) until the phone has nothing older, then
   republishes. The app still never writes to the bridge's DBs.
+- **AI requests** (`lib/assistant.js`): the arrow on a task row (or "Draft N"
+  on a stage group) asks Claude Code headless (`lib/claude.js`: `claude -p`,
+  no tools, JSON schema, the user's own login, max 2 at once) for the next
+  step: a message (WhatsApp or email, templates first) or a "book a meeting"
+  request. Drafts wait in `requests.json` (app data folder) until the user
+  sends (email over SMTP as a reply + Sent copy; WhatsApp opens the app
+  prefilled and counts as sent), regenerates or cancels with an optional
+  note. A person with a generating/pending draft can't get another. The AI
+  sees the last 30 messages, its unsent drafts with the user's notes, and
+  drafts sent since the last refresh. The CRM stays read-only.
+- **Style guide** (Settings → Learn my style): `lib/style.js` builds reply
+  pairs, follow-ups and measured stats from the snapshot; one Claude run turns
+  them into a Markdown guide (method in the AI REQUESTS update's
+  `research-style.md`). Prompts, model and guide live in `settings.json`
+  (app data folder); an empty prompt means the default in `lib/settings.js`.

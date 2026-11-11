@@ -28,16 +28,23 @@ an editable style guide; all prompts live in a **Settings** section.
 - The CRM stays read-only: approving a request does not complete the CRM task.
 
 ## Phases
-1. [ ] Backend core: `lib/claude.js` (runner + queue), `lib/settings.js`,
+1. [x] Backend core: `lib/claude.js` (runner + queue), `lib/settings.js`,
    `lib/requests.js` (store + state machine), `lib/assistant.js` (context +
    generate + learn style). Tests: context building, request rules.
-2. [ ] Sending: `sendEmail` (SMTP + Sent append), WhatsApp open. API routes.
-3. [ ] Research spike: style-copying frameworks → `research-style.md`,
+2. [x] Sending: `sendEmail` (SMTP + Sent append), WhatsApp open. API routes.
+3. [x] Research spike: style-copying frameworks → `research-style.md`,
    default style-learning prompt.
-4. [ ] UI: arrow buttons in Tasks (row + group), pending badge; AI Requests
+4. [x] UI: arrow buttons in Tasks (row + group), pending badge; AI Requests
    section; Settings section. (UX agents' specs synthesized.)
-5. [ ] Verify on real data: learn style, generate for a few tasks, open
-   WhatsApp, send a test email to myself. Docs (CLAUDE.md, wiki).
+5. [x] Verify on real data: learn style, generate for a few tasks (real
+   WhatsApp open and email send left to the user). Docs (CLAUDE.md, wiki).
 
 ## Status
 - 2026-11-11 started.
+- 2026-11-11 phases 1–4 done, 42 tests green. Verified on real data: style
+  guide learned (428 messages), 3 real drafts (one "book a meeting", two
+  WhatsApp, one from a template), regenerate with a note. UI checked in
+  headless Chrome (tasks arrows, group batch, cards, dialog, edit autosave,
+  cancel, badge). Email sending checked against a local fake SMTP only.
+- Next: the user sends a first real email and WhatsApp from the app; decide
+  whether approving should also complete the CRM task.
