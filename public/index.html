@@ -9,7 +9,7 @@
     --bg: #f7f7f5; --panel: #fff; --text: #1d1d1b; --muted: #6b6a65; --line: #e6e5e0;
     --accent: #2f5bd3; --email: #2f5bd3; --wa: #1f7f50; --me: #eef2fd; --sel: #eef2fd; --err: #b3261e;
     --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px;
-    --fs-sm: 12px; --fs: 14px; --fs-lg: 16px; --radius: 6px; --width: 860px;
+    --fs-sm: 12px; --fs: 14px; --fs-lg: 16px; --radius: 6px; --width: 860px; --gh: 32px;
   }
   @media (prefers-color-scheme: dark) {
     :root { --bg: #161615; --panel: #1f1f1d; --text: #ecebe6; --muted: #a3a29c; --line: #33322f;
@@ -38,20 +38,31 @@
   .dot.on { background: var(--wa); border-color: var(--wa); }
   .dot.bad { background: var(--err); border-color: var(--err); }
 
-  /* People list: one row per person, one row open at a time */
+  /* Task feed: groups per pipeline stage, one row per person, one open at a time */
   main { flex: 1; overflow-y: auto; min-height: 0; }
-  #people { list-style: none; margin: 0; padding: 0; background: var(--panel); border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
-  .row { all: unset; box-sizing: border-box; width: 100%; cursor: pointer; display: grid; grid-template-columns: 1fr auto;
-    gap: 2px var(--s3); padding: var(--s3) var(--s4); border-bottom: 1px solid var(--line); background: var(--panel); }
-  .row:hover { background: var(--sel); }
-  .row:focus-visible { outline-offset: -2px; }
-  .row[aria-expanded=true] { position: sticky; top: 0; z-index: 1; background: var(--sel); box-shadow: inset 3px 0 var(--accent); }
+  .group + .group { margin-top: var(--s4); }
+  .group h2 { position: sticky; top: 0; z-index: 2; margin: 0; height: var(--gh); line-height: var(--gh); padding: 0 var(--s4);
+    background: var(--bg); border-bottom: 1px solid var(--line); font-size: var(--fs-sm); font-weight: 600; color: var(--muted); }
+  .group h2 .over { color: var(--err); }
+  .rows { list-style: none; margin: 0; padding: 0; background: var(--panel); border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+  .head { position: relative; padding: var(--s3) var(--s4); border-bottom: 1px solid var(--line); background: var(--panel); scroll-margin-top: var(--gh); }
+  .head:hover { background: var(--sel); }
+  .head.open { position: sticky; top: var(--gh); z-index: 1; background: var(--sel); box-shadow: inset 3px 0 var(--accent); }
+  /* The row button covers the whole head (click anywhere); copy buttons sit above it. */
+  .row { all: unset; box-sizing: border-box; width: 100%; display: flex; justify-content: space-between; gap: var(--s3); cursor: pointer; }
+  .row::after { content: ""; position: absolute; inset: 0; }
+  .row:focus-visible::after { outline: 2px solid var(--accent); outline-offset: -2px; }
   .name { font-weight: 600; }
-  .row time { color: var(--muted); font-size: var(--fs-sm); }
-  .sub { grid-column: 1 / -1; color: var(--muted); font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .c-email { color: var(--email); } .c-whatsapp { color: var(--wa); }
+  .due { color: var(--muted); font-size: var(--fs-sm); white-space: nowrap; }
+  .due.over { color: var(--err); font-weight: 600; }
+  .contact, .task { margin: 2px 0 0; color: var(--muted); font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .task b { color: var(--text); font-weight: 600; }
+  .copy { all: unset; position: relative; z-index: 1; color: var(--text); cursor: copy; border-radius: var(--radius); }
+  .copy:hover { color: var(--accent); }
+  .copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
   .err { color: var(--err); font-size: var(--fs-sm); margin: 0; }
-  .empty { color: var(--muted); padding: var(--s5); text-align: center; }
+  .empty { color: var(--muted); padding: var(--s5); text-align: center; margin: 0; }
+  .count { color: var(--muted); font-size: var(--fs-sm); padding: var(--s2) var(--s4); margin: 0; }
 
   /* Expanded timeline */
   .timeline { padding: var(--s4) var(--s4) var(--s5); border-bottom: 1px solid var(--line); background: var(--bg);
@@ -64,6 +75,8 @@
   .filters button[aria-pressed=true] { border-color: var(--accent); color: var(--accent); }
   .msgs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s2); }
   .day { color: var(--muted); font-size: var(--fs-sm); font-weight: 400; margin: var(--s2) 0 0; }
+  .note { margin: 0; font-size: var(--fs-sm); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .note b { font-weight: 600; }
   .msg { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--email); border-radius: var(--radius);
     padding: var(--s2) var(--s3); max-width: 85%; }
   .msg.whatsapp { border-left-color: var(--wa); }
@@ -78,7 +91,7 @@
   .link { all: unset; color: var(--accent); font-size: var(--fs-sm); cursor: pointer; margin-top: var(--s1); align-self: flex-start; }
   .link:focus-visible { outline: 2px solid var(--accent); }
 
-  @media (max-width: 700px) { .msg { max-width: 100%; } #people { border-left: 0; border-right: 0; } }
+  @media (max-width: 700px) { .msg { max-width: 100%; } .rows { border-left: 0; border-right: 0; } }
 </style>
 </head>
 <body>
@@ -89,13 +102,13 @@
       <time id="updated"></time>
       <button id="refresh" type="button">Refresh</button>
     </div>
-    <input type="search" id="q" aria-label="Search people" placeholder="Search name, company, email, phone…  ( / )">
+    <input type="search" id="q" aria-label="Search tasks" placeholder="Search name, stage, task, email, phone…  ( / )">
     <div class="status" id="status"></div>
     <p class="sr-only" aria-live="polite" id="announce"></p>
   </div>
 </header>
 <main id="main">
-  <div class="wrap"><ul id="people" aria-busy="true"></ul></div>
+  <div class="wrap" id="people" aria-busy="true"></div>
 </main>
 <script>
 const $ = (s) => document.querySelector(s);
@@ -150,40 +163,117 @@ function renderHeader() {
   ].join('');
 }
 
-// ---- people list
-const matches = (p, q) => !q || [p.name, p.company, ...p.emails, ...p.phones].join(' ').toLowerCase().includes(q);
+// ---- task feed
+const KIND = { call: 'Call', followup: 'Follow up', confirm: 'Confirm consultation', splatka: 'Installment' };
+const OTHER = { rank: 99, label: 'Other' };
+const isOverdue = (p) => p.task?.dueAt && new Date(p.task.dueAt) < Date.now();
+const matches = (p, q) => !q || [p.name, p.company, p.stage?.label, p.task && KIND[p.task.kind], p.task?.rule, ...p.emails, ...p.phones]
+  .join(' ').toLowerCase().includes(q);
 
-function renderCounts(p) {
-  const parts = Object.entries(CHANNELS).filter(([k]) => p.counts[k]).map(([k, l]) => `<span class="c-${k}">${l} ${p.counts[k]}</span>`);
-  return parts.length ? parts.join(' · ') : 'No history';
+// "+420775623723" -> "+420 775 623 723"; other formats are shown as they are.
+const showPhone = (ph) => String(ph).replace(/^\+(42[01])(\d{3})(\d{3})(\d{3})$/, '+$1 $2 $3 $4');
+
+function dueLabel(at) {
+  const d = new Date(at), mins = (d - Date.now()) / 6e4;
+  const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if (mins < 0) {
+    const a = -mins;
+    return { over: true, text: 'overdue ' + (a < 60 ? `${Math.floor(a)}m` : a < 1440 ? `${Math.floor(a / 60)}h` : `${Math.floor(a / 1440)}d`) };
+  }
+  if (mins < 60) return { text: `in ${Math.ceil(mins)}m` };
+  const day = (x) => new Date(x).toDateString();
+  if (day(d) === day(Date.now())) return { text: `today ${time}` };
+  if (day(d) === day(Date.now() + 864e5)) return { text: `tomorrow ${time}` };
+  if (mins < 7 * 1440) return { text: `${d.toLocaleDateString(undefined, { weekday: 'short' })} ${time}` };
+  return { text: d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) };
+}
+
+function renderDue(p) {
+  if (!p.task?.dueAt) return p.lastAt ? `<span class="due">last ${timeTag(p.lastAt, ago(p.lastAt))}</span>` : '';
+  const d = dueLabel(p.task.dueAt);
+  return `<time class="due${d.over ? ' over' : ''}" datetime="${esc(p.task.dueAt)}" title="Due ${esc(fullDate(new Date(p.task.dueAt)))}">${esc(d.text)}</time>`;
+}
+
+const renderCopy = (value, shown, what) =>
+  `<button type="button" class="copy" data-copy="${esc(value)}" data-what="${what}" aria-label="Copy ${what} ${esc(shown)}">${esc(shown)}</button>`;
+
+function renderContact(p) {
+  const parts = [p.stage && esc(p.stage.label),
+    p.phones[0] && renderCopy(p.phones[0].replace(/[^\d+]/g, ''), showPhone(p.phones[0]), 'phone'),
+    p.emails[0] && renderCopy(p.emails[0], p.emails[0], 'email')].filter(Boolean);
+  return parts.length ? `<p class="contact">${parts.join(' · ')}</p>` : '';
+}
+
+function renderTask(p) {
+  const failed = Object.keys(p.errors || {}).map((k) => `<span class="err">${CHANNELS[k] || k} failed</span>`);
+  const last = p.lastAt ? `last ${timeTag(p.lastAt, ago(p.lastAt))}` : 'never contacted';
+  const parts = p.task
+    ? [`<b>${esc(KIND[p.task.kind] || p.task.kind)}</b>`, p.task.rule && `<span title="${esc(p.task.rule)}">${esc(p.task.rule)}</span>`, last, ...failed]
+    : [esc(p.company), last, ...failed];
+  return `<p class="task" id="task-${esc(p.id)}">${parts.filter(Boolean).join(' · ')}</p>`;
 }
 
 function renderRow(p) {
   const isOpen = open?.id === p.id;
-  const failed = Object.keys(p.errors || {}).map((k) => `<span class="err">${CHANNELS[k] || k} failed</span>`);
-  const sub = [esc(p.company), renderCounts(p), ...failed].filter(Boolean).join(' · ');
-  return `<li>
-    <button class="row" id="row-${esc(p.id)}" data-id="${esc(p.id)}" aria-expanded="${isOpen}" aria-controls="tl-${esc(p.id)}">
-      <span class="name">${esc(p.name)}</span>
-      ${p.lastAt ? timeTag(p.lastAt, ago(p.lastAt)) : '<time>Never</time>'}
-      <span class="sub">${sub}</span>
-    </button>
+  return `<li class="person">
+    <div class="head${isOpen ? ' open' : ''}">
+      <button class="row" id="row-${esc(p.id)}" data-id="${esc(p.id)}" aria-expanded="${isOpen}" aria-controls="tl-${esc(p.id)}" aria-describedby="task-${esc(p.id)}">
+        <span class="name">${esc(p.name)}</span>${renderDue(p)}
+      </button>
+      ${renderContact(p)}${renderTask(p)}
+    </div>
     ${isOpen ? `<section class="timeline" id="tl-${esc(p.id)}" role="region" aria-labelledby="row-${esc(p.id)}">${renderTimeline()}</section>` : ''}
   </li>`;
+}
+
+// Stage groups, furthest along first; inside a group the most overdue task first.
+function renderGroups(rows) {
+  const groups = new Map();
+  const sorted = [...rows].sort((a, b) => (a.stage || OTHER).rank - (b.stage || OTHER).rank
+    || (a.task?.dueAt ?? '9').localeCompare(b.task?.dueAt ?? '9') || a.name.localeCompare(b.name));
+  for (const p of sorted) {
+    const st = p.stage || OTHER;
+    if (!groups.has(st.rank)) groups.set(st.rank, { label: st.label, people: [] });
+    groups.get(st.rank).people.push(p);
+  }
+  return [...groups.entries()].map(([rank, g]) => {
+    const over = g.people.filter(isOverdue).length;
+    return `<section class="group" aria-labelledby="g-${rank}">
+      <h2 id="g-${rank}">${esc(g.label)} <span>· ${g.people.length}</span>${over ? ` <span class="over">· ${over} overdue</span>` : ''}</h2>
+      <ul class="rows">${g.people.map(renderRow).join('')}</ul>
+    </section>`;
+  }).join('');
 }
 
 function renderList() {
   const list = $('#people');
   if (!people.length) {
-    list.innerHTML = `<li class="empty">${sync.running ? `Loading people and history… ${sync.total ? `${sync.done} / ${sync.total}` : ''}`
-      : sync.errors?.crm ? 'Could not load people.' : 'No people yet. Press Refresh.'}</li>`;
+    list.innerHTML = `<p class="empty">${sync.running ? `Loading tasks and history… ${sync.total ? `${sync.done} / ${sync.total}` : ''}`
+      : sync.errors?.crm ? 'Could not load tasks.' : 'No tasks yet. Press Refresh.'}</p>`;
     return;
   }
   list.removeAttribute('aria-busy');
   const q = $('#q').value.trim().toLowerCase();
   const rows = people.filter((p) => matches(p, q));
-  list.innerHTML = (q ? `<li class="empty">${rows.length} of ${people.length}</li>` : '') +
-    (rows.map(renderRow).join('') || '<li class="empty">No matches</li>');
+  list.innerHTML = (q ? `<p class="count">${rows.length} of ${people.length}</p>` : '') +
+    (rows.length ? renderGroups(rows) : '<p class="empty">No matches</p>');
+}
+
+// One click copies phone or email; falls back when the clipboard API is refused.
+async function copy(btn) {
+  const value = btn.dataset.copy;
+  let ok = false;
+  try { await navigator.clipboard.writeText(value); ok = true; } catch {
+    const t = document.createElement('textarea');
+    t.value = value; document.body.append(t); t.select();
+    try { ok = document.execCommand('copy'); } catch {}
+    t.remove();
+  }
+  const shown = btn.textContent;
+  btn.style.minWidth = `${btn.offsetWidth}px`;
+  btn.textContent = ok ? 'Copied' : 'Press ⌘C';
+  $('#announce').textContent = ok ? `${btn.dataset.what === 'phone' ? 'Phone' : 'Email'} copied` : '';
+  setTimeout(() => { btn.textContent = shown; btn.style.minWidth = ''; }, 1500);
 }
 
 // ---- timeline (inside the open row)
@@ -206,7 +296,7 @@ const renderWhatsApp = (m, p) => `<article class="msg whatsapp" aria-label="What
 const RENDER = { email: renderEmail, whatsapp: renderWhatsApp };
 
 function renderDay(at) {
-  return `<li><h4 class="day">${esc(new Date(at).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }))}</h4></li>`;
+  return `<li><h3 class="day">${esc(new Date(at).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }))}</h3></li>`;
 }
 
 function renderErrors(errors) {
@@ -238,7 +328,8 @@ function renderTimeline() {
     lastDay = day;
     return sep + `<li class="${m.channel}${m.fromMe ? ' me' : ''}">${RENDER[m.channel](m, p)}</li>`;
   }).join('');
-  return renderErrors(errors) + (messages.length ? filters + earlier + `<ol class="msgs">${items}</ol>` : renderEmpty(p));
+  const note = p.task?.note ? `<p class="note"><b>Task note:</b> ${esc(p.task.note)}</p>` : '';
+  return note + renderErrors(errors) + (messages.length ? filters + earlier + `<ol class="msgs">${items}</ol>` : renderEmpty(p));
 }
 
 function rerenderOpen() {
@@ -304,6 +395,8 @@ async function startRefresh() {
 $('#refresh').addEventListener('click', startRefresh);
 $('#q').addEventListener('input', renderList);
 $('#people').addEventListener('click', (e) => {
+  const c = e.target.closest('[data-copy]');
+  if (c) return copy(c);
   const row = e.target.closest('.row');
   if (row) return toggle(row.dataset.id);
   const f = e.target.closest('[data-filter]');
@@ -321,7 +414,9 @@ $('#people').addEventListener('click', (e) => {
 $('#people').addEventListener('keydown', (e) => {
   const rows = [...document.querySelectorAll('.row')];
   if (e.key === 'Escape' && open) { e.preventDefault(); return toggle(open.id); }
-  const i = rows.indexOf(document.activeElement);
+  // From a row's copy buttons too, arrows move between rows.
+  const current = document.activeElement.closest('.head')?.querySelector('.row');
+  const i = rows.indexOf(current);
   if (i < 0) return;
   const next = { ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: rows.length - 1 }[e.key];
   if (next == null) return;
