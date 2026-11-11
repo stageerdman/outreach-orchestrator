@@ -96,11 +96,15 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   the team-member id, and returns one person per contact with an open task
   assigned to the user: task (kind, rule, follow type, due, note),
   `phone_e164`, and a pipeline stage (`stageOf`). The user's pipeline, top
-  first: Installment (`splatka` task), Waiting for Payment (a "Prodáno"
-  note), Thinking about it (follow-up after a consultation,
-  `follow_typ=konzultace`), No Show (cancelled-consultation rule), then the
-  furthest call result: Meeting Confirmed, Meeting Booked, Answered, Not
-  answered, New lead.
+  first: Installment (`splatka` task), Waiting for Payment ("Prodáno" or
+  "Domluveno — čeká se na platbu" note, unless a later "Uzavřeno jako
+  ztracené" note), Thinking about it (the consultation happened: follow-up
+  `follow_typ=konzultace`, a "Neprodáno" / "Bez nabídky" / "Konzultace bez
+  nabídky" note, a task closed "(show_offer)" / "(show_no_offer)", or call
+  result `neprodej`), No Show (cancelled-consultation rule, a "Nedorazil"
+  note or task note, a task closed "(no_show)"), then the furthest call
+  result: Meeting Confirmed, Meeting Booked, Answered, Not answered, New lead.
+  Notes and all the contact's tasks (closed ones too) are read for these.
   "LTO nákup" (bought LTO) tasks are just new leads to the user: no special
   stage, they follow the same call-result rules.
 - **UI feed:** only tasks due today or overdue; stage groups collapsed by
@@ -126,8 +130,8 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
 - **AI requests** (`lib/assistant.js`): the arrow on a task row (or "Draft N"
   on a stage group) asks Claude Code headless (`lib/claude.js`: `claude -p`,
   no tools, JSON schema, the user's own login, max 2 at once) for the next
-  step: a message (WhatsApp or email, templates first) or a "book a meeting"
-  request. Drafts wait in `requests.json` (app data folder) until the user
+  step: a message (WhatsApp or email, templates first) or an "offer a meeting"
+  request (Done = the user offered it, an activity, not a booking). Drafts wait in `requests.json` (app data folder) until the user
   sends (email over SMTP as a reply + Sent copy; WhatsApp opens the app
   prefilled and counts as sent), regenerates or cancels with an optional
   note. A person with a generating/pending draft can't get another. The AI
