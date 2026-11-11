@@ -18,7 +18,8 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   decisions and lessons). Reopen an update by flipping `CLOSED` → `OPEN`.
 - **Stay flat.** `server.js` (routes), `lib/` (one file per data source:
   `crm.js`, `email.js`, `whatsapp.js`), `public/index.html` (the UI),
-  `data/` (sample data). Add folders only when the project genuinely grows
+  `data/` (sample data), `macos/` (the native app wrapper, built with
+  `npm run app`), `patches/` (changes to vendored code). Add folders only when the project genuinely grows
   into them; tests, when added, go in `test/` using Node's built-in
   `node --test`.
 

@@ -6,7 +6,8 @@
   "scripts": {
     "test": "node --test",
     "start": "node --env-file-if-exists=.env server.js",
-    "dev": "node --watch --env-file-if-exists=.env server.js"
+    "dev": "node --watch --env-file-if-exists=.env server.js",
+    "app": "sh macos/build.sh"
   },
   "keywords": [],
   "author": "",

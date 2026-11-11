@@ -16,6 +16,15 @@ a person to expand their merged history. The status line under the search shows 
 sources are connected, off, or failing. History is kept in memory only, so after a restart
 the first page load refreshes again.
 
+## Mac app
+
+```sh
+npm run app            # builds and installs ~/Applications/Outreach.app
+```
+
+Opens the UI in its own window and starts the server and the WhatsApp bridge for you
+(quitting stops them). Logs: `~/Library/Logs/Outreach/`. Rebuild if you move this folder.
+
 ## Sources
 
 **CRM**: `CRM_URL` must return a JSON list of people. Map your field names with
