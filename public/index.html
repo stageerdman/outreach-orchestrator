@@ -123,7 +123,7 @@
   .ib svg, .btn svg { width: var(--icon); height: var(--icon); }
   .btn svg { width: var(--fs-lg); height: var(--fs-lg); vertical-align: -3px; margin-right: var(--s1); }
   .btn.sm svg { width: var(--fs); height: var(--fs); }
-  .spin { animation: spin .8s linear infinite; }
+  .spin { animation: spin .8s linear infinite; width: 1em; height: 1em; vertical-align: -0.125em; }
   @keyframes spin { to { transform: rotate(1turn); } }
   @media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
   .ai { position: absolute; right: var(--s3); top: var(--s3); z-index: 1; }
@@ -293,7 +293,10 @@
 <div class="view" id="view-requests" hidden>
 <header>
   <div class="wrap">
-    <div class="bar"><h1>AI Requests</h1></div>
+    <div class="bar"><h1>AI Requests</h1>
+      <div class="filters" role="group" aria-label="Show" id="rtabs">
+        <button type="button" data-rtab="drafts" aria-pressed="true">Drafts</button>
+        <button type="button" data-rtab="history" aria-pressed="false">History</button></div></div>
     <div class="status" id="rstatus"></div>
   </div>
 </header>
@@ -739,7 +742,7 @@ const REQ_OPEN = ['generating', 'pending', 'failed'];
 
 let requests = [], reqError = '', reqLoaded = false;
 let ropen = null;            // the request whose conversation is open: { reqId, id, data, filter, all }
-let recentOpen = false, cancelledOpen = false, cancelledShown = 20, rdefer = false, rtimer;
+let recentOpen = false, cancelledShown = 20, rtab = 'drafts', rdefer = false, rtimer;
 const CANCELLED_PAGE = 20;
 const activeReq = (personId) => requests.filter((r) => r.personId === personId && REQ_OPEN.includes(r.status)).at(-1);
 const busy = (p) => ['generating', 'pending'].includes(activeReq(p.id)?.status);
@@ -825,7 +828,6 @@ function renderRStatus() {
   const items = [`<span><span class="dot ${sources.smtp ? 'on' : ''}"></span>${sources.smtp ? 'Email sending' : 'Email sending off'}</span>`,
     `<span><span class="dot ${sources.whatsapp ? 'on' : ''}"></span>WhatsApp app</span>`];
   if (reqError) items.unshift(`<span class="bad"><span class="dot bad"></span>Could not load requests: ${esc(reqError)}</span>`);
-  if (pb && (coachBusy() || pb.coach.error)) items.push(`<span class="rcoach${pb.coach.error ? ' bad' : ''}">${renderCoachLine()}</span>`);
   $('#rstatus').innerHTML = items.join('');
 }
 
@@ -842,41 +844,29 @@ function renderRequests() {
   const waiting = requests.filter((r) => r.status === 'pending').sort((a, b) => rank(a) - rank(b) || due(a).localeCompare(due(b)));
   const working = requests.filter((r) => r.status === 'failed' || r.status === 'generating').sort((a, b) => (a.status === 'failed' ? -1 : 0) - (b.status === 'failed' ? -1 : 0));
   const week = Date.now() - 7 * 864e5;
-  const recent = requests.filter((r) => !REQ_OPEN.includes(r.status) && r.status !== 'cancelled' && new Date(r.updatedAt) > week).slice(-20).reverse();
-  const cancelled = requests.filter((r) => r.status === 'cancelled' && r.text).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const recent = requests.filter((r) => ['sent', 'done'].includes(r.status) && new Date(r.updatedAt) > week).slice(-20).reverse();
+  const cancelled = requests.filter((r) => ['cancelled', 'regenerated'].includes(r.status) && r.text).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   const shown = cancelled.slice(0, cancelledShown), left = cancelled.length - shown.length;
   const group = (title, list, body) => list.length ? `<section class="group"><h2>${title} <span>· ${list.length}</span></h2>${body}</section>` : '';
+  for (const b of document.querySelectorAll('[data-rtab]')) b.setAttribute('aria-pressed', b.dataset.rtab === rtab);
+  if (rtab === 'history') {
+    el.innerHTML = (cancelled.length || recent.length ? '' : '<p class="empty">No cancelled or replaced drafts yet.</p>')
+      + group('Cancelled and replaced', cancelled, `<ul class="cards" id="cancelled-rows">${shown.map(renderCancelled).join('')
+        + (left ? `<li class="rrow"><button type="button" class="link" data-cmore>Show ${Math.min(left, CANCELLED_PAGE)} more (${left} left)</button></li>` : '')}</ul>`)
+      + (recent.length ? `<section class="group"><h2><button type="button" class="gt" data-recent aria-expanded="${recentOpen}" aria-controls="recent-rows">
+        <span class="chev" aria-hidden="true">▸</span><span class="label">Sent</span> <span>· ${recent.length}</span></button></h2>
+        <ul class="cards" id="recent-rows"${recentOpen ? '' : ' hidden'}>${recentOpen ? recent.map(renderRecent).join('') : ''}</ul></section>` : '');
+    return;
+  }
   el.innerHTML = (waiting.length || working.length ? '' : `<p class="empty">Nothing waiting. Press ${icon('draft').replace('<svg', '<svg width="14" height="14"')} on a task to draft a follow-up.</p>`)
-    + group('Waiting for you', waiting, `<ul class="cards">${waiting.map(renderCard).join('')}</ul>`)
-    + group('In progress', working, `<ul class="cards">${working.map(renderCard).join('')}</ul>`)
-    + (recent.length ? `<section class="group"><h2><button type="button" class="gt" data-recent aria-expanded="${recentOpen}" aria-controls="recent-rows">
-        <span class="chev" aria-hidden="true">▸</span><span class="label">Recent</span> <span>· ${recent.length}</span></button></h2>
-        <ul class="cards" id="recent-rows"${recentOpen ? '' : ' hidden'}>${recentOpen ? recent.map(renderRecent).join('') : ''}</ul></section>` : '')
-    + (cancelled.length ? `<section class="group"><h2><button type="button" class="gt" data-cancelled aria-expanded="${cancelledOpen}" aria-controls="cancelled-rows">
-        <span class="chev" aria-hidden="true">▸</span><span class="label">Cancelled</span> <span>· ${cancelled.length}</span></button></h2>
-        <ul class="cards" id="cancelled-rows"${cancelledOpen ? '' : ' hidden'}>${cancelledOpen ? shown.map(renderCancelled).join('')
-          + (left ? `<li class="rrow"><button type="button" class="link" data-cmore>Show ${Math.min(left, CANCELLED_PAGE)} more (${left} left)</button></li>` : '') : ''}</ul></section>` : '');
+    + (waiting.length ? `<ul class="cards">${waiting.map(renderCard).join('')}</ul>` : '')
+    + group('In progress', working, `<ul class="cards">${working.map(renderCard).join('')}</ul>`);
 }
 
 const renderRecent = (r) => `<li class="rrow"><b>${esc(r.personName)}</b> · ${r.kind === 'meeting' ? 'Meeting' : CHANNELS[r.channel] || 'Draft'} ${STATUS[r.status] || r.status}
   ${timeTag(r.updatedAt, ago(r.updatedAt))}${r.note ? ` · “${esc(r.note)}”` : ''}${r.text ? ` — ${esc(r.text.slice(0, 140))}` : ''}</li>`;
 
-// "Not answered · step 2 of 5": the playbook step the draft follows, a link to it.
-function renderStepLink(r) {
-  const p = r.playbookId && pb?.playbooks.find((x) => x.id === r.playbookId);
-  if (!p) return '';
-  const i = p.steps.findIndex((s) => s.id === r.stepId), resp = p.responses.find((x) => x.id === r.stepId);
-  const label = i >= 0 ? `${p.name} · step ${i + 1} of ${p.steps.length}` : resp ? `${p.name} · reply “${resp.when}”` : p.name;
-  return `<button type="button" class="link" style="margin: 0" data-playbook="${esc(p.id)}" data-step="${esc(r.stepId || '')}">${esc(label)}</button>`;
-}
-
-function renderCardHead(r, p) {
-  const tpl = r.templateId && tpls?.find((t) => t.id === r.templateId);
-  const what = r.status === 'generating' || r.status === 'failed' ? '' : r.kind === 'meeting' ? 'Offer a meeting' : CHANNELS[r.channel];
-  const parts = [what && `<b class="${r.kind === 'meeting' ? '' : r.channel}">${what}</b>`,
-    p.task && esc(KIND[p.task.kind] || p.task.kind), renderStepLink(r), `drafted ${timeTag(r.createdAt, ago(r.createdAt))}`, tpl && `template “${esc(tpl.name)}”`];
-  return `<h3><span class="name">${esc(p.name)}</span>${renderDue(p)}</h3>${renderContact(p)}<p class="task">${parts.filter(Boolean).join(' · ')}</p>`;
-}
+const renderCardHead = (r, p) => `<h3><span class="name">${esc(p.name)}</span></h3>${renderContact(p)}`;
 
 const renderConv = (r, p, isOpen, label = `Conversation with ${p.name}`) =>
   `<button type="button" class="ib" data-act="conv" aria-expanded="${isOpen}" aria-controls="rtl-${esc(r.id)}" aria-label="${esc(label)}" title="${esc(label)}">${icon('conv')}</button>`;
@@ -897,10 +887,10 @@ function renderCancelled(r) {
   const p = personOf(r), id = esc(r.id), isOpen = ropen?.reqId === r.id;
   const what = r.kind === 'meeting' ? 'Offer a meeting' : CHANNELS[r.channel];
   return `<li class="card past" id="card-${id}" data-req="${id}" tabindex="-1">
-    <h3><span class="name">${esc(r.personName)}</span>${timeTag(r.updatedAt, `cancelled ${ago(r.updatedAt)}`)}</h3>
+    <h3><span class="name">${esc(r.personName)}</span>${timeTag(r.updatedAt, `${r.status === 'regenerated' ? 'replaced' : 'cancelled'} ${ago(r.updatedAt)}`)}</h3>
     <p class="task"><b class="${r.kind === 'meeting' ? '' : esc(r.channel)}">${what}</b> · drafted ${timeTag(r.createdAt, ago(r.createdAt))}</p>
     ${renderReason(r)}${r.subject ? `<p class="rsub">${esc(r.subject)}</p>` : ''}<p class="brief">${esc(r.text)}</p>
-    <div class="ractions">${renderConv(r, p, isOpen, `What the AI saw before drafting for ${r.personName}`)}<span class="cancel">${renderRecover(r)}</span></div></li>
+    <div class="ractions">${renderConv(r, p, isOpen, `What the AI saw before drafting for ${r.personName}`)}<span class="cancel">${r.status === 'cancelled' ? renderRecover(r) : ''}</span></div></li>
     ${isOpen ? `<li><section class="timeline" id="rtl-${id}" role="region" aria-label="What the AI saw before drafting for ${esc(r.personName)}">${renderTimeline(ropen)}</section></li>` : ''}`;
 }
 
@@ -941,7 +931,7 @@ function renderCard(r) {
   if (r.status === 'generating') body = `<p class="working">${SPIN} Drafting…</p><div class="ractions">${conv}${cancel}</div>`;
   else if (r.status === 'failed') body = `<p class="err" role="status">Draft failed: ${esc(r.error)}</p>
     <div class="ractions"><button type="button" class="btn primary" data-act="retry">${icon('regen')}Retry</button>${conv}${cancel}</div>`;
-  else if (r.kind === 'meeting') body = `<p class="why">${esc(r.reasoning)}</p><p class="brief">${esc(r.text)}</p>
+  else if (r.kind === 'meeting') body = `<p class="brief">${esc(r.text)}</p>
     <div class="ractions"><button type="button" class="btn primary" data-act="send" aria-keyshortcuts="Meta+Enter" title="I offered the meeting (⌘↩)">${icon('done')}Done</button>
       ${regen('Draft a message instead')}${conv}${cancel}<span class="tstatus" data-st></span></div>`;
   else {
@@ -949,8 +939,7 @@ function renderCard(r) {
     const primary = r.channel === 'email'
       ? `<button type="button" class="btn primary" data-act="send" aria-keyshortcuts="Meta+Enter" title="${sources.smtp ? 'Send the email (⌘↩)' : 'Email sending is not set up'}"${sources.smtp ? '' : ' aria-disabled="true"'}>${icon('send')}Send</button>`
       : `<button type="button" class="btn primary" data-act="send" aria-keyshortcuts="Meta+Enter" title="Open WhatsApp with this message (⌘↩)">${icon('wa')}Open WA</button>`;
-    body = `<p class="why">${esc(r.reasoning)}</p>
-      ${r.channel === 'email' ? `<input class="input rsubj" data-edit="subject" aria-label="Subject" placeholder="Subject" value="${esc(r.subject)}">` : ''}
+    body = `      ${r.channel === 'email' ? `<input class="input rsubj" data-edit="subject" aria-label="Subject" placeholder="Subject" value="${esc(r.subject)}">` : ''}
       <textarea class="input" data-edit="text" rows="${rows}" aria-label="Message to ${esc(p.name)}">${esc(r.text)}</textarea>
       <div class="ractions">${primary}${regen('Regenerate')}${conv}${cancel}<span class="tstatus" data-st></span></div>`;
   }
@@ -1036,21 +1025,22 @@ $('#ask-note').addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && e.metaKey) { e.preventDefault(); $('#ask').close('ok'); }
 });
 
+$('#rtabs').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-rtab]');
+  if (!b || b.dataset.rtab === rtab) return;
+  rtab = b.dataset.rtab; ropen = null; cancelledShown = CANCELLED_PAGE;
+  renderRequests();
+});
 $('#requests').addEventListener('click', (e) => {
   const cp = e.target.closest('[data-copy]');
   if (cp) return copy(cp);
   if (e.target.closest('[data-recent]')) { recentOpen = !recentOpen; renderRequests(); return $('[data-recent]')?.focus(); }
-  if (e.target.closest('[data-cancelled]')) {
-    cancelledOpen = !cancelledOpen; cancelledShown = CANCELLED_PAGE; renderRequests(); return $('[data-cancelled]')?.focus();
-  }
   if (e.target.closest('[data-cmore]')) {
     const first = cancelledShown; cancelledShown += CANCELLED_PAGE; renderRequests();
     return $('#cancelled-rows').querySelectorAll('.card')[first]?.focus();
   }
   const go = e.target.closest('[data-goto]');
   if (go) return gotoRequest(go.dataset.goto);
-  const pl = e.target.closest('[data-playbook]');
-  if (pl) return openPlaybook(pl.dataset.playbook, pl.dataset.step);
   const card = e.target.closest('.card');
   const r = card && requests.find((x) => x.id === card.dataset.req);
   if (!r) return ropen && timelineClick(e, ropen);
@@ -1058,7 +1048,7 @@ $('#requests').addEventListener('click', (e) => {
   if (!btn) return;
   const act = btn.dataset.act;
   if (act === 'conv') {
-    const ctx = r.status === 'cancelled';
+    const ctx = ['cancelled', 'regenerated'].includes(r.status);
     ropen = ropen?.reqId === r.id ? null : { reqId: r.id, id: r.personId, data: ctx ? null : hist.get(r.personId), filter: 'all', all: false, ctx };
     renderRequests();
     document.querySelector(`#card-${CSS.escape(r.id)} [data-act=conv]`)?.focus({ preventScroll: true });
@@ -1545,7 +1535,6 @@ async function loadPlaybooks() {
   if (pb) {
     const newest = pb.changes[0]?.id;
     if (lastChange !== undefined && newest && newest !== lastChange && pb.changes[0].trigger.kind !== 'user') {
-      $('#announce').textContent = `Learned: ${pb.changes[0].summary}`;
       // The AI may have written templates: reload them (not while one is being edited).
       if (pb.changes[0].ops.some((o) => o.op === 'setTemplate') && section !== 'templates') { tpls = null; await loadTemplates(); }
     }
@@ -1559,13 +1548,11 @@ async function loadPlaybooks() {
   if (coachBusy()) pbTimer = setTimeout(loadPlaybooks, 3000);
 }
 
-// ---- learning status: a line in Playbooks and in AI Requests; a "!" on the rail when it failed
+// Learning runs quietly in the background; only a failure is shown (here and as "!" on the rail).
 function renderCoachLine() {
   const c = pb?.coach;
   if (!c) return pbError ? `<span class="bad">Could not load playbooks: ${esc(pbError)}</span>` : '';
-  if (c.running || c.queued) return `${SPIN}<span>${c.running ? 'Learning from your last decision…' : 'Waiting to learn…'}${c.queued ? ` (+${c.queued} queued)` : ''}</span>`;
-  if (c.error) return `<span class="bad"><span class="dot bad"></span>Learning failed: ${esc(c.error)}. Playbooks weren't changed.</span>`;
-  return c.lastAt ? `<span>Last learned ${timeTag(c.lastAt, ago(c.lastAt))}</span>` : '';
+  return c.error ? `<span class="bad"><span class="dot bad"></span>Learning failed: ${esc(c.error)}. Playbooks weren't changed.</span>` : '';
 }
 function renderCoachBadge() {
   const b = $('#pbadge'), bad = Boolean(pb?.coach.error);
@@ -1596,7 +1583,7 @@ function renderPList() {
 }
 
 function renderBuild() {
-  const busy = coachBusy(), has = pb?.playbooks.length;
+  const busy = pb?.coach.building, has = pb?.playbooks.length;
   if (busy) return `<button type="button" class="btn" aria-disabled="true">${SPIN} ${has ? 'Working…' : 'Building…'}</button>`;
   if (!has) return '';
   if (rebuildAsk) return `Rebuild all? <button type="button" class="quiet danger" data-pact="build">Rebuild</button><button type="button" class="quiet" data-pact="build-no">Cancel</button>`;
@@ -1646,7 +1633,7 @@ function renderPEditor(force = true) {
   const back = '<button type="button" class="link back" data-pact="back">‹ Playbooks</button>';
   if (!pb) { ed.innerHTML = ''; return; }
   if (!pb.playbooks.length) {
-    ed.innerHTML = coachBusy() ? `<p class="empty">${SPIN} Building your playbooks from your templates, reply rates and style. This takes a few minutes.</p>`
+    ed.innerHTML = pb.coach.building ? `<p class="empty">${SPIN} Building your playbooks from your templates, reply rates and style. This takes a few minutes.</p>`
       : `<div class="empty"><p>No playbooks yet. The AI builds them from your templates and your real reply rates.</p>
         <button type="button" class="btn primary" data-pact="build">${icon('regen')} Build playbooks</button></div>`;
     return;
@@ -1767,16 +1754,6 @@ function renderLearned() {
 }
 
 // ---- interactions
-function openPlaybook(id, stepId) {
-  psel = id; ppane = 'editor';
-  showSection('playbooks');
-  if (stepId) {
-    const p = curPb(), i = p?.steps.findIndex((s) => s.id === stepId);
-    const el = i >= 0 ? document.querySelector(`#peditor .step[data-i="${i}"] textarea`) : null;
-    el?.scrollIntoView({ block: 'center' }); el?.focus({ preventScroll: true });
-  }
-}
-
 async function openTemplate(id) {
   showSection('templates');
   await loadTemplates();

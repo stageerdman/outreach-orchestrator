@@ -160,6 +160,10 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   playbooks and templates, applied as one logged change; any change (also the
   user's own edits, merged per 10 min) can be undone if nothing changed it
   since. Method and data in the PLAYBOOKS update's `research-playbooks.md`.
+  Learning is silent in the UI; only a failure shows (Playbooks + rail "!").
+- **AI Requests UI:** Drafts tab = just the waiting cards (name, contact,
+  message, actions; no AI reasoning, task row or due); History tab =
+  cancelled and replaced drafts with reasons and context, plus sent ones.
 - **Style guide** (Settings → Learn my style): `lib/style.js` builds reply
   pairs, follow-ups and measured stats from the snapshot; one Claude run turns
   them into a Markdown guide (method in the AI REQUESTS update's
