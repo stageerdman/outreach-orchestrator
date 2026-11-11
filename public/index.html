@@ -10,7 +10,7 @@
     --accent: #2f5bd3; --email: #2f5bd3; --wa: #1f7f50; --me: #eef2fd; --sel: #eef2fd; --err: #b3261e;
     --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px;
     --fs-sm: 12px; --fs: 14px; --fs-lg: 16px; --radius: 6px; --width: 860px; --gh: 32px;
-    --rail: 72px; --list-w: 280px; --icon: 20px;
+    --rail: 72px; --list-w: 280px; --icon: 20px; --hit: 28px; --badge: 16px;
     /* Pipeline stage colours, top stage first (each ≥4.5:1 on bg, panel and sel) */
     --st-1: #1a7a45; --st-2: #0e7480; --st-3: #8a6a00; --st-4: #b8461b; --st-5: #1f6aa5;
     --st-6: #5a52c4; --st-7: #8b47ad; --st-8: #776c60; --st-9: #646c78;
@@ -58,17 +58,17 @@
   /* Task feed: groups per pipeline stage, one row per person, one open at a time */
   main { flex: 1; overflow-y: auto; min-height: 0; }
   .group + .group { margin-top: var(--s1); }
-  .group h2 { position: sticky; top: 0; z-index: 2; margin: 0; height: var(--gh); padding: 0 var(--s4);
+  .group h2 { position: sticky; top: 0; z-index: 2; margin: 0; height: var(--gh); padding: 0 var(--s2) 0 var(--s4); display: flex; align-items: center; gap: var(--s2);
     background: var(--bg); border-bottom: 1px solid var(--line); font-size: var(--fs-sm); font-weight: 600; color: var(--muted); }
   .group h2 .over { color: var(--err); }
-  .gt { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: var(--s2); width: 100%; height: 100%; cursor: pointer; }
+  .gt { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: var(--s2); flex: 1; min-width: 0; height: 100%; cursor: pointer; }
   .gt:hover .label { color: var(--text); }
   .gt:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
   .chev { transition: transform .15s; } .gt[aria-expanded=true] .chev { transform: rotate(90deg); }
   .sd { width: 8px; height: 8px; border-radius: 50%; background: var(--st); flex: none; }
   @media (prefers-reduced-motion: reduce) { .chev { transition: none; } }
   .rows { list-style: none; margin: 0; padding: 0; background: var(--panel); border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
-  .head { position: relative; padding: var(--s3) var(--s4); border-bottom: 1px solid var(--line); background: var(--panel); scroll-margin-top: var(--gh); }
+  .head { position: relative; padding: var(--s3) calc(var(--s4) + var(--hit) + var(--s2)) var(--s3) var(--s4); border-bottom: 1px solid var(--line); background: var(--panel); scroll-margin-top: var(--gh); }
   .head:hover { background: var(--sel); }
   .head.open { position: sticky; top: var(--gh); z-index: 1; background: var(--sel); box-shadow: inset 3px 0 var(--st, var(--accent)); }
   /* The row button covers the whole head (click anywhere); copy buttons sit above it. */
@@ -113,6 +113,59 @@
   .body.clamp { max-height: 9.5em; overflow: hidden; }
   .link { all: unset; color: var(--accent); font-size: var(--fs-sm); cursor: pointer; margin-top: var(--s1); align-self: flex-start; }
   .link:focus-visible { outline: 2px solid var(--accent); }
+
+  /* AI: icon buttons, spinner, the draft button on task rows, badges */
+  .ib { all: unset; box-sizing: border-box; display: inline-grid; place-items: center; width: var(--hit); height: var(--hit); flex: none;
+    border-radius: var(--radius); color: var(--muted); cursor: pointer; }
+  .ib:hover { color: var(--text); background: var(--sel); }
+  .ib:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .ib[aria-disabled=true], .btn[aria-disabled=true] { opacity: .45; cursor: default; }
+  .ib svg, .btn svg { width: var(--icon); height: var(--icon); }
+  .btn svg { width: var(--fs-lg); height: var(--fs-lg); vertical-align: -3px; margin-right: var(--s1); }
+  .btn.sm svg { width: var(--fs); height: var(--fs); }
+  .spin { animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(1turn); } }
+  @media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+  .ai { position: absolute; right: var(--s3); top: var(--s3); z-index: 1; }
+  .ai:not([aria-disabled=true]):hover { color: var(--accent); }
+  .gai { flex: none; font-variant-numeric: tabular-nums; }
+  .pill { all: unset; position: relative; z-index: 1; cursor: pointer; font-size: var(--fs-sm); font-weight: 600; color: var(--accent);
+    border: 1px solid currentColor; border-radius: 99px; padding: 0 var(--s2); }
+  .pill:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .rail a { position: relative; }
+  .count-badge { position: absolute; top: 2px; right: 10px; min-width: var(--badge); height: var(--badge); padding: 0 var(--s1); border-radius: 99px;
+    background: var(--accent); color: var(--panel); font-size: var(--fs-sm); line-height: var(--badge); text-align: center; font-weight: 600; }
+  .count-badge.bad { background: var(--err); }
+
+  /* AI Requests: one card per draft, conversation opens below it */
+  .cards { list-style: none; margin: 0; padding: 0; }
+  .card { position: relative; padding: var(--s3) var(--s4); border-bottom: 1px solid var(--line); background: var(--panel);
+    box-shadow: inset 3px 0 var(--st, var(--line)); display: flex; flex-direction: column; gap: var(--s2); }
+  .card h3 { margin: 0; font-size: var(--fs); display: flex; justify-content: space-between; gap: var(--s3); }
+  .card .task { white-space: normal; }
+  .why { margin: 0; color: var(--muted); font-size: var(--fs-sm); }
+  .brief { margin: 0; padding: var(--s2) var(--s3); background: var(--bg); border-radius: var(--radius); white-space: pre-wrap; }
+  textarea.input { width: 100%; resize: vertical; line-height: 1.45; }
+  .rsubj { width: 100%; }
+  .ractions { display: flex; align-items: center; gap: var(--s1); }
+  .ractions .cancel { margin-left: auto; }
+  .rrow { padding: var(--s2) var(--s4); border-bottom: 1px solid var(--line); background: var(--panel); font-size: var(--fs-sm); color: var(--muted);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rrow b { color: var(--text); }
+  .working { display: flex; align-items: center; gap: var(--s2); color: var(--muted); font-size: var(--fs-sm); }
+  dialog { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); color: var(--text); padding: var(--s4);
+    width: min(28rem, calc(100% - 2 * var(--s4))); }
+  dialog::backdrop { background: color-mix(in srgb, var(--text) 30%, transparent); }
+  dialog h2 { font-size: var(--fs-lg); margin: 0 0 var(--s3); }
+  dialog label { display: block; font-size: var(--fs-sm); font-weight: 600; margin-bottom: var(--s1); }
+  .dact { display: flex; justify-content: flex-end; gap: var(--s2); margin-top: var(--s3); }
+  .btn.danger { background: var(--err); border-color: var(--err); color: var(--panel); }
+
+  /* Settings */
+  .settings { flex: 1; min-height: 0; }
+  .settings .fields { gap: var(--s3); }
+  .lrow { display: flex; align-items: center; gap: var(--s2); }
+  .lrow label { font-weight: 600; flex: 1; }
 
   /* Templates: list on the left, editor on the right */
   .tsplit { flex: 1; min-height: 0; display: grid; grid-template-columns: var(--list-w) minmax(0, 1fr); }
@@ -172,9 +225,15 @@
   <a href="#tasks" data-section="tasks" aria-keyshortcuts="Meta+1" title="Tasks (⌘1)">
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5l1.5 1.5L7 4M3 11l1.5 1.5L7 10M10 5.5h7M10 11.5h7M10 16.5h7M3.5 16.5h3"/></svg>
     <span>Tasks</span></a>
-  <a href="#templates" data-section="templates" aria-keyshortcuts="Meta+2" title="Templates (⌘2)">
+  <a href="#requests" data-section="requests" aria-keyshortcuts="Meta+2" title="AI Requests (⌘2)">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.5l1.4 3.6 3.6 1.4-3.6 1.4L10 12.5 8.6 8.9 5 7.5l3.6-1.4zM15.5 12.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></svg>
+    <span>Requests</span><span class="count-badge" id="rbadge" hidden></span></a>
+  <a href="#templates" data-section="templates" aria-keyshortcuts="Meta+3" title="Templates (⌘3)">
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 2.5h7l3.5 3.5v11.5h-10.5zM12 2.5V6h3.5M7.5 10h6M7.5 13h6"/></svg>
     <span>Templates</span></a>
+  <a href="#settings" data-section="settings" aria-keyshortcuts="Meta+4" title="Settings (⌘4)">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h5M12 5h5M3 10h9M16 10h1M3 15h2M9 15h8"/><circle cx="10" cy="5" r="2"/><circle cx="14" cy="10" r="2"/><circle cx="7" cy="15" r="2"/></svg>
+    <span>Settings</span></a>
 </nav>
 <div class="view" id="view-tasks">
 <header>
@@ -192,6 +251,17 @@
   <div class="wrap" id="people" aria-busy="true"></div>
 </main>
 </div>
+<div class="view" id="view-requests" hidden>
+<header>
+  <div class="wrap">
+    <div class="bar"><h1>AI Requests</h1></div>
+    <div class="status" id="rstatus"></div>
+  </div>
+</header>
+<main id="rmain">
+  <div class="wrap" id="requests" aria-busy="true"></div>
+</main>
+</div>
 <div class="view" id="view-templates" hidden>
   <div class="tsplit" id="tsplit" data-pane="list">
     <div class="tlist">
@@ -204,6 +274,18 @@
     <div class="editor" id="editor"></div>
   </div>
 </div>
+<div class="view" id="view-settings" hidden>
+  <div class="editor settings" id="settings"></div>
+</div>
+<dialog id="ask" aria-labelledby="ask-title">
+  <form method="dialog">
+    <h2 id="ask-title"></h2>
+    <label for="ask-note" id="ask-label"></label>
+    <textarea class="input" id="ask-note" rows="3"></textarea>
+    <p class="info" id="ask-info"></p>
+    <div class="dact"><button type="submit" class="btn" value="keep">Keep</button><button type="submit" class="btn primary" value="ok" id="ask-ok"></button></div>
+  </form>
+</dialog>
 <p class="sr-only" aria-live="polite" id="announce"></p>
 <script type="module">
 import { placeholders, hasGender, resolve, htmlToText } from '/resolve.js';
@@ -306,7 +388,10 @@ function renderContact(p) {
 }
 
 function renderTask(p) {
-  const failed = Object.keys(p.errors || {}).map((k) => `<span class="err">${CHANNELS[k] || k} failed</span>`);
+  const r = activeReq(p.id);
+  const ai = r?.status === 'pending' ? `<button type="button" class="pill" data-goto="${esc(r.id)}">${r.kind === 'meeting' ? 'Book meeting' : 'Draft ready'}</button>`
+    : r?.status === 'failed' ? `<span class="err" title="${esc(r.error)}">AI failed</span>` : '';
+  const failed = [ai, ...Object.keys(p.errors || {}).map((k) => `<span class="err">${CHANNELS[k] || k} failed</span>`)].filter(Boolean);
   const last = p.lastAt ? `last ${timeTag(p.lastAt, ago(p.lastAt))}` : 'never contacted';
   const parts = p.task
     ? [`<b>${esc(KIND[p.task.kind] || p.task.kind)}</b>`, p.task.rule && `<span title="${esc(p.task.rule)}">${esc(p.task.rule)}</span>`, last, ...failed]
@@ -321,7 +406,7 @@ function renderRow(p) {
       <button class="row" id="row-${esc(p.id)}" data-id="${esc(p.id)}" aria-expanded="${isOpen}" aria-controls="tl-${esc(p.id)}" aria-describedby="task-${esc(p.id)}">
         <span class="name">${esc(p.name)}</span>${renderDue(p)}
       </button>
-      ${renderContact(p)}${renderTask(p)}
+      ${renderContact(p)}${renderTask(p)}${renderAi(p)}
     </div>
     ${isOpen ? `<section class="timeline" id="tl-${esc(p.id)}" role="region" aria-labelledby="row-${esc(p.id)}">${renderTimeline()}</section>` : ''}
   </li>`;
@@ -345,7 +430,7 @@ function renderGroups(rows, searching) {
       <h2><button type="button" class="gt" data-rank="${rank}" aria-expanded="${isOpen}" aria-controls="g-${rank}-rows">
         <span class="chev" aria-hidden="true">▸</span><span class="sd" aria-hidden="true"></span>
         <span class="label">${esc(g.label)}</span> <span>· ${g.people.length}</span>${over ? ` <span class="over">· ${over} overdue</span>` : ''}
-      </button></h2>
+      </button>${renderBatch(rank, g)}</h2>
       <ul class="rows" id="g-${rank}-rows"${isOpen ? '' : ' hidden'}>${isOpen ? g.people.map(renderRow).join('') : ''}</ul>
     </section>`;
   }).join('');
@@ -421,14 +506,15 @@ function renderEmpty(p) {
   return `<p class="empty">No messages for ${esc([...p.emails, ...p.phones].join(', '))}.${tips.length ? '<br>' + esc(tips.join(' ')) : ''}</p>`;
 }
 
-function renderTimeline() {
-  if (!open.data) return '<p class="info" aria-live="polite">Loading…</p>';
-  const { person: p, messages, errors } = open.data;
+// st: { data, filter, all } — the open person in Tasks, or the open request's conversation.
+function renderTimeline(st = open) {
+  if (!st.data) return '<p class="info" aria-live="polite">Loading…</p>';
+  const { person: p, messages, errors } = st.data;
   const used = Object.keys(CHANNELS).filter((k) => messages.some((m) => m.channel === k));
-  const shown = messages.filter((m) => open.filter === 'all' || m.channel === open.filter);
-  const visible = open.all ? shown : shown.slice(-RECENT);
+  const shown = messages.filter((m) => st.filter === 'all' || m.channel === st.filter);
+  const visible = st.all ? shown : shown.slice(-RECENT);
   const filters = used.length > 1 ? `<div class="filters">${[['all', `All ${messages.length}`], ...used.map((k) => [k, `${CHANNELS[k]} ${p.counts[k]}`])]
-    .map(([k, l]) => `<button type="button" data-filter="${k}" aria-pressed="${open.filter === k}">${l}</button>`).join('')}</div>` : '';
+    .map(([k, l]) => `<button type="button" data-filter="${k}" aria-pressed="${st.filter === k}">${l}</button>`).join('')}</div>` : '';
   const earlier = shown.length > visible.length ? `<button class="link" data-earlier>Show earlier (${shown.length - visible.length})</button>` : '';
   let lastDay = '';
   const items = visible.map((m) => {
@@ -444,6 +530,22 @@ function renderTimeline() {
 function rerenderOpen() {
   const el = open && document.getElementById(`tl-${open.id}`);
   if (el) el.innerHTML = renderTimeline();
+  const rel = ropen && document.getElementById(`rtl-${ropen.reqId}`);
+  if (rel) rel.innerHTML = renderTimeline(ropen);
+}
+
+// Filters, "Show earlier" and "Show more" inside a timeline. True when handled.
+function timelineClick(e, st) {
+  const f = e.target.closest('[data-filter]');
+  if (f) { st.filter = f.dataset.filter; st.all = false; rerenderOpen(); return true; }
+  if (e.target.closest('[data-earlier]')) { st.all = true; rerenderOpen(); return true; }
+  const more = e.target.closest('[data-more]');
+  if (!more) return false;
+  const expanded = more.getAttribute('aria-expanded') !== 'true';
+  document.getElementById(more.getAttribute('aria-controls')).classList.toggle('clamp', !expanded);
+  more.setAttribute('aria-expanded', expanded);
+  more.textContent = expanded ? 'Show less' : 'Show more';
+  return true;
 }
 
 async function loadHistory(id) {
@@ -451,7 +553,9 @@ async function loadHistory(id) {
     try { hist.set(id, await api(`/api/people/${encodeURIComponent(id)}/history`)); }
     catch (e) { const p = people.find((x) => x.id === id); hist.set(id, { person: p, messages: [], errors: { load: e.message } }); }
   }
-  if (open?.id === id) { open.data = hist.get(id); rerenderOpen(); }
+  if (open?.id === id) open.data = hist.get(id);
+  if (ropen?.id === id) ropen.data = hist.get(id);
+  rerenderOpen();
 }
 
 // Opens or closes a row, keeping the clicked header where it was on screen.
@@ -486,6 +590,8 @@ async function loadPeople() {
   if (focusedId) document.getElementById(`row-${focusedId}`)?.focus({ preventScroll: true });
   if (focusedRank) document.querySelector(`.gt[data-rank="${focusedRank}"]`)?.focus({ preventScroll: true });
   if (open) { open.data = null; rerenderOpen(); loadHistory(open.id); }
+  if (ropen) { ropen.data = null; rerenderOpen(); loadHistory(ropen.id); }
+  renderRequests();
 }
 
 async function poll() {
@@ -526,22 +632,23 @@ $('#people').addEventListener('click', (e) => {
   if (g) return toggleGroup(Number(g.dataset.rank));
   const row = e.target.closest('.row');
   if (row) return toggle(row.dataset.id);
-  const f = e.target.closest('[data-filter]');
-  if (f) { open.filter = f.dataset.filter; open.all = false; return rerenderOpen(); }
-  if (e.target.closest('[data-earlier]')) { open.all = true; return rerenderOpen(); }
-  const more = e.target.closest('[data-more]');
-  if (more) {
-    const expanded = more.getAttribute('aria-expanded') !== 'true';
-    document.getElementById(more.getAttribute('aria-controls')).classList.toggle('clamp', !expanded);
-    more.setAttribute('aria-expanded', expanded);
-    more.textContent = expanded ? 'Show less' : 'Show more';
-  }
+  const d = e.target.closest('[data-draft]');
+  if (d) return d.getAttribute('aria-disabled') === 'true' ? $('#announce').textContent = d.title : startDraft([d.dataset.draft]);
+  const go = e.target.closest('[data-goto]');
+  if (go) { e.preventDefault(); return gotoRequest(go.dataset.goto); }
+  const b = e.target.closest('[data-batch]');
+  if (b) return batch(b);
+  if (open) timelineClick(e, open);
 });
 // ↑/↓/Home/End move between people; Esc closes the open person.
 $('#people').addEventListener('keydown', (e) => {
   // Arrows move through group headers and the rows of open groups, in order.
   const rows = [...document.querySelectorAll('.gt, .rows:not([hidden]) .row')];
   if (e.key === 'Escape' && open) { e.preventDefault(); return toggle(open.id); }
+  if (e.key === 'g' && !e.metaKey && !e.ctrlKey) {
+    const ai = document.activeElement.closest('.head')?.querySelector('.ai');
+    if (ai) { e.preventDefault(); return ai.click(); }
+  }
   // From a row's copy buttons too, arrows move between rows.
   const a = document.activeElement;
   const current = a.classList.contains('gt') ? a : a.closest('.head')?.querySelector('.row');
@@ -556,12 +663,388 @@ document.addEventListener('keydown', (e) => {
   const a = document.activeElement, typing = a?.matches('input, textarea, [contenteditable=true]');
   if (e.metaKey && SECTIONS.includes(SECTIONS[e.key - 1])) { e.preventDefault(); return showSection(SECTIONS[e.key - 1], true); }
   if (e.metaKey && e.key === 'n' && section === 'templates') { e.preventDefault(); return newTemplate(); }
-  if (e.key === '/' && !typing) { e.preventDefault(); $(section === 'tasks' ? '#q' : '#tq').focus(); }
+  const search = { tasks: '#q', templates: '#tq' }[section];
+  if (e.key === '/' && !typing && search) { e.preventDefault(); $(search).focus(); }
 });
 setInterval(() => { renderHeader(); if (!sync.running && people.length && !open) renderList(); }, 30_000);
 
+// ---- AI: drafts are requests waiting for the user (see /api/requests)
+const ICONS = {
+  draft: 'M4 10h11M11 6l4 4-4 4',
+  send: 'M17.5 2.5L9 11M17.5 2.5l-5 15-3.5-6.5-6.5-3.5z',
+  wa: 'M10 3a7 7 0 0 0-6 10.6L3 17l3.4-1A7 7 0 1 0 10 3z',
+  done: 'M4 10.5l4 4 8-9',
+  regen: 'M16 10a6 6 0 1 1-1.8-4.3M16 3.5v3h-3',
+  conv: 'M3 4h10v7H7l-3 2.5V11H3zM13 8h4v6h-1v2l-2.5-2H9v-2',
+  cancel: 'M5 5l10 10M15 5L5 15',
+};
+const icon = (name) => `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICONS[name]}"/></svg>`;
+const SPIN = '<svg class="spin" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7" stroke-dasharray="30 14"/></svg>';
+const REQ_OPEN = ['generating', 'pending', 'failed'];
+
+let requests = [], reqError = '', reqLoaded = false;
+let ropen = null;            // the request whose conversation is open: { reqId, id, data, filter, all }
+let recentOpen = false, rdefer = false, rtimer;
+const activeReq = (personId) => requests.filter((r) => r.personId === personId && REQ_OPEN.includes(r.status)).at(-1);
+const busy = (p) => ['generating', 'pending'].includes(activeReq(p.id)?.status);
+const reachable = (p) => p.emails.length > 0 || p.phones.length > 0;
+
+function renderAi(p) {
+  const r = activeReq(p.id), id = esc(p.id), name = esc(p.name);
+  if (r?.status === 'generating') return `<button type="button" class="ib ai" id="ai-${id}" aria-disabled="true" aria-label="Drafting a follow-up for ${name}" title="Drafting a follow-up…">${SPIN}</button>`;
+  const why = r?.status === 'pending' ? 'A draft is waiting in AI Requests' : !reachable(p) ? 'No email or WhatsApp to write to' : '';
+  const title = why || (r?.status === 'failed' ? `Retry the draft. Last try failed: ${r.error}` : 'Draft a follow-up with AI (G)');
+  return `<button type="button" class="ib ai" id="ai-${id}" data-draft="${id}" aria-keyshortcuts="g" aria-label="${why ? esc(why) : `Draft a follow-up for ${name}`}"
+    title="${esc(title)}"${why ? ' aria-disabled="true"' : ''}>${icon('draft')}</button>`;
+}
+
+// Group button: drafts for everyone shown in the group without a draft on the way.
+function renderBatch(rank, g) {
+  const ok = g.people.filter((p) => reachable(p) && !busy(p)), skipped = g.people.filter(busy).length;
+  if (!ok.length) return '';
+  return `<button type="button" class="btn sm gai" data-batch="${rank}" data-ids="${esc(ok.map((p) => p.id).join(','))}"
+    aria-label="Draft follow-ups for ${ok.length} in ${esc(g.label)}" title="Draft follow-ups for ${ok.length} with AI${skipped ? ` (${skipped} with a draft are skipped)` : ''}">${icon('draft')}Draft ${ok.length}</button>`;
+}
+
+// Re-renders the task list, keeping focus on the same element.
+function rerenderTasks() {
+  const a = document.activeElement;
+  const key = a?.id ? `#${CSS.escape(a.id)}` : a?.dataset?.rank ? `[data-rank="${a.dataset.rank}"]${a.dataset.batch ? '.gai' : '.gt'}` : null;
+  renderList();
+  if (key) document.querySelector(key)?.focus({ preventScroll: true });
+}
+
+async function startDraft(ids, quiet = false) {
+  try {
+    const created = await api('/api/requests', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ personIds: ids }) });
+    requests.push(...created);
+    if (!quiet) $('#announce').textContent = created.length === 1 ? `Drafting a follow-up for ${created[0].personName}` : `Drafting ${created.length} follow-ups`;
+  } catch (e) { $('#announce').textContent = `Could not start the draft: ${e.message}`; }
+  rerenderTasks(); renderRequests(); renderBadge(); loadRequests();
+}
+
+// More than 10 at once asks for a second click.
+let armTimer;
+function batch(b) {
+  const ids = b.dataset.ids.split(',');
+  if (ids.length > 10 && !b.dataset.armed) {
+    b.dataset.armed = '1'; b.lastChild.textContent = `Draft ${ids.length}? Click again`;
+    clearTimeout(armTimer); armTimer = setTimeout(rerenderTasks, 4000);
+    return;
+  }
+  startDraft(ids, true);
+  $('#announce').textContent = `Drafting ${ids.length} follow-ups`;
+}
+
+// Only the newest load counts: an older answer arriving late would undo newer state.
+let reqSeq = 0;
+async function loadRequests() {
+  const seq = ++reqSeq, before = new Map(requests.map((r) => [r.id, r.status]));
+  let list;
+  try { list = await api('/api/requests'); reqError = ''; } catch (e) { reqError = e.message; }
+  if (seq !== reqSeq) return;
+  if (list) requests = list;
+  reqLoaded = true;
+  const done = requests.filter((r) => before.get(r.id) === 'generating' && r.status !== 'generating');
+  if (done.length === 1) $('#announce').textContent = done[0].status === 'failed' ? `Draft failed for ${done[0].personName}` : `Draft ready for ${done[0].personName}`;
+  else if (done.length) $('#announce').textContent = `${done.filter((r) => r.status !== 'failed').length} drafts ready, ${done.filter((r) => r.status === 'failed').length} failed`;
+  if (done.length || before.size !== requests.length) rerenderTasks();
+  renderRequests(); renderBadge();
+  clearTimeout(rtimer);
+  if (requests.some((r) => r.status === 'generating')) rtimer = setTimeout(loadRequests, 2000);
+}
+
+function renderBadge() {
+  const waiting = requests.filter((r) => r.status === 'pending').length, failed = requests.filter((r) => r.status === 'failed').length;
+  const b = $('#rbadge'), n = waiting + failed;
+  b.hidden = !n; b.textContent = n; b.classList.toggle('bad', failed > 0);
+  b.parentElement.setAttribute('aria-label', `AI Requests${n ? `, ${waiting} waiting${failed ? `, ${failed} failed` : ''}` : ''}`);
+}
+
+// ---- AI Requests section
+const personOf = (r) => people.find((p) => p.id === r.personId) || { id: r.personId, name: r.personName, emails: [], phones: [] };
+const STATUS = { sent: 'sent', cancelled: 'cancelled', done: 'meeting booked', regenerated: 'replaced' };
+
+function renderRStatus() {
+  const items = [`<span><span class="dot ${sources.smtp ? 'on' : ''}"></span>${sources.smtp ? 'Email sending' : 'Email sending off'}</span>`,
+    `<span><span class="dot ${sources.whatsapp ? 'on' : ''}"></span>WhatsApp app</span>`];
+  if (reqError) items.unshift(`<span class="bad"><span class="dot bad"></span>Could not load requests: ${esc(reqError)}</span>`);
+  $('#rstatus').innerHTML = items.join('');
+}
+
+function renderRequests() {
+  const el = $('#requests');
+  if (!el) return;
+  // Never re-render under the user's hands; catch up when they leave the field.
+  if (el.contains(document.activeElement) && document.activeElement.matches('textarea, input')) { rdefer = true; return; }
+  rdefer = false;
+  renderRStatus();
+  if (!reqLoaded) { el.innerHTML = '<p class="empty">Loading requests…</p>'; return; }
+  el.removeAttribute('aria-busy');
+  const rank = (r) => personOf(r).stage?.rank ?? 99, due = (r) => personOf(r).task?.dueAt ?? '9';
+  const waiting = requests.filter((r) => r.status === 'pending').sort((a, b) => rank(a) - rank(b) || due(a).localeCompare(due(b)));
+  const working = requests.filter((r) => r.status === 'failed' || r.status === 'generating').sort((a, b) => (a.status === 'failed' ? -1 : 0) - (b.status === 'failed' ? -1 : 0));
+  const week = Date.now() - 7 * 864e5;
+  const recent = requests.filter((r) => !REQ_OPEN.includes(r.status) && new Date(r.updatedAt) > week).slice(-20).reverse();
+  const group = (title, list, body) => list.length ? `<section class="group"><h2>${title} <span>· ${list.length}</span></h2>${body}</section>` : '';
+  el.innerHTML = (waiting.length || working.length ? '' : `<p class="empty">Nothing waiting. Press ${icon('draft').replace('<svg', '<svg width="14" height="14"')} on a task to draft a follow-up.</p>`)
+    + group('Waiting for you', waiting, `<ul class="cards">${waiting.map(renderCard).join('')}</ul>`)
+    + group('In progress', working, `<ul class="cards">${working.map(renderCard).join('')}</ul>`)
+    + (recent.length ? `<section class="group"><h2><button type="button" class="gt" data-recent aria-expanded="${recentOpen}" aria-controls="recent-rows">
+        <span class="chev" aria-hidden="true">▸</span><span class="label">Recent</span> <span>· ${recent.length}</span></button></h2>
+        <ul class="cards" id="recent-rows"${recentOpen ? '' : ' hidden'}>${recentOpen ? recent.map(renderRecent).join('') : ''}</ul></section>` : '');
+}
+
+const renderRecent = (r) => `<li class="rrow"><b>${esc(r.personName)}</b> · ${r.kind === 'meeting' ? 'Meeting' : CHANNELS[r.channel] || 'Draft'} ${STATUS[r.status] || r.status}
+  ${timeTag(r.updatedAt, ago(r.updatedAt))}${r.note ? ` · “${esc(r.note)}”` : ''}${r.text ? ` — ${esc(r.text.slice(0, 140))}` : ''}</li>`;
+
+function renderCardHead(r, p) {
+  const tpl = r.templateId && tpls?.find((t) => t.id === r.templateId);
+  const what = r.status === 'generating' || r.status === 'failed' ? '' : r.kind === 'meeting' ? 'Book a meeting' : CHANNELS[r.channel];
+  const parts = [what && `<b class="${r.kind === 'meeting' ? '' : r.channel}">${what}</b>`, p.stage && esc(p.stage.label),
+    p.task && esc(KIND[p.task.kind] || p.task.kind), `drafted ${timeTag(r.createdAt, ago(r.createdAt))}`, tpl && `template “${esc(tpl.name)}”`];
+  return `<h3><span class="name">${esc(p.name)}</span>${renderDue(p)}</h3><p class="task">${parts.filter(Boolean).join(' · ')}</p>`;
+}
+
+function renderCard(r) {
+  const p = personOf(r), id = esc(r.id), isOpen = ropen?.reqId === r.id;
+  const conv = `<button type="button" class="ib" data-act="conv" aria-expanded="${isOpen}" aria-controls="rtl-${id}" aria-label="Conversation with ${esc(p.name)}" title="Conversation">${icon('conv')}</button>`;
+  const regen = (label) => `<button type="button" class="ib" data-act="regen" aria-label="${label}" title="${label}">${icon('regen')}</button>`;
+  const cancel = `<button type="button" class="ib cancel" data-act="cancel" aria-label="Cancel" title="Cancel">${icon('cancel')}</button>`;
+  let body;
+  if (r.status === 'generating') body = `<p class="working">${SPIN} Drafting…</p><div class="ractions">${conv}${cancel}</div>`;
+  else if (r.status === 'failed') body = `<p class="err" role="status">Draft failed: ${esc(r.error)}</p>
+    <div class="ractions"><button type="button" class="btn primary" data-act="retry">${icon('regen')}Retry</button>${conv}${cancel}</div>`;
+  else if (r.kind === 'meeting') body = `<p class="why">${esc(r.reasoning)}</p><p class="brief">${esc(r.text)}</p>
+    <div class="ractions"><button type="button" class="btn primary" data-act="send" aria-keyshortcuts="Meta+Enter" title="Meeting scheduled (⌘↩)">${icon('done')}Done</button>
+      ${regen('Draft a message instead')}${conv}${cancel}<span class="tstatus" data-st></span></div>`;
+  else {
+    const rows = Math.min(14, Math.max(3, r.text.split('\n').length + Math.floor(r.text.length / 90)));
+    const primary = r.channel === 'email'
+      ? `<button type="button" class="btn primary" data-act="send" aria-keyshortcuts="Meta+Enter" title="${sources.smtp ? 'Send the email (⌘↩)' : 'Email sending is not set up'}"${sources.smtp ? '' : ' aria-disabled="true"'}>${icon('send')}Send</button>`
+      : `<button type="button" class="btn primary" data-act="send" aria-keyshortcuts="Meta+Enter" title="Open WhatsApp with this message (⌘↩)">${icon('wa')}Open WA</button>`;
+    body = `<p class="why">${esc(r.reasoning)}</p>
+      ${r.channel === 'email' ? `<input class="input rsubj" data-edit="subject" aria-label="Subject" placeholder="Subject" value="${esc(r.subject)}">` : ''}
+      <textarea class="input" data-edit="text" rows="${rows}" aria-label="Message to ${esc(p.name)}">${esc(r.text)}</textarea>
+      <div class="ractions">${primary}${regen('Regenerate')}${conv}${cancel}<span class="tstatus" data-st></span></div>`;
+  }
+  return `<li class="card" id="card-${id}" data-req="${id}" style="--st: ${stageColor(p.stage?.rank)}">${renderCardHead(r, p)}${body}</li>
+    ${isOpen ? `<li><section class="timeline" id="rtl-${id}" role="region" aria-label="Conversation with ${esc(p.name)}">${renderTimeline(ropen)}</section></li>` : ''}`;
+}
+
+function gotoRequest(id) {
+  showSection('requests');
+  const card = document.getElementById(`card-${id}`);
+  card?.scrollIntoView({ block: 'center' });
+  (card?.querySelector('textarea, [data-act=send]'))?.focus({ preventScroll: true });
+}
+
+const cardStatus = (card, text, bad = false) => {
+  const el = card?.querySelector('[data-st]');
+  if (el) { el.textContent = text; el.classList.toggle('bad', bad); }
+};
+
+// Edits are saved as you type, so a draft survives a reload.
+const editTimers = {};
+function editDraft(card, r) {
+  r.text = card.querySelector('[data-edit=text]')?.value ?? r.text;
+  r.subject = card.querySelector('[data-edit=subject]')?.value ?? r.subject;
+  r.edited = true;
+  cardStatus(card, 'Saving…');
+  clearTimeout(editTimers[r.id]);
+  editTimers[r.id] = setTimeout(async () => {
+    try { await api(`/api/requests/${encodeURIComponent(r.id)}`, { method: 'PUT', headers: JSON_HEADERS, body: JSON.stringify({ text: r.text, subject: r.subject }) }); cardStatus(document.getElementById(`card-${r.id}`), 'Saved'); }
+    catch (e) { cardStatus(document.getElementById(`card-${r.id}`), `Not saved: ${e.message}`, true); }
+  }, 600);
+}
+
+async function requestAction(r, action, body = {}) {
+  const res = await api(`/api/requests/${encodeURIComponent(r.id)}/${action}`, { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(body) });
+  if (ropen?.reqId === r.id) ropen = null;
+  await loadRequests();
+  return res;
+}
+
+async function approve(card, r, btn) {
+  if (btn.getAttribute('aria-disabled') === 'true') return;
+  clearTimeout(editTimers[r.id]);
+  const label = btn.innerHTML;
+  btn.setAttribute('aria-disabled', 'true');
+  btn.lastChild.textContent = r.kind === 'meeting' ? 'Saving…' : r.channel === 'email' ? 'Sending…' : 'Opening…';
+  const text = card.querySelector('[data-edit=text]')?.value, subject = card.querySelector('[data-edit=subject]')?.value;
+  try {
+    await requestAction(r, 'send', { text, subject });
+    $('#announce').textContent = r.kind === 'meeting' ? `Meeting marked done for ${r.personName}` : r.channel === 'email' ? `Email sent to ${r.personName}` : `Opened WhatsApp for ${r.personName}`;
+  } catch (e) {
+    btn.innerHTML = label; btn.removeAttribute('aria-disabled');
+    cardStatus(card, `Not sent: ${e.message}`, true);
+  }
+}
+
+// One dialog for Cancel and Regenerate: an optional note, saved with the request.
+function ask(r, mode) {
+  const d = $('#ask'), name = r.personName;
+  const edited = mode === 'regen' && r.edited;
+  $('#ask-title').textContent = mode === 'cancel' ? `Cancel the draft for ${name}?` : `Regenerate the draft for ${name}`;
+  $('#ask-label').textContent = mode === 'cancel' ? 'Reason (optional)' : 'What should change? (optional)';
+  $('#ask-note').placeholder = mode === 'cancel' ? 'e.g. already called her' : 'e.g. shorter, mention the installment option';
+  $('#ask-info').textContent = edited ? 'Your edits will be replaced.' : 'The AI sees this note next time it drafts for this client.';
+  $('#ask-ok').textContent = mode === 'cancel' ? 'Cancel draft' : 'Regenerate';
+  $('#ask-ok').className = `btn ${mode === 'cancel' ? 'danger' : 'primary'}`;
+  $('#ask-note').value = '';
+  d.returnValue = '';
+  d.onclose = async () => {
+    if (d.returnValue !== 'ok') return;
+    const note = $('#ask-note').value.trim();
+    try {
+      await requestAction(r, mode === 'cancel' ? 'cancel' : 'regenerate', { note });
+      $('#announce').textContent = mode === 'cancel' ? `Draft cancelled for ${name}` : `Regenerating the draft for ${name}`;
+      rerenderTasks();
+    } catch (e) { $('#announce').textContent = e.message; }
+  };
+  d.showModal();
+  $('#ask-note').focus();
+}
+$('#ask-note').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.metaKey) { e.preventDefault(); $('#ask').close('ok'); }
+});
+
+$('#requests').addEventListener('click', (e) => {
+  if (e.target.closest('[data-recent]')) { recentOpen = !recentOpen; renderRequests(); return $('[data-recent]')?.focus(); }
+  const card = e.target.closest('.card');
+  const r = card && requests.find((x) => x.id === card.dataset.req);
+  if (!r) return ropen && timelineClick(e, ropen);
+  const btn = e.target.closest('[data-act]');
+  if (!btn) return;
+  const act = btn.dataset.act;
+  if (act === 'conv') {
+    ropen = ropen?.reqId === r.id ? null : { reqId: r.id, id: r.personId, data: hist.get(r.personId), filter: 'all', all: false };
+    renderRequests();
+    document.querySelector(`#card-${CSS.escape(r.id)} [data-act=conv]`)?.focus({ preventScroll: true });
+    if (ropen && !ropen.data) loadHistory(r.personId);
+    return;
+  }
+  if (act === 'send') return approve(card, r, btn);
+  if (act === 'retry') return requestAction(r, 'regenerate').then(rerenderTasks).catch((er) => cardStatus(card, er.message, true));
+  if (act === 'cancel' && r.status === 'generating') return requestAction(r, 'cancel').then(rerenderTasks);
+  ask(r, act);
+});
+$('#requests').addEventListener('input', (e) => {
+  const card = e.target.closest('.card'), r = card && requests.find((x) => x.id === card.dataset.req);
+  if (r && e.target.dataset.edit) editDraft(card, r);
+});
+$('#requests').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' || !e.metaKey) return;
+  const btn = e.target.closest('.card')?.querySelector('[data-act=send]');
+  if (btn) { e.preventDefault(); btn.click(); }
+});
+$('#requests').addEventListener('focusout', () => setTimeout(() => {
+  if (rdefer && !$('#requests').contains(document.activeElement)) renderRequests();
+}));
+
+// ---- Settings: model, style guide (learned, editable) and the prompts
+let settings = null, learnTimer;
+const SETTING_TEXTS = [
+  ['styleGuide', 'Style guide', 'Learned from your sent WhatsApp messages and emails. Edit freely: every draft follows this text.', 18],
+  ['draftPrompt', 'Follow-up prompt', 'Instructions for every draft. The client, task, conversation, earlier drafts, style guide and templates are added after it.', 14],
+  ['stylePrompt', 'Style-learning prompt', 'Used by Learn my style. Your reply pairs, follow-ups and measured stats are added before it.', 14],
+];
+
+async function loadSettings() {
+  try { settings = await api('/api/settings'); }
+  catch (e) { $('#settings').innerHTML = `<p class="err">Could not load settings: ${esc(e.message)}</p>`; return; }
+  renderSettings();
+  if (settings.learning.running) pollLearn();
+}
+
+const settingValue = (key) => settings[key] || settings.defaults[key] || '';
+function renderLearn() {
+  const l = settings.learning, el = $('#learn-info'), btn = $('#learn');
+  if (!el) return;
+  btn.setAttribute('aria-disabled', l.running);
+  btn.lastChild.textContent = l.running ? `Learning from ${l.count} messages…` : 'Learn my style';
+  $('[data-setting=styleGuide]').readOnly = l.running;
+  el.className = l.error ? 'err' : 'info';
+  el.textContent = l.error ? `Learning failed: ${l.error}. Your guide wasn't changed.`
+    : settings.styleLearnedAt ? `Learned ${fullDate(new Date(settings.styleLearnedAt))} from ${settings.styleCount} of your messages.`
+    : 'Not learned yet. Press Learn my style (takes a minute or two).';
+}
+
+function renderSettings() {
+  const field = ([key, label, hint, rows]) => `<fieldset class="fields">
+    <div class="lrow"><label for="set-${key}">${label}</label><span class="tstatus" id="st-${key}"></span>
+      ${key === 'styleGuide' ? `<button type="button" class="btn" id="learn">${icon('regen')}<span>Learn my style</span></button>`
+        : `<button type="button" class="quiet" data-reset="${key}"${settings[key] ? '' : ' hidden'}>Reset to default</button>`}</div>
+    <textarea class="input" id="set-${key}" data-setting="${key}" rows="${rows}">${esc(settingValue(key))}</textarea>
+    ${key === 'styleGuide' ? '<p id="learn-info" role="status"></p>' : ''}<p class="info">${hint}</p></fieldset>`;
+  $('#settings').innerHTML = `<h1>Settings</h1>
+    <fieldset class="fields"><legend>AI</legend><div class="field"><span>Model</span><span class="filters" role="group" aria-label="Model">${settings.models
+      .map((m) => `<button type="button" data-model="${m}" aria-pressed="${settings.model === m}">${m[0].toUpperCase() + m.slice(1)}</button>`).join('')}</span>
+      <span class="tstatus" id="st-model"></span></div></fieldset>
+    ${SETTING_TEXTS.map(field).join('')}`;
+  renderLearn();
+}
+
+const settingTimers = {};
+function saveSetting(key, value) {
+  const status = (t, bad) => { const el = $(`#st-${key}`); if (el) { el.textContent = t; el.classList.toggle('bad', !!bad); } };
+  status('Saving…');
+  clearTimeout(settingTimers[key]);
+  settingTimers[key] = setTimeout(async () => {
+    // A prompt equal to the default is saved empty, so it follows future defaults.
+    const v = value === settings.defaults[key] ? '' : value;
+    try {
+      settings = { ...(await api('/api/settings', { method: 'PUT', headers: JSON_HEADERS, body: JSON.stringify({ [key]: v }) })), learning: settings.learning };
+      status('Saved'); setTimeout(() => status(''), 2000);
+      const reset = document.querySelector(`[data-reset=${key}]`);
+      if (reset) reset.hidden = !settings[key];
+    } catch (e) { status(`Not saved: ${e.message}`, true); }
+  }, key === 'model' ? 0 : 600);
+}
+
+async function pollLearn() {
+  clearTimeout(learnTimer);
+  try { settings.learning = await api('/api/settings/learn'); } catch (e) { settings.learning = { running: false, error: e.message }; }
+  if (settings.learning.running) { renderLearn(); learnTimer = setTimeout(pollLearn, 2000); return; }
+  const learning = settings.learning;
+  settings = { ...(await api('/api/settings')), learning };
+  if (section === 'settings') { renderSettings(); $('#announce').textContent = learning.error ? 'Learning failed' : 'Style guide updated'; }
+}
+
+$('#settings').addEventListener('input', (e) => {
+  const key = e.target.dataset.setting;
+  if (key) saveSetting(key, e.target.value);
+});
+$('#settings').addEventListener('click', async (e) => {
+  const m = e.target.closest('[data-model]');
+  if (m) {
+    document.querySelectorAll('[data-model]').forEach((x) => x.setAttribute('aria-pressed', x === m));
+    return saveSetting('model', m.dataset.model);
+  }
+  const reset = e.target.closest('[data-reset]');
+  if (reset) {
+    const key = reset.dataset.reset;
+    $(`#set-${key}`).value = settings.defaults[key];
+    saveSetting(key, settings.defaults[key]);
+    $(`#set-${key}`).focus();
+    return ($('#announce').textContent = 'Prompt reset to default');
+  }
+  const learn = e.target.closest('#learn');
+  if (learn && learn.getAttribute('aria-disabled') !== 'true') {
+    if (settings.styleGuide && !learn.dataset.armed) {
+      learn.dataset.armed = '1'; learn.lastChild.textContent = 'Replace the guide? Click again';
+      return setTimeout(() => { if (settings && section === 'settings') renderLearn(); delete learn.dataset.armed; }, 4000);
+    }
+    settings.learning = await api('/api/settings/learn', { method: 'POST' });
+    $('#announce').textContent = 'Learning your style';
+    renderLearn();
+    if (settings.learning.running) learnTimer = setTimeout(pollLearn, 2000);
+  }
+});
+addEventListener('pagehide', () => { for (const t of Object.values(settingTimers)) clearTimeout(t); });
+
 // ---- sections (the last one is remembered per browser)
-const SECTIONS = ['tasks', 'templates'];
+const SECTIONS = ['tasks', 'requests', 'templates', 'settings'];
 let section = 'tasks';
 function showSection(name, focus = false) {
   section = name;
@@ -573,7 +1056,10 @@ function showSection(name, focus = false) {
   try { localStorage.setItem('section', name); } catch {}
   history.replaceState(null, '', `#${name}`);
   if (name === 'templates') loadTemplates();
-  if (focus) $(name === 'tasks' ? '#q' : '#tq').focus();
+  if (name === 'requests') { loadTemplates(); loadRequests(); }
+  if (name === 'settings') loadSettings();
+  const search = { tasks: '#q', templates: '#tq' }[name];
+  if (focus && search) $(search).focus();
 }
 $('.rail').addEventListener('click', (e) => {
   const a = e.target.closest('[data-section]');
@@ -900,6 +1386,7 @@ addEventListener('pagehide', () => { if (dirty.size) flushSaves(true); });
   const saved = (() => { try { return localStorage.getItem('section'); } catch { return null; } })();
   showSection([location.hash.slice(1), saved].find((x) => SECTIONS.includes(x)) || 'tasks');
   sources = await api('/api/status');
+  loadRequests();
   sync = await api('/api/refresh');
   renderHeader();
   if (sync.running) { renderList(); return poll(); }
