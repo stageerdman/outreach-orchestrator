@@ -111,7 +111,8 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   Notes and all the contact's tasks (closed ones too) are read for these.
   "LTO nákup" (bought LTO) tasks are just new leads to the user: no special
   stage, they follow the same call-result rules.
-- **UI feed:** only tasks due today or overdue; stage groups collapsed by
+- **UI feed:** only tasks due today or overdue (meeting tasks — Meeting
+  Booked/Confirmed stage or a confirm task — only once their time has come); stage groups collapsed by
   default (expanded state in memory only), empty ones hidden, colour per
   stage (`--st-1..9`).
 - **Local cache** (`lib/cache.js`, node:sqlite) lives in
