@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { stageOf, toPeople, isSoldNote, isConsultedNote, isNoShowNote, isBookedNote, isInstallmentNote, STAGES } from '../lib/resultson.js';
+import { stageOf, toPeople, myTasks, isSoldNote, isConsultedNote, isNoShowNote, isBookedNote, isInstallmentNote, STAGES } from '../lib/resultson.js';
 
 const label = (task, results = [], flags = {}) => stageOf(task, results, flags).label;
 
@@ -48,7 +48,7 @@ test('toPeople: soonest task leads, e164 phone, follow type and sold note used',
   const calls = [{ contact_id: 'a', vysledek: 'termin' }, { contact_id: 'b', vysledek: null, poznamka: null }];
   const notes = [{ contact_id: 'b', text: 'Prodáno UM 44 000 Kč' }];
   const [ana, bo] = toPeople(tasks, contacts, calls, notes, { 2: 'konzultace' });
-  assert.deepEqual(ana.task, { id: 2, kind: 'followup', rule: '', followType: 'konzultace', dueAt: '2026-11-10T10:00:00Z', note: 'ring' });
+  assert.deepEqual(ana.task, { id: 2, unassigned: true, kind: 'followup', rule: '', followType: 'konzultace', dueAt: '2026-11-10T10:00:00Z', note: 'ring' });
   assert.deepEqual(ana.emails, ['ana@x.cz']);
   assert.deepEqual(ana.phones, ['+420775000000']);
   assert.equal(ana.stage.label, 'Thinking about it');
@@ -119,4 +119,13 @@ test('installment is the person\'s stage: a closed installment task or sale note
   const notes = [{ contact_id: 'n', created_at: '2026-10-20T00:00:00Z', text: 'Prodej na splátky — UM PRO' }];
   const people = toPeople(tasks, [{ id: 'p', paid: true }], [{ contact_id: 't', vysledek: 'triage' }], notes, {}, past);
   assert.deepEqual(Object.fromEntries(people.map((p) => [p.name, p.stage.label])), { Tomáš: 'Installment', Nora: 'Installment', Paid: 'New lead' });
+});
+
+test('my tasks plus unassigned ones, unless the contact belongs to a teammate', () => {
+  const tasks = [{ task_id: 1, contact_id: 'a', assigned_to: 'me' }, { task_id: 2, contact_id: 'b', assigned_to: null },
+    { task_id: 3, contact_id: 'c', assigned_to: null }, { task_id: 4, contact_id: 'd', assigned_to: null }, { task_id: 5, contact_id: 'e', assigned_to: 'other' }];
+  const contacts = [{ id: 'b', owner_id: null }, { id: 'c', owner_id: 'other' }, { id: 'd', owner_id: 'me' }];
+  assert.deepEqual(myTasks(tasks, contacts, 'me').map((t) => t.task_id), [1, 2, 4]);
+  const [p] = toPeople([{ task_id: 2, contact_id: 'b', assigned_to: null, kind: 'call', due_at: '2026-11-01T00:00:00Z' }], [], []);
+  assert.equal(p.task.unassigned, true);
 });

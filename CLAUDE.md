@@ -94,7 +94,8 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
 - **CRM is ResultsON** (Supabase/PostgREST), `lib/resultson.js`, `RESULTSON_*`
   keys. Logs in as a team member on every refresh (tokens last 1h), looks up
   the team-member id, and returns one person per contact with an open task
-  assigned to the user: task (kind, rule, follow type, due, note),
+  assigned to the user, or unassigned unless the contact belongs to a
+  teammate (`myTasks`; shown as "unassigned"): task (kind, rule, follow type, due, note),
   `phone_e164`, and a pipeline stage (`stageOf`). The stage belongs to the
   person, not the current task. The user's pipeline, top
   first: Installment (any `splatka` task, open or closed, or a "Prodej na

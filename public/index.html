@@ -459,7 +459,7 @@ function renderTask(p) {
   const failed = [ai, ...Object.keys(p.errors || {}).map((k) => `<span class="err">${CHANNELS[k] || k} failed</span>`)].filter(Boolean);
   const last = p.lastAt ? `last ${timeTag(p.lastAt, ago(p.lastAt))}` : 'never contacted';
   const parts = p.task
-    ? [`<b>${esc(KIND[p.task.kind] || p.task.kind)}</b>`, p.task.rule && `<span title="${esc(p.task.rule)}">${esc(p.task.rule)}</span>`, last, ...failed]
+    ? [`<b>${esc(KIND[p.task.kind] || p.task.kind)}</b>`, p.task.unassigned && '<span title="No one owns this task in the CRM">unassigned</span>', p.task.rule && `<span title="${esc(p.task.rule)}">${esc(p.task.rule)}</span>`, last, ...failed]
     : [esc(p.company), last, ...failed];
   return `<p class="task" id="task-${esc(p.id)}">${parts.filter(Boolean).join(' · ')}</p>`;
 }
