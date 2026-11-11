@@ -23,3 +23,15 @@ Running list. Resolved items move to the relevant update's wiki.md.
       has never seen may have none yet and gets email instead. Definitive fix:
       a bridge endpoint using whatsmeow's IsOnWhatsApp (vendor patch, needs
       approval).
+- [ ] 2026-11-11 Playbook learning (lib/coach.js) hasn't run on a real
+      decision yet; check "What the AI learned" after the first cancels and
+      edited sends. Each send/regenerate/cancel costs one background Claude run.
+- [ ] 2026-11-11 Unassigned tasks for contacts owned by a teammate are left
+      out of Tasks on purpose (18 on 2026-11-11). Include them if the user
+      wants: drop the owner check in `myTasks` (lib/resultson.js).
+- [ ] 2026-11-11 "Already messaged today" sees messages sent outside the app
+      only after the next refresh (drafts sent from the app count at once).
+- [ ] 2026-11-11 The feed's "today" / "later" split still uses the Mac's
+      timezone, while "messaged today" and the AI use Prague time. Align if
+      the user works from another timezone often.
+

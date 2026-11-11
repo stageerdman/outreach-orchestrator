@@ -78,3 +78,10 @@ Within a group: most overdue task first.
 
 ## Status
 - 2026-11-11: done; update closed.
+- 2026-11-11 follow-ups (small, no reopen): meeting tasks (Meeting
+  Booked/Confirmed or a confirm task) due later today stay hidden until their
+  time; people already messaged today (Prague day; history or a draft sent
+  from the app) are hidden unless the client wrote back since, with a count
+  at the bottom; unassigned CRM tasks are included (marked "unassigned"),
+  except where the contact belongs to a teammate (`myTasks`). Stage rules:
+  self-booked meetings → Meeting Booked; Installment belongs to the person.

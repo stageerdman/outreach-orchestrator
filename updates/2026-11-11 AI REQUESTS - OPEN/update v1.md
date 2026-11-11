@@ -62,5 +62,13 @@ an editable style guide; all prompts live in a **Settings** section.
   in headless Chrome: 9 cancelled drafts with reasons, context with the
   "AI drafted here" marker, recover → focus in the new draft, "Already
   recovered" refused, no errors, no horizontal scroll at phone width.
+- 2026-11-11 quieter Requests view (user's ask): cards show only person,
+  contact, message and actions (no AI reasoning, task/step row, due time,
+  no "Waiting for you" heading). Drafts / History tabs; History = cancelled
+  and replaced drafts (reason, message, context; Recover for cancelled) +
+  sent ones. Playbooks (separate update) feed the drafts and learn from
+  every decision.
+- Paused here (2026-11-11), all committed.
 - Next: the user sends a first real email and WhatsApp from the app; decide
-  whether approving should also complete the CRM task.
+  whether approving should also complete the CRM task; maybe require a
+  reason on cancel (better training data) — asked, not answered yet.

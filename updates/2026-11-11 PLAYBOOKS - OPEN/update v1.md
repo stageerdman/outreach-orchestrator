@@ -39,6 +39,17 @@ reason) can rewrite templates, add steps, branches or new paths, and lessons.
   templates reused where they fit. UI checked in headless Chrome: grouped
   list, editing (autosave, reorder, attach/detach templates), the learning
   log with diffs, undo, phone width, no errors.
-- Next: the user builds the playbooks in the real app (Playbooks → Build),
-  then uses drafts as usual; watch what the coach learns from the first
-  cancels and edits.
+- 2026-11-11 quieter UI (user's ask): learning runs silently — no spinner,
+  status line or announcements; only a failure shows (Playbooks line + "!"
+  on the rail). The coach state has `building`, so only a real build shows
+  "Building…". The step link on draft cards was dropped with the rest of
+  the card's meta row.
+- Paused here (2026-11-11). State: all code committed; the real app has NO
+  playbooks yet (the build ran only on a scratch copy of the data).
+- Next:
+  1. The user restarts the app and presses Playbooks → Build playbooks (~3 min).
+  2. Use drafts as usual; after the first few cancels-with-reason and edited
+     sends, read "What the AI learned" and check the coach's changes are
+     small and right (the learning run is untested on real decisions).
+  3. If the coach over-edits: tighten COACH_PROMPT (lib/settings.js) or
+     skip learning on unchanged approvals.
