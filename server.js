@@ -3,11 +3,17 @@ import { readFile } from 'node:fs/promises';
 import { crmSource } from './lib/crm.js';
 import { emailConfigured } from './lib/email.js';
 import { whatsappConfigured } from './lib/whatsapp.js';
+import { listTemplates, saveTemplate, deleteTemplate } from './lib/templates.js';
 import { refresh, syncState, snapshotPeople, restoreSnapshot } from './lib/sync.js';
 
 const PORT = Number(process.env.PORT || 3000);
 restoreSnapshot();
 
+const readBody = async (req) => {
+  let s = '';
+  for await (const chunk of req) s += chunk;
+  return s ? JSON.parse(s) : {};
+};
 const json = (res, status, body) => {
   res.writeHead(status, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(body));
@@ -19,6 +25,20 @@ createServer(async (req, res) => {
     if (url.pathname === '/') {
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       return res.end(await readFile(new URL('./public/index.html', import.meta.url)));
+    }
+    if (url.pathname === '/resolve.js') {
+      res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8' });
+      return res.end(await readFile(new URL('./public/resolve.js', import.meta.url)));
+    }
+    if (url.pathname === '/api/templates') {
+      if (req.method === 'POST') return json(res, 201, saveTemplate(null, await readBody(req)));
+      return json(res, 200, listTemplates());
+    }
+    const t = url.pathname.match(/^\/api\/templates\/([^/]+)$/);
+    if (t) {
+      const id = decodeURIComponent(t[1]);
+      if (req.method === 'PUT') return json(res, 200, saveTemplate(id, await readBody(req)));
+      if (req.method === 'DELETE') return deleteTemplate(id) ? json(res, 200, { ok: true }) : json(res, 404, { error: 'Template not found' });
     }
     if (url.pathname === '/api/status') {
       return json(res, 200, {
