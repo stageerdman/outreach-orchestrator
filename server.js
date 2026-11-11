@@ -3,9 +3,10 @@ import { readFile } from 'node:fs/promises';
 import { crmSource } from './lib/crm.js';
 import { emailConfigured } from './lib/email.js';
 import { whatsappConfigured } from './lib/whatsapp.js';
-import { refresh, syncState, snapshotPeople } from './lib/sync.js';
+import { refresh, syncState, snapshotPeople, restoreSnapshot } from './lib/sync.js';
 
 const PORT = Number(process.env.PORT || 3000);
+restoreSnapshot();
 
 const json = (res, status, body) => {
   res.writeHead(status, { 'Content-Type': 'application/json' });
