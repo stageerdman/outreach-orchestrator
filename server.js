@@ -1,10 +1,13 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { crmSource } from './lib/crm.js';
-import { emailConfigured } from './lib/email.js';
+import { emailConfigured, smtpConfigured } from './lib/email.js';
 import { whatsappConfigured } from './lib/whatsapp.js';
 import { listTemplates, saveTemplate, deleteTemplate } from './lib/templates.js';
 import { refresh, syncState, snapshotPeople, restoreSnapshot } from './lib/sync.js';
+import { listRequests } from './lib/requests.js';
+import { getSettings, saveSettings, DRAFT_PROMPT, STYLE_PROMPT, MODELS } from './lib/settings.js';
+import * as ai from './lib/assistant.js';
 
 const PORT = Number(process.env.PORT || 3000);
 restoreSnapshot();
@@ -42,8 +45,37 @@ createServer(async (req, res) => {
     }
     if (url.pathname === '/api/status') {
       return json(res, 200, {
-        people: crmSource(), email: emailConfigured(), whatsapp: whatsappConfigured(),
+        people: crmSource(), email: emailConfigured(), whatsapp: whatsappConfigured(), smtp: smtpConfigured(),
       });
+    }
+    // AI requests: drafts waiting for the user (and their history).
+    if (url.pathname === '/api/requests') {
+      if (req.method === 'POST') {
+        const { personIds = [], instruction = '' } = await readBody(req);
+        return json(res, 202, ai.draft(personIds, instruction));
+      }
+      return json(res, 200, listRequests());
+    }
+    const r = url.pathname.match(/^\/api\/requests\/([^/]+)(?:\/(send|regenerate|cancel))?$/);
+    if (r && req.method !== 'GET') {
+      const [, id, action] = r, body = await readBody(req);
+      try {
+        const out = action === 'send' ? await ai.approve(id, body)
+          : action === 'regenerate' ? ai.regenerate(id, body.note)
+          : action === 'cancel' ? ai.cancel(id, body.note)
+          : ai.editRequest(id, body);
+        return out ? json(res, 200, out) : json(res, 409, { error: 'This request is no longer open' });
+      } catch (e) { return json(res, 502, { error: e.message }); }
+    }
+    if (url.pathname === '/api/settings') {
+      if (req.method === 'PUT') {
+        const { model, draftPrompt, stylePrompt, styleGuide } = await readBody(req);
+        saveSettings({ model, draftPrompt, stylePrompt, styleGuide });
+      }
+      return json(res, 200, { ...getSettings(), defaults: { draftPrompt: DRAFT_PROMPT, stylePrompt: STYLE_PROMPT }, models: MODELS, learning: ai.learnState() });
+    }
+    if (url.pathname === '/api/settings/learn') {
+      return json(res, 202, req.method === 'POST' ? ai.learnStyle() : ai.learnState());
     }
     if (url.pathname === '/api/refresh') {
       if (req.method === 'POST') refresh();
