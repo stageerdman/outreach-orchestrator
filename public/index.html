@@ -167,6 +167,9 @@ function renderHeader() {
 const KIND = { call: 'Call', followup: 'Follow up', confirm: 'Confirm consultation', splatka: 'Installment' };
 const OTHER = { rank: 99, label: 'Other' };
 const isOverdue = (p) => p.task?.dueAt && new Date(p.task.dueAt) < Date.now();
+// Only tasks due today or overdue are shown; later ones wait until their day.
+const endOfToday = () => new Date(new Date().setHours(24, 0, 0, 0));
+const isCurrent = (p) => !p.task?.dueAt || new Date(p.task.dueAt) < endOfToday();
 const matches = (p, q) => !q || [p.name, p.company, p.stage?.label, p.task && KIND[p.task.kind], p.task?.rule, ...p.emails, ...p.phones]
   .join(' ').toLowerCase().includes(q);
 
@@ -254,9 +257,12 @@ function renderList() {
   }
   list.removeAttribute('aria-busy');
   const q = $('#q').value.trim().toLowerCase();
-  const rows = people.filter((p) => matches(p, q));
-  list.innerHTML = (q ? `<p class="count">${rows.length} of ${people.length}</p>` : '') +
-    (rows.length ? renderGroups(rows) : '<p class="empty">No matches</p>');
+  const current = people.filter(isCurrent), later = people.length - current.length;
+  const rows = current.filter((p) => matches(p, q));
+  const empty = q ? 'No matches' : 'Nothing due today.';
+  list.innerHTML = (q ? `<p class="count">${rows.length} of ${current.length}</p>` : '') +
+    (rows.length ? renderGroups(rows) : `<p class="empty">${empty}</p>`) +
+    (later ? `<p class="count">${later} later task${later > 1 ? 's' : ''} hidden until their day</p>` : '');
 }
 
 // One click copies phone or email; falls back when the clipboard API is refused.
