@@ -389,7 +389,7 @@ function renderContact(p) {
 
 function renderTask(p) {
   const r = activeReq(p.id);
-  const ai = r?.status === 'pending' ? `<button type="button" class="pill" data-goto="${esc(r.id)}">${r.kind === 'meeting' ? 'Book meeting' : 'Draft ready'}</button>`
+  const ai = r?.status === 'pending' ? `<button type="button" class="pill" data-goto="${esc(r.id)}">${r.kind === 'meeting' ? 'Offer meeting' : 'Draft ready'}</button>`
     : r?.status === 'failed' ? `<span class="err" title="${esc(r.error)}">AI failed</span>` : '';
   const failed = [ai, ...Object.keys(p.errors || {}).map((k) => `<span class="err">${CHANNELS[k] || k} failed</span>`)].filter(Boolean);
   const last = p.lastAt ? `last ${timeTag(p.lastAt, ago(p.lastAt))}` : 'never contacted';
@@ -763,7 +763,7 @@ function renderBadge() {
 
 // ---- AI Requests section
 const personOf = (r) => people.find((p) => p.id === r.personId) || { id: r.personId, name: r.personName, emails: [], phones: [] };
-const STATUS = { sent: 'sent', cancelled: 'cancelled', done: 'meeting booked', regenerated: 'replaced' };
+const STATUS = { sent: 'sent', cancelled: 'cancelled', done: 'offered', regenerated: 'replaced' };
 
 function renderRStatus() {
   const items = [`<span><span class="dot ${sources.smtp ? 'on' : ''}"></span>${sources.smtp ? 'Email sending' : 'Email sending off'}</span>`,
@@ -800,7 +800,7 @@ const renderRecent = (r) => `<li class="rrow"><b>${esc(r.personName)}</b> · ${r
 
 function renderCardHead(r, p) {
   const tpl = r.templateId && tpls?.find((t) => t.id === r.templateId);
-  const what = r.status === 'generating' || r.status === 'failed' ? '' : r.kind === 'meeting' ? 'Book a meeting' : CHANNELS[r.channel];
+  const what = r.status === 'generating' || r.status === 'failed' ? '' : r.kind === 'meeting' ? 'Offer a meeting' : CHANNELS[r.channel];
   const parts = [what && `<b class="${r.kind === 'meeting' ? '' : r.channel}">${what}</b>`,
     p.task && esc(KIND[p.task.kind] || p.task.kind), `drafted ${timeTag(r.createdAt, ago(r.createdAt))}`, tpl && `template “${esc(tpl.name)}”`];
   return `<h3><span class="name">${esc(p.name)}</span>${renderDue(p)}</h3>${renderContact(p)}<p class="task">${parts.filter(Boolean).join(' · ')}</p>`;
@@ -816,7 +816,7 @@ function renderCard(r) {
   else if (r.status === 'failed') body = `<p class="err" role="status">Draft failed: ${esc(r.error)}</p>
     <div class="ractions"><button type="button" class="btn primary" data-act="retry">${icon('regen')}Retry</button>${conv}${cancel}</div>`;
   else if (r.kind === 'meeting') body = `<p class="why">${esc(r.reasoning)}</p><p class="brief">${esc(r.text)}</p>
-    <div class="ractions"><button type="button" class="btn primary" data-act="send" aria-keyshortcuts="Meta+Enter" title="Meeting scheduled (⌘↩)">${icon('done')}Done</button>
+    <div class="ractions"><button type="button" class="btn primary" data-act="send" aria-keyshortcuts="Meta+Enter" title="I offered the meeting (⌘↩)">${icon('done')}Done</button>
       ${regen('Draft a message instead')}${conv}${cancel}<span class="tstatus" data-st></span></div>`;
   else {
     const rows = Math.min(14, Math.max(3, r.text.split('\n').length + Math.floor(r.text.length / 90)));
@@ -874,7 +874,7 @@ async function approve(card, r, btn) {
   const text = card.querySelector('[data-edit=text]')?.value, subject = card.querySelector('[data-edit=subject]')?.value;
   try {
     await requestAction(r, 'send', { text, subject });
-    $('#announce').textContent = r.kind === 'meeting' ? `Meeting marked done for ${r.personName}` : r.channel === 'email' ? `Email sent to ${r.personName}` : `Opened WhatsApp for ${r.personName}`;
+    $('#announce').textContent = r.kind === 'meeting' ? `Meeting offer done for ${r.personName}` : r.channel === 'email' ? `Email sent to ${r.personName}` : `Opened WhatsApp for ${r.personName}`;
   } catch (e) {
     btn.innerHTML = label; btn.removeAttribute('aria-disabled');
     cardStatus(card, `Not sent: ${e.message}`, true);
