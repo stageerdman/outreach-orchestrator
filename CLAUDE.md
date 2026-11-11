@@ -101,6 +101,8 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   `follow_typ=konzultace`), No Show (cancelled-consultation rule), then the
   furthest call result: Meeting Confirmed, Meeting Booked, Answered, Not
   answered, New lead.
+  "LTO nákup" (bought LTO) tasks are just new leads to the user: no special
+  stage, they follow the same call-result rules.
 - **UI feed:** only tasks due today or overdue; stage groups collapsed by
   default (expanded state in memory only), empty ones hidden, colour per
   stage (`--st-1..9`).
