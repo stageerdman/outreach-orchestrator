@@ -6,151 +6,340 @@
 <title>Outreach</title>
 <style>
   :root {
-    --bg: #f7f7f5; --panel: #fff; --text: #1d1d1b; --muted: #75746f; --line: #e6e5e0;
-    --accent: #2f5bd3; --email: #2f5bd3; --wa: #1f8f5a; --me: #eef2fd; --sel: #eef2fd;
+    --bg: #f7f7f5; --panel: #fff; --text: #1d1d1b; --muted: #6b6a65; --line: #e6e5e0;
+    --accent: #2f5bd3; --email: #2f5bd3; --wa: #1f7f50; --me: #eef2fd; --sel: #eef2fd; --err: #b3261e;
+    --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px;
+    --fs-sm: 12px; --fs: 14px; --fs-lg: 16px; --radius: 6px; --width: 860px;
   }
   @media (prefers-color-scheme: dark) {
-    :root { --bg: #161615; --panel: #1f1f1d; --text: #ecebe6; --muted: #9b9a94; --line: #33322f;
-      --accent: #7b9cf2; --email: #7b9cf2; --wa: #4cc28a; --me: #252c40; --sel: #252c40; }
+    :root { --bg: #161615; --panel: #1f1f1d; --text: #ecebe6; --muted: #a3a29c; --line: #33322f;
+      --accent: #7b9cf2; --email: #7b9cf2; --wa: #4cc28a; --me: #252c40; --sel: #252c40; --err: #ff8a80; }
   }
   * { box-sizing: border-box; }
-  body { margin: 0; font: 14px/1.45 -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); }
-  .app { display: grid; grid-template-columns: 300px 1fr; height: 100vh; }
-  aside { border-right: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; min-height: 0; }
-  header { padding: 14px 16px; border-bottom: 1px solid var(--line); }
-  h1 { font-size: 15px; margin: 0 0 10px; }
-  input[type=search] { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); font: inherit; }
-  .status { margin-top: 8px; font-size: 12px; color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; }
-  .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; background: var(--muted); }
-  .on { background: var(--wa); }
-  ul { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
-  li button { all: unset; display: block; width: 100%; padding: 10px 16px; border-bottom: 1px solid var(--line); cursor: pointer; box-sizing: border-box; }
-  li button:hover, li button[aria-current=true] { background: var(--sel); }
+  body { margin: 0; font: var(--fs)/1.45 -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text);
+    height: 100vh; display: flex; flex-direction: column; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .wrap { width: 100%; max-width: var(--width); margin: 0 auto; }
+
+  /* Header: title, last update, refresh, search, source status */
+  header { background: var(--panel); border-bottom: 1px solid var(--line); padding: var(--s3) var(--s4); }
+  .bar { display: flex; align-items: center; gap: var(--s3); margin-bottom: var(--s2); }
+  h1 { font-size: var(--fs-lg); margin: 0; flex: 1; }
+  #updated { color: var(--muted); font-size: var(--fs-sm); }
+  #refresh { font: inherit; padding: var(--s1) var(--s3); border: 1px solid var(--accent); border-radius: var(--radius);
+    background: var(--accent); color: var(--panel); cursor: pointer; min-width: 9em; font-variant-numeric: tabular-nums; }
+  #refresh[aria-disabled=true] { background: var(--panel); color: var(--accent); cursor: progress; }
+  input[type=search] { width: 100%; padding: var(--s2) var(--s3); border: 1px solid var(--line); border-radius: var(--radius);
+    background: var(--bg); color: var(--text); font: inherit; }
+  .status { margin-top: var(--s2); font-size: var(--fs-sm); color: var(--muted); display: flex; gap: var(--s3); flex-wrap: wrap; }
+  .status .bad { color: var(--err); max-width: 40ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: var(--s1); border: 1px solid var(--muted); }
+  .dot.on { background: var(--wa); border-color: var(--wa); }
+  .dot.bad { background: var(--err); border-color: var(--err); }
+
+  /* People list: one row per person, one row open at a time */
+  main { flex: 1; overflow-y: auto; min-height: 0; }
+  #people { list-style: none; margin: 0; padding: 0; background: var(--panel); border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+  .row { all: unset; box-sizing: border-box; width: 100%; cursor: pointer; display: grid; grid-template-columns: 1fr auto;
+    gap: 2px var(--s3); padding: var(--s3) var(--s4); border-bottom: 1px solid var(--line); background: var(--panel); }
+  .row:hover { background: var(--sel); }
+  .row:focus-visible { outline-offset: -2px; }
+  .row[aria-expanded=true] { position: sticky; top: 0; z-index: 1; background: var(--sel); box-shadow: inset 3px 0 var(--accent); }
   .name { font-weight: 600; }
-  .sub { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  main { overflow-y: auto; min-height: 0; }
-  .empty { color: var(--muted); padding: 40px; text-align: center; }
-  .head { position: sticky; top: 0; background: var(--bg); padding: 16px 24px; border-bottom: 1px solid var(--line); }
-  .head h2 { margin: 0; font-size: 18px; }
-  .filters { margin-top: 8px; display: flex; gap: 6px; }
-  .filters button { font: inherit; font-size: 12px; padding: 3px 10px; border-radius: 99px; border: 1px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer; }
+  .row time { color: var(--muted); font-size: var(--fs-sm); }
+  .sub { grid-column: 1 / -1; color: var(--muted); font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .c-email { color: var(--email); } .c-whatsapp { color: var(--wa); }
+  .err { color: var(--err); font-size: var(--fs-sm); margin: 0; }
+  .empty { color: var(--muted); padding: var(--s5); text-align: center; }
+
+  /* Expanded timeline */
+  .timeline { padding: var(--s4) var(--s4) var(--s5); border-bottom: 1px solid var(--line); background: var(--bg);
+    display: flex; flex-direction: column; gap: var(--s2); }
+  .timeline .empty { padding: var(--s3); }
+  .info { color: var(--muted); font-size: var(--fs-sm); margin: 0; }
+  .filters { display: flex; gap: var(--s1); }
+  .filters button { font: inherit; font-size: var(--fs-sm); padding: 2px var(--s3); border-radius: 99px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--text); cursor: pointer; }
   .filters button[aria-pressed=true] { border-color: var(--accent); color: var(--accent); }
-  .timeline { padding: 16px 24px 40px; display: flex; flex-direction: column; gap: 10px; max-width: 820px; }
-  .day { color: var(--muted); font-size: 12px; margin-top: 10px; }
-  .msg { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--email); border-radius: 6px; padding: 10px 12px; max-width: 85%; }
+  .msgs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s2); }
+  .day { color: var(--muted); font-size: var(--fs-sm); font-weight: 400; margin: var(--s2) 0 0; }
+  .msg { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--email); border-radius: var(--radius);
+    padding: var(--s2) var(--s3); max-width: 85%; }
   .msg.whatsapp { border-left-color: var(--wa); }
-  .msg.me { align-self: flex-end; background: var(--me); }
-  .meta { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .msgs > li { display: flex; flex-direction: column; }
+  li.me { align-items: flex-end; } li.me .msg { background: var(--me); }
+  .meta { font-size: var(--fs-sm); color: var(--muted); margin-bottom: var(--s1); }
   .tag { font-weight: 600; }
   .email .tag { color: var(--email); } .whatsapp .tag { color: var(--wa); }
-  .subject { font-weight: 600; margin-bottom: 4px; }
+  .subject { font-weight: 600; margin-bottom: var(--s1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .body { white-space: pre-wrap; overflow-wrap: anywhere; }
   .body.clamp { max-height: 9.5em; overflow: hidden; }
-  .more { all: unset; color: var(--accent); font-size: 12px; cursor: pointer; margin-top: 4px; }
-  .err { color: #c0392b; font-size: 12px; padding: 0 24px; }
-  @media (max-width: 700px) {
-    .app { grid-template-columns: 1fr; grid-template-rows: 40vh 1fr; }
-    aside { border-right: 0; border-bottom: 1px solid var(--line); }
-    .head, .timeline { padding-left: 16px; padding-right: 16px; }
-    .msg { max-width: 100%; }
-  }
+  .link { all: unset; color: var(--accent); font-size: var(--fs-sm); cursor: pointer; margin-top: var(--s1); align-self: flex-start; }
+  .link:focus-visible { outline: 2px solid var(--accent); }
+
+  @media (max-width: 700px) { .msg { max-width: 100%; } #people { border-left: 0; border-right: 0; } }
 </style>
 </head>
 <body>
-<div class="app">
-  <aside>
-    <header>
-      <h1>People to reach out to</h1>
-      <input type="search" id="q" placeholder="Search name, company, email…">
-      <div class="status" id="status"></div>
-    </header>
-    <ul id="people"></ul>
-  </aside>
-  <main id="detail"><div class="empty">Pick someone to see their history.</div></main>
-</div>
+<header>
+  <div class="wrap">
+    <div class="bar">
+      <h1>Outreach</h1>
+      <time id="updated"></time>
+      <button id="refresh" type="button">Refresh</button>
+    </div>
+    <input type="search" id="q" aria-label="Search people" placeholder="Search name, company, email, phone…  ( / )">
+    <div class="status" id="status"></div>
+    <p class="sr-only" aria-live="polite" id="announce"></p>
+  </div>
+</header>
+<main id="main">
+  <div class="wrap"><ul id="people" aria-busy="true"></ul></div>
+</main>
 <script>
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-let people = [], current = null, filter = 'all', loaded = null;
+const CHANNELS = { email: 'Email', whatsapp: 'WhatsApp' };
+const RECENT = 20;
 
-async function api(path) {
-  const res = await fetch(path);
+// App state. Only one person is open at a time.
+let sources = {}, sync = { running: false, at: null, errors: {} }, people = [];
+let open = null;            // { id, data, filter, all }
+const hist = new Map();     // id -> history from the current snapshot
+
+async function api(path, opts) {
+  const res = await fetch(path, opts);
   const body = await res.json();
   if (!res.ok) throw new Error(body.error || res.statusText);
   return body;
 }
 
-async function init() {
-  const s = await api('/api/status');
+// ---- time formatting
+const fullDate = (d) => d.toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+function ago(at) {
+  const d = new Date(at), mins = (Date.now() - d) / 6e4;
+  if (mins < 1) return 'now';
+  if (mins < 60) return `${Math.floor(mins)}m`;
+  if (mins < 1440) return `${Math.floor(mins / 60)}h`;
+  if (mins < 10080) return `${Math.floor(mins / 1440)}d`;
+  return d.toLocaleDateString(undefined, d.getFullYear() === new Date().getFullYear()
+    ? { day: 'numeric', month: 'short' } : { month: 'short', year: 'numeric' });
+}
+const timeTag = (at, label) => `<time datetime="${esc(at)}" title="${esc(fullDate(new Date(at)))}">${esc(label)}</time>`;
+
+// ---- header
+function renderHeader() {
+  const btn = $('#refresh');
+  btn.setAttribute('aria-disabled', sync.running);
+  btn.textContent = !sync.running ? 'Refresh' : sync.total ? `Refreshing ${sync.done} / ${sync.total}` : 'Refreshing…';
+  if (sync.at) {
+    const mins = Math.floor((Date.now() - new Date(sync.at)) / 6e4);
+    const label = mins < 1 ? 'just now' : mins < 60 ? `${mins} min ago` : `${Math.floor(mins / 60)} h ago`;
+    $('#updated').outerHTML = `<time id="updated" datetime="${esc(sync.at)}" title="${esc(fullDate(new Date(sync.at)))}">Updated ${label}</time>`;
+  }
+  const e = sync.errors || {};
+  const item = (label, on, err) => err
+    ? `<span class="bad" title="${esc(err)}"><span class="dot bad"></span>${esc(label)} failed: ${esc(err)}</span>`
+    : `<span><span class="dot ${on ? 'on' : ''}"></span>${esc(on ? label : label + ' off')}</span>`;
   $('#status').innerHTML = [
-    ['People: ' + (s.people === 'crm' ? 'CRM' : 'sample data'), s.people === 'crm'],
-    ['Email', s.email], ['WhatsApp', s.whatsapp],
-  ].map(([l, ok]) => `<span><span class="dot ${ok ? 'on' : ''}"></span>${esc(l)}</span>`).join('');
-  try { people = await api('/api/people'); renderList(); }
-  catch (e) { $('#people').innerHTML = `<li class="err" style="padding:16px">${esc(e.message)}</li>`; }
+    e.crm ? item('CRM', true, e.crm + (sync.at ? ' — showing the last list' : '')) :
+      `<span><span class="dot on"></span>${sources.people === 'crm' ? 'CRM' : 'People: sample data'}</span>`,
+    ...Object.entries(CHANNELS).map(([k, label]) => item(label, sources[k], e[k])),
+  ].join('');
+}
+
+// ---- people list
+const matches = (p, q) => !q || [p.name, p.company, ...p.emails, ...p.phones].join(' ').toLowerCase().includes(q);
+
+function renderCounts(p) {
+  const parts = Object.entries(CHANNELS).filter(([k]) => p.counts[k]).map(([k, l]) => `<span class="c-${k}">${l} ${p.counts[k]}</span>`);
+  return parts.length ? parts.join(' · ') : 'No history';
+}
+
+function renderRow(p) {
+  const isOpen = open?.id === p.id;
+  const failed = Object.keys(p.errors || {}).map((k) => `<span class="err">${CHANNELS[k] || k} failed</span>`);
+  const sub = [esc(p.company), renderCounts(p), ...failed].filter(Boolean).join(' · ');
+  return `<li>
+    <button class="row" id="row-${esc(p.id)}" data-id="${esc(p.id)}" aria-expanded="${isOpen}" aria-controls="tl-${esc(p.id)}">
+      <span class="name">${esc(p.name)}</span>
+      ${p.lastAt ? timeTag(p.lastAt, ago(p.lastAt)) : '<time>Never</time>'}
+      <span class="sub">${sub}</span>
+    </button>
+    ${isOpen ? `<section class="timeline" id="tl-${esc(p.id)}" role="region" aria-labelledby="row-${esc(p.id)}">${renderTimeline()}</section>` : ''}
+  </li>`;
 }
 
 function renderList() {
+  const list = $('#people');
+  if (!people.length) {
+    list.innerHTML = `<li class="empty">${sync.running ? `Loading people and history… ${sync.total ? `${sync.done} / ${sync.total}` : ''}`
+      : sync.errors?.crm ? 'Could not load people.' : 'No people yet. Press Refresh.'}</li>`;
+    return;
+  }
+  list.removeAttribute('aria-busy');
   const q = $('#q').value.trim().toLowerCase();
-  const rows = people.filter((p) => !q || [p.name, p.company, ...p.emails, ...p.phones].join(' ').toLowerCase().includes(q));
-  $('#people').innerHTML = rows.map((p) => `
-    <li><button data-id="${esc(p.id)}" aria-current="${p.id === current}">
-      <div class="name">${esc(p.name)}</div>
-      <div class="sub">${esc([p.company, p.emails[0], p.phones[0]].filter(Boolean).join(' · '))}</div>
-    </button></li>`).join('') || '<li class="empty">No matches</li>';
+  const rows = people.filter((p) => matches(p, q));
+  list.innerHTML = (q ? `<li class="empty">${rows.length} of ${people.length}</li>` : '') +
+    (rows.map(renderRow).join('') || '<li class="empty">No matches</li>');
 }
 
-async function open(id) {
-  current = id; renderList();
-  $('#detail').innerHTML = '<div class="empty">Loading history…</div>';
-  try {
-    const data = await api(`/api/people/${encodeURIComponent(id)}/history`);
-    if (current !== id) return;
-    loaded = data; renderDetail();
-  } catch (e) { $('#detail').innerHTML = `<div class="empty err">${esc(e.message)}</div>`; }
+// ---- timeline (inside the open row)
+const renderMeta = (m, who) => `<div class="meta"><span class="tag">${CHANNELS[m.channel]}</span> · ${esc(who)} · ${timeTag(m.at, new Date(m.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}</div>`;
+
+function renderBody(m) {
+  if (m.text.length <= 600) return `<div class="body">${esc(m.text)}</div>`;
+  const id = `b-${esc(m.id).replace(/[^\w-]/g, '_')}`;
+  return `<div class="body clamp" id="${id}">${esc(m.text)}</div>
+    <button class="link" data-more aria-expanded="false" aria-controls="${id}">Show more</button>`;
 }
 
-function renderDetail() {
-  const { person: p, messages, errors } = loaded;
-  const shown = messages.filter((m) => filter === 'all' || m.channel === filter);
-  const count = (c) => messages.filter((m) => m.channel === c).length;
+const renderEmail = (m, p) => `<article class="msg email" aria-label="Email from ${esc(m.fromMe ? 'you' : m.from)}">
+  ${renderMeta(m, m.fromMe ? 'You' : m.from)}
+  <div class="subject" title="${esc(m.subject)}">${esc(m.subject)}</div>${renderBody(m)}</article>`;
+
+const renderWhatsApp = (m, p) => `<article class="msg whatsapp" aria-label="WhatsApp from ${esc(m.fromMe ? 'you' : p.name)}">
+  ${renderMeta(m, m.fromMe ? 'You' : p.name)}${renderBody(m)}</article>`;
+
+const RENDER = { email: renderEmail, whatsapp: renderWhatsApp };
+
+function renderDay(at) {
+  return `<li><h4 class="day">${esc(new Date(at).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }))}</h4></li>`;
+}
+
+function renderErrors(errors) {
+  return Object.entries(errors).map(([k, v]) => `<p class="err" role="status">${CHANNELS[k] || k} unavailable: ${esc(v)}</p>`).join('');
+}
+
+function renderEmpty(p) {
+  if (!p.emails.length && !p.phones.length) return '<p class="empty">No email or phone for this person in the CRM.</p>';
+  const tips = [];
+  if (p.emails.length && !sources.email) tips.push('Email isn\'t connected.');
+  if (p.phones.length && !sources.whatsapp) tips.push('WhatsApp isn\'t connected.');
+  if (p.phones.some((ph) => !String(ph).trim().startsWith('+'))) tips.push('WhatsApp needs phones with a country code (+…).');
+  return `<p class="empty">No messages for ${esc([...p.emails, ...p.phones].join(', '))}.${tips.length ? '<br>' + esc(tips.join(' ')) : ''}</p>`;
+}
+
+function renderTimeline() {
+  if (!open.data) return '<p class="info" aria-live="polite">Loading…</p>';
+  const { person: p, messages, errors } = open.data;
+  const used = Object.keys(CHANNELS).filter((k) => messages.some((m) => m.channel === k));
+  const shown = messages.filter((m) => open.filter === 'all' || m.channel === open.filter);
+  const visible = open.all ? shown : shown.slice(-RECENT);
+  const filters = used.length > 1 ? `<div class="filters">${[['all', `All ${messages.length}`], ...used.map((k) => [k, `${CHANNELS[k]} ${p.counts[k]}`])]
+    .map(([k, l]) => `<button type="button" data-filter="${k}" aria-pressed="${open.filter === k}">${l}</button>`).join('')}</div>` : '';
+  const earlier = shown.length > visible.length ? `<button class="link" data-earlier>Show earlier (${shown.length - visible.length})</button>` : '';
   let lastDay = '';
-  const items = shown.map((m) => {
-    const d = new Date(m.at);
-    const day = d.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
-    const sep = day !== lastDay ? `<div class="day">${esc(day)}</div>` : '';
+  const items = visible.map((m) => {
+    const day = new Date(m.at).toDateString();
+    const sep = day !== lastDay ? renderDay(m.at) : '';
     lastDay = day;
-    const who = m.fromMe ? 'You' : (m.channel === 'email' ? m.from : p.name);
-    const long = m.text.length > 600;
-    return sep + `<div class="msg ${m.channel} ${m.fromMe ? 'me' : ''}">
-      <div class="meta"><span class="tag">${m.channel === 'email' ? 'Email' : 'WhatsApp'}</span> · ${esc(who)} · ${esc(d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}</div>
-      ${m.subject ? `<div class="subject">${esc(m.subject)}</div>` : ''}
-      <div class="body ${long ? 'clamp' : ''}">${esc(m.text)}</div>
-      ${long ? '<button class="more">Show more</button>' : ''}
-    </div>`;
+    return sep + `<li class="${m.channel}${m.fromMe ? ' me' : ''}">${RENDER[m.channel](m, p)}</li>`;
   }).join('');
-  const errs = Object.entries(errors).map(([k, v]) => `<p class="err">${esc(k)}: ${esc(v)}</p>`).join('');
-  $('#detail').innerHTML = `
-    <div class="head">
-      <h2>${esc(p.name)}</h2>
-      <div class="sub">${esc([p.company, ...p.emails, ...p.phones].filter(Boolean).join(' · '))}</div>
-      <div class="filters">
-        ${[['all', `All ${messages.length}`], ['email', `Email ${count('email')}`], ['whatsapp', `WhatsApp ${count('whatsapp')}`]]
-          .map(([k, l]) => `<button data-filter="${k}" aria-pressed="${filter === k}">${l}</button>`).join('')}
-      </div>
-    </div>${errs}
-    <div class="timeline">${items || '<div class="empty">No messages found.</div>'}</div>`;
-  $('#detail').scrollTop = $('#detail').scrollHeight;
+  return renderErrors(errors) + (messages.length ? filters + earlier + `<ol class="msgs">${items}</ol>` : renderEmpty(p));
 }
 
+function rerenderOpen() {
+  const el = open && document.getElementById(`tl-${open.id}`);
+  if (el) el.innerHTML = renderTimeline();
+}
+
+async function loadHistory(id) {
+  if (!hist.has(id)) {
+    try { hist.set(id, await api(`/api/people/${encodeURIComponent(id)}/history`)); }
+    catch (e) { const p = people.find((x) => x.id === id); hist.set(id, { person: p, messages: [], errors: { load: e.message } }); }
+  }
+  if (open?.id === id) { open.data = hist.get(id); rerenderOpen(); }
+}
+
+// Opens or closes a row, keeping the clicked header where it was on screen.
+function toggle(id) {
+  const before = document.getElementById(`row-${id}`)?.getBoundingClientRect().top;
+  open = open?.id === id ? null : { id, data: hist.get(id), filter: 'all', all: false };
+  renderList();
+  const btn = document.getElementById(`row-${id}`);
+  if (btn && before != null) $('#main').scrollTop += btn.getBoundingClientRect().top - before;
+  btn?.focus({ preventScroll: true });
+  if (open && !open.data) loadHistory(id);
+}
+
+// ---- refresh
+async function loadPeople() {
+  people = await api('/api/people');
+  hist.clear();
+  if (open && !people.some((p) => p.id === open.id)) open = null;
+  const focusedId = document.activeElement?.dataset?.id;
+  renderList();
+  if (focusedId) document.getElementById(`row-${focusedId}`)?.focus({ preventScroll: true });
+  if (open) { open.data = null; rerenderOpen(); loadHistory(open.id); }
+}
+
+async function poll() {
+  const wasRunning = sync.running;
+  sync = await api('/api/refresh');
+  renderHeader();
+  if (sync.running) {
+    if (!people.length) renderList();
+    return setTimeout(poll, 1000);
+  }
+  if (wasRunning) {
+    await loadPeople();
+    const failed = Object.keys(sync.errors).map((k) => `${CHANNELS[k] || 'CRM'} failed.`).join(' ');
+    $('#announce').textContent = `Updated, ${people.length} people. ${failed}`;
+  }
+}
+
+async function startRefresh() {
+  if (sync.running) return;
+  sync = await api('/api/refresh', { method: 'POST' });
+  $('#announce').textContent = 'Refreshing';
+  renderHeader(); renderList();
+  setTimeout(poll, 500);
+}
+
+// ---- events
+$('#refresh').addEventListener('click', startRefresh);
 $('#q').addEventListener('input', renderList);
-$('#people').addEventListener('click', (e) => { const b = e.target.closest('button[data-id]'); if (b) open(b.dataset.id); });
-$('#detail').addEventListener('click', (e) => {
+$('#people').addEventListener('click', (e) => {
+  const row = e.target.closest('.row');
+  if (row) return toggle(row.dataset.id);
   const f = e.target.closest('[data-filter]');
-  if (f) { filter = f.dataset.filter; renderDetail(); }
-  if (e.target.matches('.more')) { e.target.previousElementSibling.classList.remove('clamp'); e.target.remove(); }
+  if (f) { open.filter = f.dataset.filter; open.all = false; return rerenderOpen(); }
+  if (e.target.closest('[data-earlier]')) { open.all = true; return rerenderOpen(); }
+  const more = e.target.closest('[data-more]');
+  if (more) {
+    const expanded = more.getAttribute('aria-expanded') !== 'true';
+    document.getElementById(more.getAttribute('aria-controls')).classList.toggle('clamp', !expanded);
+    more.setAttribute('aria-expanded', expanded);
+    more.textContent = expanded ? 'Show less' : 'Show more';
+  }
 });
-init();
+// ↑/↓/Home/End move between people; Esc closes the open person.
+$('#people').addEventListener('keydown', (e) => {
+  const rows = [...document.querySelectorAll('.row')];
+  if (e.key === 'Escape' && open) { e.preventDefault(); return toggle(open.id); }
+  const i = rows.indexOf(document.activeElement);
+  if (i < 0) return;
+  const next = { ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: rows.length - 1 }[e.key];
+  if (next == null) return;
+  e.preventDefault();
+  rows[Math.max(0, Math.min(rows.length - 1, next))].focus();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === '/' && document.activeElement !== $('#q')) { e.preventDefault(); $('#q').focus(); }
+});
+setInterval(() => { renderHeader(); if (!sync.running && people.length && !open) renderList(); }, 30_000);
+
+// First load: show the last snapshot, or start one if there is none.
+(async () => {
+  sources = await api('/api/status');
+  sync = await api('/api/refresh');
+  renderHeader();
+  if (sync.running) { renderList(); return poll(); }
+  if (!sync.at) return startRefresh();
+  await loadPeople();
+})();
 </script>
 </body>
 </html>
