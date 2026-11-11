@@ -17,3 +17,9 @@ test('hidden-id (lid) chats mapped to the phone are included', () => {
     '639171234567@s.whatsapp.net', '111222333444555@lid', '1555@s.whatsapp.net',
   ]);
 });
+
+test('the WhatsApp link opens the chat by phone digits with the text encoded', async () => {
+  const { whatsappLink } = await import('../lib/whatsapp.js');
+  assert.equal(whatsappLink('+420 775 623 723', 'Dobrý den, jak?'),
+    'whatsapp://send?phone=420775623723&text=Dobr%C3%BD%20den%2C%20jak%3F');
+});
