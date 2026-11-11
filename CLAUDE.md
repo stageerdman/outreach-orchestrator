@@ -17,7 +17,7 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   `update vX.md` (goal, phased roadmap, live status) and `wiki.md` (durable
   decisions and lessons). Reopen an update by flipping `CLOSED` → `OPEN`.
 - **Stay flat.** `server.js` (routes), `lib/` (one file per data source:
-  `crm.js`, `email.js`, `whatsapp.js`), `public/index.html` (the UI),
+  `crm.js`, `email.js`, `whatsapp.js`), `public/index.html` (the UI), `public/resolve.js` (template placeholders),
   `data/` (sample data), `macos/` (the native app wrapper, built with
   `npm run app`), `patches/` (changes to vendored code). Add folders only when the project genuinely grows
   into them; tests, when added, go in `test/` using Node's built-in
@@ -112,6 +112,12 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
 - WhatsApp matching is by phone digits → `<digits>@s.whatsapp.net` plus the
   `<lid>@lid` chats mapped to that phone in the bridge's `whatsapp.db`
   (`whatsmeow_lid_map`, read-only). CRM phones must include the country code.
+- **Sections:** a left rail switches views (Tasks, Templates); a new section
+  = a link in `.rail`, a `#view-<name>` block, and its name in `SECTIONS`.
+- **Templates** (`lib/templates.js`, `/api/templates`) live in
+  `templates.json` in the app data folder (never the repo); the first run
+  imported the MenuBarTemplates app's file (read-only). Placeholder rules are
+  in `public/resolve.js`, shared by the UI and the tests.
 - **Older WhatsApp history** is fetched only for CRM people's chats: after a
   refresh publishes, `whatsappBackfill` pages back via the bridge's
   `/api/history` (50 per request) until the phone has nothing older, then

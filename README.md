@@ -16,6 +16,13 @@ a person to expand their merged history. The status line under the search shows 
 sources are connected, off, or failing. History is cached in `~/Library/Application Support/Outreach/` (outside the repo), so the
 app opens with the last data and a refresh only fetches what's new.
 
+## Templates
+
+The **Templates** section (left rail, ⌘2) holds reusable messages: a name, a subject and a
+body with `{{ NAME }}` placeholders (and optional `{{gender:male|female}}`). Fill the fields,
+then **Copy subject** / **Copy body**. Stored in `~/Library/Application Support/Outreach/templates.json`;
+the first run imports the MenuBarTemplates app's templates.
+
 ## Mac app
 
 ```sh
