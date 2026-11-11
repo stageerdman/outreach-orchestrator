@@ -70,3 +70,19 @@ test('playbooks render compactly for prompts, with steps, why, templates and les
   assert.ok(s.includes('1. [a] email, after 3 day(s): Still relevant? — why: Breakup [templates: T9 "Nine"]'));
   assert.ok(s.includes('Lessons:\n- No calendar links before they reply'));
 });
+
+test('the user\'s autosaves to one playbook fold into one change; undo goes back to before the first', () => {
+  const p0 = { ...base, id: 'm', name: 'M', steps: [], responses: [] };
+  pb.applyOperations([{ op: 'setPlaybook', playbook: p0 }], { trigger: { kind: 'build' } });
+  const n = pb.listChanges().length;
+  const c1 = pb.applyOperations([{ op: 'setPlaybook', playbook: { ...p0, goal: 'a' } }], { merge: true });
+  const c2 = pb.applyOperations([{ op: 'setPlaybook', playbook: { ...p0, goal: 'ab' } }], { merge: true });
+  assert.equal(c1.id, c2.id);
+  assert.equal(pb.listChanges().length, n + 1);
+  assert.equal(pb.getPlaybook('m').goal, 'ab');
+  pb.undoChange(c2.id);
+  assert.equal(pb.getPlaybook('m').goal, 'Get a reply');
+  pb.applyOperations([{ op: 'setPlaybook', playbook: { ...p0, goal: 'x' } }], { merge: true });
+  pb.applyOperations([{ op: 'setPlaybook', playbook: { ...p0 } }], { merge: true });
+  assert.equal(pb.listChanges().length, n + 1, 'edited back to the start: no change left');
+});

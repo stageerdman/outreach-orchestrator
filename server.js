@@ -89,7 +89,7 @@ createServer(async (req, res) => {
     if (pbm && (req.method === 'PUT' || req.method === 'DELETE')) {
       const id = decodeURIComponent(pbm[1]), body = req.method === 'PUT' ? await readBody(req) : null;
       const op = body ? { op: 'setPlaybook', reason: 'Edited by the user', playbook: { ...body, id } } : { op: 'deletePlaybook', reason: 'Deleted by the user', id };
-      return json(res, 200, applyOperations([op], { trigger: { kind: 'user' }, summary: body ? `Edited "${body.name || id}"` : `Deleted "${id}"` }) ?? { unchanged: true });
+      return json(res, 200, applyOperations([op], { trigger: { kind: 'user' }, summary: body ? `Edited "${body.name || id}"` : `Deleted "${id}"`, merge: true }) ?? { unchanged: true });
     }
     if (url.pathname === '/api/settings') {
       if (req.method === 'PUT') {

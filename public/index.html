@@ -206,6 +206,40 @@
   .tbody { min-height: 16em; padding: var(--s3) var(--s4); background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow-wrap: anywhere; }
   .tbody h2 { font-size: var(--fs-lg); }
   .preview .tbody, .preview .tsubj { background: var(--bg); }
+  /* Playbooks: list of strategies on the left, one playbook (or the learning log) on the right */
+  .pgh { display: flex; align-items: center; gap: var(--s2); padding: var(--s3) var(--s3) var(--s1); font-size: var(--fs-sm); font-weight: 600; color: var(--muted); }
+  .pdots { display: inline-flex; gap: 2px; margin-left: var(--s1); vertical-align: middle; }
+  .pcoach { padding: 0 var(--s3) var(--s2); font-size: var(--fs-sm); color: var(--muted); display: flex; align-items: center; gap: var(--s1); }
+  .pcoach .bad, .rcoach.bad { color: var(--err); }
+  .pcoach:empty { display: none; }
+  .ph { margin: var(--s3) 0 0; font-size: var(--fs-sm); font-weight: 600; color: var(--muted); }
+  .steps, .lessons, .resps, .changes { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s2); }
+  .step { padding: var(--s3); background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); display: grid; gap: var(--s1); }
+  .step:focus-within { border-color: var(--accent); }
+  .shead { display: flex; align-items: center; gap: var(--s2); font-size: var(--fs-sm); flex-wrap: wrap; }
+  .snum { font-weight: 600; min-width: var(--badge); }
+  .shead select, .shead input { font-size: var(--fs-sm); padding: 2px var(--s2); }
+  .shead input { width: 4.5em; }
+  .sact { margin-left: auto; display: flex; gap: var(--s1); }
+  .sact .ib { width: var(--badge); height: var(--badge); }
+  .pt { flex: none; width: 100%; resize: none; field-sizing: content; min-height: 0; border-color: transparent; background: transparent; padding: var(--s1) var(--s2); line-height: 1.45; }
+  .pt:hover, .pt:focus { border-color: var(--line); }
+  .pt.strong { font-weight: 600; }
+  .swhy, .lessons .pt { color: var(--muted); font-size: var(--fs-sm); }
+  .chips { display: flex; flex-wrap: wrap; gap: var(--s1); align-items: center; }
+  .chip { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); font-size: var(--fs-sm); }
+  .chip button { all: unset; cursor: pointer; padding: 2px var(--s2); }
+  .chip button:hover { color: var(--accent); }
+  .chip button:focus-visible { outline: 2px solid var(--accent); }
+  .chip .x { padding: 2px var(--s1); color: var(--muted); }
+  .chip.missing { color: var(--muted); text-decoration: line-through; }
+  .chips select { font-size: var(--fs-sm); padding: 2px var(--s2); max-width: 14em; }
+  .lrow2 { display: flex; gap: var(--s1); align-items: flex-start; }
+  .ops { margin: 0; padding-left: var(--s4); display: grid; gap: var(--s1); font-size: var(--fs-sm); }
+  .ops details { margin-top: var(--s1); }
+  .ops summary { color: var(--accent); cursor: pointer; }
+  .card.undone h3 .name { text-decoration: line-through; color: var(--muted); }
+  #plist { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
   .back { display: none; }
 
   @media (max-width: 700px) {
@@ -233,7 +267,10 @@
   <a href="#templates" data-section="templates" aria-keyshortcuts="Meta+3" title="Templates (⌘3)">
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 2.5h7l3.5 3.5v11.5h-10.5zM12 2.5V6h3.5M7.5 10h6M7.5 13h6"/></svg>
     <span>Templates</span></a>
-  <a href="#settings" data-section="settings" aria-keyshortcuts="Meta+4" title="Settings (⌘4)">
+  <a href="#playbooks" data-section="playbooks" aria-keyshortcuts="Meta+4" title="Playbooks (⌘4)">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4.5h3v3H4zM4 12.5h3v3H4zM13 8.5h3v3h-3zM7 6h3.5v8H7M10.5 10H13"/></svg>
+    <span>Playbooks</span><span class="count-badge bad" id="pbadge" hidden></span></a>
+  <a href="#settings" data-section="settings" aria-keyshortcuts="Meta+5" title="Settings (⌘5)">
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h5M12 5h5M3 10h9M16 10h1M3 15h2M9 15h8"/><circle cx="10" cy="5" r="2"/><circle cx="14" cy="10" r="2"/><circle cx="7" cy="15" r="2"/></svg>
     <span>Settings</span></a>
 </nav>
@@ -274,6 +311,16 @@
       <ul id="tlist" aria-label="Templates"></ul>
     </div>
     <div class="editor" id="editor"></div>
+  </div>
+</div>
+<div class="view" id="view-playbooks" hidden>
+  <div class="tsplit" id="psplit" data-pane="list">
+    <div class="tlist">
+      <div class="tbar"><span id="pbuild"></span></div>
+      <div class="pcoach" id="pcoach" role="status"></div>
+      <ul id="plist" aria-label="Playbooks"></ul>
+    </div>
+    <div class="editor" id="peditor"></div>
   </div>
 </div>
 <div class="view" id="view-settings" hidden>
@@ -778,6 +825,7 @@ function renderRStatus() {
   const items = [`<span><span class="dot ${sources.smtp ? 'on' : ''}"></span>${sources.smtp ? 'Email sending' : 'Email sending off'}</span>`,
     `<span><span class="dot ${sources.whatsapp ? 'on' : ''}"></span>WhatsApp app</span>`];
   if (reqError) items.unshift(`<span class="bad"><span class="dot bad"></span>Could not load requests: ${esc(reqError)}</span>`);
+  if (pb && (coachBusy() || pb.coach.error)) items.push(`<span class="rcoach${pb.coach.error ? ' bad' : ''}">${renderCoachLine()}</span>`);
   $('#rstatus').innerHTML = items.join('');
 }
 
@@ -813,11 +861,20 @@ function renderRequests() {
 const renderRecent = (r) => `<li class="rrow"><b>${esc(r.personName)}</b> · ${r.kind === 'meeting' ? 'Meeting' : CHANNELS[r.channel] || 'Draft'} ${STATUS[r.status] || r.status}
   ${timeTag(r.updatedAt, ago(r.updatedAt))}${r.note ? ` · “${esc(r.note)}”` : ''}${r.text ? ` — ${esc(r.text.slice(0, 140))}` : ''}</li>`;
 
+// "Not answered · step 2 of 5": the playbook step the draft follows, a link to it.
+function renderStepLink(r) {
+  const p = r.playbookId && pb?.playbooks.find((x) => x.id === r.playbookId);
+  if (!p) return '';
+  const i = p.steps.findIndex((s) => s.id === r.stepId), resp = p.responses.find((x) => x.id === r.stepId);
+  const label = i >= 0 ? `${p.name} · step ${i + 1} of ${p.steps.length}` : resp ? `${p.name} · reply “${resp.when}”` : p.name;
+  return `<button type="button" class="link" style="margin: 0" data-playbook="${esc(p.id)}" data-step="${esc(r.stepId || '')}">${esc(label)}</button>`;
+}
+
 function renderCardHead(r, p) {
   const tpl = r.templateId && tpls?.find((t) => t.id === r.templateId);
   const what = r.status === 'generating' || r.status === 'failed' ? '' : r.kind === 'meeting' ? 'Offer a meeting' : CHANNELS[r.channel];
   const parts = [what && `<b class="${r.kind === 'meeting' ? '' : r.channel}">${what}</b>`,
-    p.task && esc(KIND[p.task.kind] || p.task.kind), `drafted ${timeTag(r.createdAt, ago(r.createdAt))}`, tpl && `template “${esc(tpl.name)}”`];
+    p.task && esc(KIND[p.task.kind] || p.task.kind), renderStepLink(r), `drafted ${timeTag(r.createdAt, ago(r.createdAt))}`, tpl && `template “${esc(tpl.name)}”`];
   return `<h3><span class="name">${esc(p.name)}</span>${renderDue(p)}</h3>${renderContact(p)}<p class="task">${parts.filter(Boolean).join(' · ')}</p>`;
 }
 
@@ -931,6 +988,7 @@ async function requestAction(r, action, body = {}) {
   const res = await api(`/api/requests/${encodeURIComponent(r.id)}/${action}`, { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(body) });
   if (ropen?.reqId === r.id) ropen = null;
   await loadRequests();
+  if (['send', 'cancel', 'regenerate'].includes(action)) setTimeout(loadPlaybooks, 500); // the AI learns from it
   return res;
 }
 
@@ -991,6 +1049,8 @@ $('#requests').addEventListener('click', (e) => {
   }
   const go = e.target.closest('[data-goto]');
   if (go) return gotoRequest(go.dataset.goto);
+  const pl = e.target.closest('[data-playbook]');
+  if (pl) return openPlaybook(pl.dataset.playbook, pl.dataset.step);
   const card = e.target.closest('.card');
   const r = card && requests.find((x) => x.id === card.dataset.req);
   if (!r) return ropen && timelineClick(e, ropen);
@@ -1129,7 +1189,7 @@ $('#settings').addEventListener('click', async (e) => {
 addEventListener('pagehide', () => { for (const t of Object.values(settingTimers)) clearTimeout(t); });
 
 // ---- sections (the last one is remembered per browser)
-const SECTIONS = ['tasks', 'requests', 'templates', 'settings'];
+const SECTIONS = ['tasks', 'requests', 'templates', 'playbooks', 'settings'];
 let section = 'tasks';
 function showSection(name, focus = false) {
   section = name;
@@ -1141,7 +1201,8 @@ function showSection(name, focus = false) {
   try { localStorage.setItem('section', name); } catch {}
   history.replaceState(null, '', `#${name}`);
   if (name === 'templates') loadTemplates();
-  if (name === 'requests') { loadTemplates(); loadRequests(); }
+  if (name === 'requests') { loadTemplates(); loadRequests(); loadPlaybooks(); }
+  if (name === 'playbooks') { loadTemplates(); loadPlaybooks(); }
   if (name === 'settings') loadSettings();
   const search = { tasks: '#q', templates: '#tq' }[name];
   if (focus && search) $(search).focus();
@@ -1466,12 +1527,407 @@ editor.addEventListener('keydown', (e) => {
 });
 addEventListener('pagehide', () => { if (dirty.size) flushSaves(true); });
 
+// ---- Playbooks: a follow-up strategy per stage; the AI builds them and learns
+// from every decision on a draft. The left list has the learning log first.
+const PB_STAGES = ['Installment', 'Waiting for Payment', 'Thinking about it', 'No Show', 'Meeting Confirmed', 'Meeting Booked', 'Answered', 'Not answered', 'New lead'];
+const PB_CHANNELS = { whatsapp: 'WhatsApp', email: 'Email', any: 'Any channel' };
+const LEARNED = '__learned';
+const MAX_STEPS = 10;
+let pb = null, psel = null, ppane = 'list', pbTimer, pbSave, pbError = '', lastChange, changesShown = 20, rebuildAsk = false;
+const curPb = () => pb?.playbooks.find((p) => p.id === psel);
+const stageRank = (s) => PB_STAGES.indexOf(s) + 1;
+const topRank = (p) => Math.min(...p.stages.map(stageRank).filter((r) => r > 0), 99);
+const tplById = (id) => tpls?.find((t) => t.id === id);
+const coachBusy = () => pb?.coach.running || pb?.coach.queued > 0;
+
+async function loadPlaybooks() {
+  try { pb = await api('/api/playbooks'); pbError = ''; } catch (e) { pbError = e.message; }
+  if (pb) {
+    const newest = pb.changes[0]?.id;
+    if (lastChange !== undefined && newest && newest !== lastChange && pb.changes[0].trigger.kind !== 'user') {
+      $('#announce').textContent = `Learned: ${pb.changes[0].summary}`;
+      // The AI may have written templates: reload them (not while one is being edited).
+      if (pb.changes[0].ops.some((o) => o.op === 'setTemplate') && section !== 'templates') { tpls = null; await loadTemplates(); }
+    }
+    lastChange = newest ?? null;
+    if (psel === null) psel = pb.playbooks.length ? LEARNED : null;
+  }
+  renderCoachBadge(); renderRStatus();
+  if (section === 'playbooks') { renderPList(); renderPEditor(false); }
+  if (section === 'requests') renderRequests();
+  clearTimeout(pbTimer);
+  if (coachBusy()) pbTimer = setTimeout(loadPlaybooks, 3000);
+}
+
+// ---- learning status: a line in Playbooks and in AI Requests; a "!" on the rail when it failed
+function renderCoachLine() {
+  const c = pb?.coach;
+  if (!c) return pbError ? `<span class="bad">Could not load playbooks: ${esc(pbError)}</span>` : '';
+  if (c.running || c.queued) return `${SPIN}<span>${c.running ? 'Learning from your last decision…' : 'Waiting to learn…'}${c.queued ? ` (+${c.queued} queued)` : ''}</span>`;
+  if (c.error) return `<span class="bad"><span class="dot bad"></span>Learning failed: ${esc(c.error)}. Playbooks weren't changed.</span>`;
+  return c.lastAt ? `<span>Last learned ${timeTag(c.lastAt, ago(c.lastAt))}</span>` : '';
+}
+function renderCoachBadge() {
+  const b = $('#pbadge'), bad = Boolean(pb?.coach.error);
+  b.hidden = !bad; b.textContent = '!';
+  b.parentElement.setAttribute('aria-label', `Playbooks${bad ? ', learning failed' : ''}`);
+}
+
+// ---- list
+function renderPRow(p) {
+  const dots = p.stages.map((s) => `<span class="sd" style="--st: ${stageColor(stageRank(s))}" title="${esc(s)}"></span>`).join('');
+  const sub = [p.situation === 'conversation' ? 'Conversation' : 'No reply', `${p.steps.length} step${p.steps.length === 1 ? '' : 's'}`,
+    p.responses.length && `${p.responses.length} repl${p.responses.length === 1 ? 'y' : 'ies'}`].filter(Boolean).join(' · ');
+  return `<li><button type="button" class="trow" data-pid="${esc(p.id)}"${p.id === psel ? ' aria-current="true"' : ''}>
+    <span class="tn">${esc(p.name)}<span class="pdots" aria-label="${esc(p.stages.join(', ') || 'Any stage')}">${dots}</span></span><span class="ts">${sub}</span></button></li>`;
+}
+
+function renderPList() {
+  $('#pcoach').innerHTML = renderCoachLine();
+  $('#pbuild').innerHTML = renderBuild();
+  if (!pb) { $('#plist').innerHTML = pbError ? `<li class="empty err">${esc(pbError)}</li>` : ''; return; }
+  const groups = [['Any stage', 0, pb.playbooks.filter((p) => !p.stages.length)],
+    ...PB_STAGES.map((s, i) => [s, i + 1, pb.playbooks.filter((p) => p.stages.length && topRank(p) === i + 1)])];
+  const learned = pb.changes.length ? `<li><button type="button" class="trow" data-pid="${LEARNED}"${psel === LEARNED ? ' aria-current="true"' : ''}>
+    <span class="tn">What the AI learned</span><span class="ts">${pb.changes.length} change${pb.changes.length === 1 ? '' : 's'}${pb.changes[0] ? ` · last ${ago(pb.changes[0].at)}` : ''}</span></button></li>` : '';
+  $('#plist').innerHTML = learned + groups.filter(([, , ps]) => ps.length).map(([label, rank, ps]) =>
+    `<li class="pgh">${rank ? `<span class="sd" style="--st: ${stageColor(rank)}"></span>` : ''}${esc(label)}</li>`
+    + ps.sort((a, b) => (a.situation === 'no-reply' ? 0 : 1) - (b.situation === 'no-reply' ? 0 : 1)).map(renderPRow).join('')).join('');
+}
+
+function renderBuild() {
+  const busy = coachBusy(), has = pb?.playbooks.length;
+  if (busy) return `<button type="button" class="btn" aria-disabled="true">${SPIN} ${has ? 'Working…' : 'Building…'}</button>`;
+  if (!has) return '';
+  if (rebuildAsk) return `Rebuild all? <button type="button" class="quiet danger" data-pact="build">Rebuild</button><button type="button" class="quiet" data-pact="build-no">Cancel</button>`;
+  return `<button type="button" class="btn" data-pact="rebuild" title="Rebuild all playbooks from your templates, reply rates and style (takes minutes; undoable)">${icon('regen')} Rebuild</button>`;
+}
+
+// ---- one playbook
+const renderChip = (id, where) => {
+  const t = tplById(id), name = t ? t.name || 'Untitled' : 'missing template';
+  const preview = t ? `${t.subject ? `${t.subject} — ` : ''}${htmlToText(t.bodyHtml).slice(0, 140)}` : '';
+  return `<span class="chip${t ? '' : ' missing'}"><button type="button" data-tpl="${esc(id)}" title="${esc(preview)}" aria-label="Open template ${esc(name)}">${esc(name)}</button>`
+    + `<button type="button" class="x" data-detach="${esc(id)}" data-where="${where}" aria-label="Remove template ${esc(name)}" title="Remove from here">×</button></span>`;
+};
+const renderChips = (ids, where) => `<div class="chips">${ids.map((id) => renderChip(id, where)).join('')}
+  <select class="input" data-attach="${where}" aria-label="Add a template"><option value="">+ template</option>${(tpls || [])
+    .filter((t) => !ids.includes(t.id) && (t.name || htmlToText(t.bodyHtml))).map((t) => `<option value="${esc(t.id)}">${esc(t.name || 'Untitled')}</option>`).join('')}</select></div>`;
+
+function renderStep(s, i, n) {
+  const k = `Step ${i + 1}`;
+  return `<li class="step" data-i="${i}">
+    <div class="shead"><span class="snum">${i + 1}</span>
+      <select class="input" data-f="channel" aria-label="${k} channel">${Object.entries(PB_CHANNELS).map(([v, l]) => `<option value="${v}"${s.channel === v ? ' selected' : ''}>${l}</option>`).join('')}</select>
+      <span>after</span><input class="input" type="number" min="0" max="90" data-f="waitDays" value="${s.waitDays}" aria-label="${k} wait in days"><span>day${s.waitDays === 1 ? '' : 's'}</span>
+      <span class="sact">
+        <button type="button" class="ib" data-pact="up" aria-label="Move ${k.toLowerCase()} up"${i === 0 ? ' aria-disabled="true"' : ''}>↑</button>
+        <button type="button" class="ib" data-pact="down" aria-label="Move ${k.toLowerCase()} down"${i === n - 1 ? ' aria-disabled="true"' : ''}>↓</button>
+        <button type="button" class="ib" data-pact="del-step" aria-label="Remove ${k.toLowerCase()}">×</button></span></div>
+    <textarea class="input pt" data-f="ask" rows="1" aria-label="${k}: what we ask" placeholder="What we ask or offer">${esc(s.ask)}</textarea>
+    <textarea class="input pt swhy" data-f="why" rows="1" aria-label="${k}: why" placeholder="Why this works now">${esc(s.why)}</textarea>
+    ${renderChips(s.templateIds, `s${i}`)}</li>`;
+}
+
+const renderResponse = (r, i) => `<li class="step" data-r="${i}">
+  <div class="lrow2"><textarea class="input pt strong" data-f="when" rows="1" aria-label="Reply ${i + 1}: when the client says" placeholder="When the client says…">${esc(r.when)}</textarea>
+    <button type="button" class="ib" data-pact="del-resp" aria-label="Remove reply ${i + 1}">×</button></div>
+  <textarea class="input pt" data-f="approach" rows="1" aria-label="Reply ${i + 1}: approach" placeholder="How to answer">${esc(r.approach)}</textarea>
+  ${renderChips(r.templateIds, `r${i}`)}</li>`;
+
+const renderLesson = (l, i) => `<li class="lrow2" data-l="${i}"><textarea class="input pt" data-f="lesson" rows="1" aria-label="Lesson ${i + 1}">${esc(l)}</textarea>
+  <button type="button" class="ib" data-pact="del-lesson" aria-label="Remove lesson ${i + 1}">×</button></li>`;
+
+// force = false for background refreshes: never re-render under the user's hands.
+function renderPEditor(force = true) {
+  const ed = $('#peditor');
+  $('#psplit').dataset.pane = psel ? ppane : 'list';
+  if (!force && ed.contains(document.activeElement) && document.activeElement.matches('textarea, input, select')) return;
+  const back = '<button type="button" class="link back" data-pact="back">‹ Playbooks</button>';
+  if (!pb) { ed.innerHTML = ''; return; }
+  if (!pb.playbooks.length) {
+    ed.innerHTML = coachBusy() ? `<p class="empty">${SPIN} Building your playbooks from your templates, reply rates and style. This takes a few minutes.</p>`
+      : `<div class="empty"><p>No playbooks yet. The AI builds them from your templates and your real reply rates.</p>
+        <button type="button" class="btn primary" data-pact="build">${icon('regen')} Build playbooks</button></div>`;
+    return;
+  }
+  if (psel === LEARNED) { ed.innerHTML = back + renderLearned(); return; }
+  const p = curPb();
+  if (!p) { ed.innerHTML = '<p class="empty">Pick a playbook.</p>'; return; }
+  ed.innerHTML = `${back}
+    <div class="ehead"><input class="input tname" data-f="name" aria-label="Playbook name" value="${esc(p.name)}">
+      <span class="tstatus" id="pstatus" aria-live="polite"></span><span id="pdel">${renderPDelete(false)}</span></div>
+    <div class="filters" role="group" aria-label="Situation">${[['no-reply', 'Client stopped replying'], ['conversation', 'In conversation']]
+      .map(([v, l]) => `<button type="button" data-situation="${v}" aria-pressed="${p.situation === v}">${l}</button>`).join('')}</div>
+    <div class="filters" role="group" aria-label="Stages (none = any stage)" style="flex-wrap: wrap">${PB_STAGES
+      .map((s, i) => `<button type="button" data-stage="${esc(s)}" aria-pressed="${p.stages.includes(s)}"><span class="sd" style="--st: ${stageColor(i + 1)}; display: inline-block"></span> ${esc(s)}</button>`).join('')}</div>
+    <h3 class="ph">Goal</h3><textarea class="input pt strong" data-f="goal" rows="1" aria-label="Goal" placeholder="The one outcome that moves the client on">${esc(p.goal)}</textarea>
+    <h3 class="ph">Steps · ${p.steps.length} of ${MAX_STEPS}</h3>
+    <ol class="steps">${p.steps.map((s, i) => renderStep(s, i, p.steps.length)).join('')}</ol>
+    ${p.steps.length < MAX_STEPS ? '<button type="button" class="link" data-pact="add-step">+ Add step</button>' : ''}
+    <h3 class="ph">When they reply</h3>
+    <ul class="resps">${p.responses.map(renderResponse).join('')}</ul>
+    <button type="button" class="link" data-pact="add-resp">+ Add reply</button>
+    <h3 class="ph">Lessons</h3>
+    <ul class="lessons">${p.lessons.map(renderLesson).join('')}</ul>
+    <button type="button" class="link" data-pact="add-lesson">+ Add lesson</button>`;
+}
+
+const renderPDelete = (asking) => asking
+  ? `Delete? <button type="button" class="quiet danger" data-pact="del-yes">Delete</button><button type="button" class="quiet" data-pact="del-no">Cancel</button>`
+  : `<button type="button" class="quiet" data-pact="del">Delete</button>`;
+
+const pstatus = (t, bad = false) => { const el = $('#pstatus'); if (el) { el.textContent = t; el.classList.toggle('bad', bad); } };
+
+// Every edit saves the whole playbook (the server logs it; quick edits fold into one change).
+function savePlaybook(p, now = false) {
+  pstatus('Saving…');
+  clearTimeout(pbSave);
+  pbSave = setTimeout(async () => {
+    try {
+      await api(`/api/playbooks/${encodeURIComponent(p.id)}`, { method: 'PUT', headers: JSON_HEADERS, body: JSON.stringify(p) });
+      pstatus('Saved');
+      const fresh = await api('/api/playbooks');
+      pb.changes = fresh.changes; lastChange = fresh.changes[0]?.id ?? null;
+    } catch (e) { pstatus(`Not saved: ${e.message}`, true); }
+  }, now ? 0 : 800);
+}
+
+// ---- the learning log
+const TRIGGER = {
+  build: () => 'Built from your templates, reply rates and style',
+  approve: (t) => `After you sent the draft for ${t.personName}`,
+  regenerate: (t) => `After you asked for a new draft for ${t.personName}`,
+  cancel: (t) => `After you cancelled the draft for ${t.personName}`,
+  user: () => 'Your edit',
+};
+
+function stepDiff(before, after) {
+  if (!before) return [`New playbook with ${after.steps.length} steps`];
+  if (!after) return ['Removed'];
+  const out = [], byId = new Map(before.steps.map((s, i) => [s.id, { s, i }]));
+  if (before.goal !== after.goal) out.push(`Goal: “${after.goal}”`);
+  after.steps.forEach((s, i) => {
+    const b = byId.get(s.id);
+    if (!b) return out.push(`Step ${i + 1} added: ${PB_CHANNELS[s.channel]}, after ${s.waitDays} d — ${s.ask}`);
+    const d = [];
+    if (b.i !== i) d.push(`moved from ${b.i + 1}`);
+    if (b.s.channel !== s.channel) d.push(`${PB_CHANNELS[b.s.channel]} → ${PB_CHANNELS[s.channel]}`);
+    if (b.s.waitDays !== s.waitDays) d.push(`wait ${b.s.waitDays} → ${s.waitDays} d`);
+    if (b.s.ask !== s.ask) d.push(`ask: “${s.ask}”`);
+    if (b.s.why !== s.why) d.push(`why: “${s.why}”`);
+    const added = s.templateIds.filter((x) => !b.s.templateIds.includes(x)), gone = b.s.templateIds.filter((x) => !s.templateIds.includes(x));
+    if (added.length) d.push(`+ ${added.map((x) => `“${tplById(x)?.name || x}”`).join(', ')}`);
+    if (gone.length) d.push(`− ${gone.map((x) => `“${tplById(x)?.name || x}”`).join(', ')}`);
+    if (d.length) out.push(`Step ${i + 1}: ${d.join('; ')}`);
+  });
+  const ids = new Set(after.steps.map((s) => s.id));
+  for (const s of before.steps) if (!ids.has(s.id)) out.push(`Step removed: ${s.ask}`);
+  const rIds = new Set(before.responses.map((r) => r.id));
+  for (const r of after.responses) if (!rIds.has(r.id)) out.push(`New reply branch: when ${r.when}`);
+  for (const r of before.responses) if (!after.responses.some((x) => x.id === r.id)) out.push(`Reply branch removed: ${r.when}`);
+  for (const l of after.lessons) if (!before.lessons.includes(l)) out.push(`Lesson: ${l}`);
+  for (const l of before.lessons) if (!after.lessons.includes(l)) out.push(`Lesson removed: ${l}`);
+  return out.length ? out : ['Small wording changes'];
+}
+
+function renderOp(o) {
+  if (o.op === 'setTemplate') {
+    const name = o.after?.name || o.before?.name || 'Untitled';
+    const text = (t) => (t ? htmlToText(t.bodyHtml) : '');
+    return `<li>${o.before ? 'Template changed' : 'New template'}: <button type="button" class="link" data-tpl="${esc(o.id)}">${esc(name)}</button>
+      ${o.reason ? `<p class="why">${esc(o.reason)}</p>` : ''}
+      <details><summary>${o.before ? 'Show text before / after' : 'Show text'}</summary>
+        ${o.before ? `<p class="why">Before</p><p class="brief">${esc(text(o.before))}</p><p class="why">After</p>` : ''}<p class="brief">${esc(text(o.after))}</p></details></li>`;
+  }
+  const p = o.after || o.before;
+  const lines = stepDiff(o.before, o.after);
+  return `<li>${o.op === 'deletePlaybook' ? 'Removed playbook' : o.before ? 'Playbook' : 'New playbook'}: <button type="button" class="link" data-pid="${esc(o.id)}">${esc(p.name)}</button>
+    ${o.reason ? `<p class="why">${esc(o.reason)}</p>` : ''}
+    ${o.before && o.after ? `<details><summary>${lines.length} change${lines.length === 1 ? '' : 's'}</summary><ul class="ops">${lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></details>` : ''}</li>`;
+}
+
+function renderChange(c) {
+  const t = c.trigger;
+  return `<li class="card past${c.undone ? ' undone' : ''}" id="ch-${esc(c.id)}" tabindex="-1">
+    <h3><span class="name">${esc(c.summary || 'Changes')}</span>${timeTag(c.at, ago(c.at))}</h3>
+    <p class="task">${esc((TRIGGER[t.kind] || TRIGGER.user)(t))}</p>
+    ${t.note ? `<p class="note"><b>Your note:</b> ${esc(t.note)}</p>` : ''}
+    <ul class="ops">${c.ops.map(renderOp).join('')}</ul>
+    <div class="ractions"><span class="cancel">${c.undone ? '<span class="why">Undone</span>'
+      : `<span class="err" data-err></span><button type="button" class="btn sm" data-undo="${esc(c.id)}" aria-label="Undo: ${esc(c.summary)}">${icon('recover')}Undo</button>`}</span></div></li>`;
+}
+
+function renderLearned() {
+  const shown = pb.changes.slice(0, changesShown), left = pb.changes.length - shown.length;
+  return `<h1>What the AI learned</h1>
+    <p class="info">Every time you send, regenerate or cancel a draft, the AI may adjust the playbooks and templates. Each change says why, and can be undone.</p>
+    <ul class="changes">${shown.map(renderChange).join('')}</ul>
+    ${left ? `<button type="button" class="link" data-pact="more-changes">Show ${Math.min(left, 20)} more (${left} left)</button>` : ''}`;
+}
+
+// ---- interactions
+function openPlaybook(id, stepId) {
+  psel = id; ppane = 'editor';
+  showSection('playbooks');
+  if (stepId) {
+    const p = curPb(), i = p?.steps.findIndex((s) => s.id === stepId);
+    const el = i >= 0 ? document.querySelector(`#peditor .step[data-i="${i}"] textarea`) : null;
+    el?.scrollIntoView({ block: 'center' }); el?.focus({ preventScroll: true });
+  }
+}
+
+async function openTemplate(id) {
+  showSection('templates');
+  await loadTemplates();
+  tsel = id; pane = 'editor';
+  renderTList(); renderEditor();
+}
+
+// Which list a field or chip belongs to: s3 = step 3, r1 = reply 1.
+const partOf = (p, where) => (where[0] === 's' ? p.steps : p.responses)[Number(where.slice(1))];
+
+$('#view-playbooks').addEventListener('click', async (e) => {
+  const row = e.target.closest('.trow');
+  if (row) {
+    psel = row.dataset.pid; ppane = 'editor'; changesShown = 20;
+    renderPList(); renderPEditor();
+    document.querySelector(`#plist .trow[data-pid="${CSS.escape(psel)}"]`)?.focus();
+    return;
+  }
+  const tp = e.target.closest('[data-tpl]');
+  if (tp) return openTemplate(tp.dataset.tpl);
+  const pid = e.target.closest('#peditor [data-pid]');
+  if (pid) { psel = pid.dataset.pid; renderPList(); renderPEditor(); return; }
+  const undo = e.target.closest('[data-undo]');
+  if (undo) {
+    if (undo.getAttribute('aria-disabled') === 'true') return;
+    undo.setAttribute('aria-disabled', 'true'); undo.lastChild.textContent = 'Undoing…';
+    try {
+      const c = await api(`/api/playbooks/changes/${encodeURIComponent(undo.dataset.undo)}/undo`, { method: 'POST' });
+      $('#announce').textContent = `Undid: ${c.summary}`;
+      tpls = null; await loadTemplates(); await loadPlaybooks();
+      document.getElementById(`ch-${c.id}`)?.focus();
+    } catch (er) {
+      undo.removeAttribute('aria-disabled'); undo.lastChild.textContent = 'Undo';
+      const err = undo.parentElement.querySelector('[data-err]');
+      if (err) err.textContent = er.message;
+      $('#announce').textContent = er.message;
+    }
+    return;
+  }
+  const p = curPb();
+  const act = e.target.closest('[data-pact]')?.dataset.pact;
+  if (act === 'back') { ppane = 'list'; $('#psplit').dataset.pane = 'list'; return document.querySelector('#plist .trow[aria-current]')?.focus(); }
+  if (act === 'rebuild') { rebuildAsk = true; return renderPList(); }
+  if (act === 'build-no') { rebuildAsk = false; return renderPList(); }
+  if (act === 'build') {
+    rebuildAsk = false;
+    try { pb.coach = await api('/api/playbooks/build', { method: 'POST' }); $('#announce').textContent = 'Building playbooks. This takes a few minutes.'; }
+    catch (er) { $('#announce').textContent = `Could not start: ${er.message}`; }
+    renderPList(); renderPEditor(); clearTimeout(pbTimer); pbTimer = setTimeout(loadPlaybooks, 3000);
+    return;
+  }
+  if (act === 'more-changes') { changesShown += 20; return renderPEditor(); }
+  if (!p) return;
+  const sit = e.target.closest('[data-situation]'), st = e.target.closest('[data-stage]');
+  if (sit) { p.situation = sit.dataset.situation; renderPEditor(); savePlaybook(p, true); return document.querySelector(`[data-situation="${p.situation}"]`)?.focus(); }
+  if (st) {
+    const s = st.dataset.stage;
+    p.stages = p.stages.includes(s) ? p.stages.filter((x) => x !== s) : PB_STAGES.filter((x) => x === s || p.stages.includes(x));
+    renderPEditor(); renderPList(); savePlaybook(p, true);
+    return document.querySelector(`#peditor [data-stage="${CSS.escape(s)}"]`)?.focus();
+  }
+  const det = e.target.closest('[data-detach]');
+  if (det) {
+    const part = partOf(p, det.dataset.where);
+    part.templateIds = part.templateIds.filter((x) => x !== det.dataset.detach);
+    renderPEditor(); savePlaybook(p, true);
+    return document.querySelector(`#peditor [data-attach="${det.dataset.where}"]`)?.focus();
+  }
+  const i = Number(e.target.closest('[data-i]')?.dataset.i), r = Number(e.target.closest('[data-r]')?.dataset.r), l = Number(e.target.closest('[data-l]')?.dataset.l);
+  const refocus = (sel) => document.querySelector(`#peditor ${sel}`)?.focus();
+  if (act === 'up' || act === 'down') {
+    const j = act === 'up' ? i - 1 : i + 1;
+    if (j < 0 || j >= p.steps.length) return;
+    [p.steps[i], p.steps[j]] = [p.steps[j], p.steps[i]];
+    renderPEditor(); savePlaybook(p, true);
+    pstatus(`Step moved to ${j + 1}`);
+    return refocus(`.step[data-i="${j}"] [data-pact="${act}"]`);
+  }
+  if (act === 'del-step') { p.steps.splice(i, 1); renderPEditor(); savePlaybook(p, true); pstatus('Step removed (undo in What the AI learned)'); return refocus('[data-pact=add-step]'); }
+  if (act === 'add-step') {
+    p.steps.push({ id: `step-${Date.now().toString(36)}`, channel: 'whatsapp', waitDays: 2, ask: '', why: '', templateIds: [] });
+    renderPEditor(); savePlaybook(p, true); return refocus(`.step[data-i="${p.steps.length - 1}"] [data-f=ask]`);
+  }
+  if (act === 'del-resp') { p.responses.splice(r, 1); renderPEditor(); savePlaybook(p, true); return refocus('[data-pact=add-resp]'); }
+  if (act === 'add-resp') {
+    p.responses.push({ id: `reply-${Date.now().toString(36)}`, when: '', approach: '', templateIds: [] });
+    renderPEditor(); savePlaybook(p, true); return refocus(`[data-r="${p.responses.length - 1}"] [data-f=when]`);
+  }
+  if (act === 'del-lesson') { p.lessons.splice(l, 1); renderPEditor(); savePlaybook(p, true); return refocus('[data-pact=add-lesson]'); }
+  if (act === 'add-lesson') { p.lessons.push(''); renderPEditor(); return refocus(`[data-l="${p.lessons.length - 1}"] textarea`); }
+  if (act === 'del') return ($('#pdel').innerHTML = renderPDelete(true), $('[data-pact=del-no]').focus());
+  if (act === 'del-no') return ($('#pdel').innerHTML = renderPDelete(false), $('[data-pact=del]').focus());
+  if (act === 'del-yes') {
+    try {
+      await api(`/api/playbooks/${encodeURIComponent(p.id)}`, { method: 'DELETE' });
+      $('#announce').textContent = `Deleted ${p.name}. Undo it in What the AI learned.`;
+      psel = LEARNED; await loadPlaybooks();
+    } catch (er) { pstatus(`Not deleted: ${er.message}`, true); }
+  }
+});
+
+$('#view-playbooks').addEventListener('input', (e) => {
+  const p = curPb(), f = e.target.dataset.f;
+  if (!p || !f) return;
+  const v = e.target.value;
+  const step = e.target.closest('[data-i]'), resp = e.target.closest('[data-r]'), les = e.target.closest('[data-l]');
+  if (step) p.steps[step.dataset.i][f] = f === 'waitDays' ? Math.max(0, Math.round(Number(v) || 0)) : v;
+  else if (resp) p.responses[resp.dataset.r][f] = v;
+  else if (les) p.lessons[les.dataset.l] = v;
+  else p[f] = v;
+  if (f === 'name') document.querySelector(`#plist .trow[data-pid="${CSS.escape(p.id)}"] .tn`)?.firstChild?.replaceWith(v);
+  savePlaybook(p);
+});
+
+$('#view-playbooks').addEventListener('change', (e) => {
+  const p = curPb(), where = e.target.dataset.attach;
+  if (!p || !where || !e.target.value) return;
+  partOf(p, where).templateIds.push(e.target.value);
+  renderPEditor(); savePlaybook(p, true);
+  document.querySelector(`#peditor [data-attach="${where}"]`)?.focus();
+});
+
+// Empty lessons go when you leave them; arrows move through the list.
+$('#view-playbooks').addEventListener('focusout', (e) => {
+  const p = curPb();
+  if (p && e.target.dataset.f === 'lesson' && !e.target.value.trim()) {
+    p.lessons = p.lessons.filter((x) => x.trim());
+    setTimeout(() => { renderPEditor(); savePlaybook(p, true); });
+  }
+});
+$('#plist').addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+  const rows = [...document.querySelectorAll('#plist .trow')], i = rows.indexOf(document.activeElement);
+  if (i < 0) return;
+  e.preventDefault();
+  rows[Math.max(0, Math.min(rows.length - 1, i + (e.key === 'ArrowDown' ? 1 : -1)))].focus();
+});
+$('#peditor').addEventListener('keydown', (e) => {
+  if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+    const btn = e.target.closest('.step')?.querySelector(`[data-pact="${e.key === 'ArrowUp' ? 'up' : 'down'}"]`);
+    if (btn && btn.getAttribute('aria-disabled') !== 'true') { e.preventDefault(); btn.click(); }
+  }
+  if (e.key === 'Escape' && ppane === 'editor') { ppane = 'list'; $('#psplit').dataset.pane = 'list'; document.querySelector('#plist .trow[aria-current]')?.focus(); }
+});
+
 // First load: show the last snapshot, or start one if there is none.
 (async () => {
   const saved = (() => { try { return localStorage.getItem('section'); } catch { return null; } })();
   showSection([location.hash.slice(1), saved].find((x) => SECTIONS.includes(x)) || 'tasks');
   sources = await api('/api/status');
-  loadRequests();
+  loadRequests(); loadPlaybooks();
   sync = await api('/api/refresh');
   renderHeader();
   if (sync.running) { renderList(); return poll(); }
