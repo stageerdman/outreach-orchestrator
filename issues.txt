@@ -1,7 +1,7 @@
 Outreach Orchestrator — known issues and TODOs
 Running list. Resolved items move to the relevant update's wiki.md.
 
-- [ ] 2026-11-11 WhatsApp only matches 1:1 chats (`<digits>@s.whatsapp.net`);
+- [ ] 2026-11-11 WhatsApp only matches 1:1 chats (phone or `@lid` ids);
       group chats are missed. CRM phones now come from `phone_e164`, but a
       contact without it (1 of 144) won't match.
 - [ ] 2026-11-11 Email refresh reads every message header in Inbox, Sent and

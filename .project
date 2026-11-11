@@ -39,4 +39,4 @@ is documented in `.env.example`.
 ## Status
 Prototype working on real data (ResultsON CRM + IMAP) as of 2026-11-11;
 WhatsApp bridge patched, waiting to be linked. See
-`updates/2026-11-11 PROTOTYPE - OPEN/` and `issues.txt`.
+`updates/2026-11-11 PROTOTYPE - CLOSED/` and `issues.txt`.

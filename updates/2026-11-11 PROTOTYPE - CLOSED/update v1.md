@@ -1,4 +1,4 @@
-# Prototype — update v1 (OPEN)
+# Prototype — update v1 (CLOSED)
 
 ## Goal
 One click on **Refresh** does everything: pull the people to reach out to from
@@ -57,13 +57,17 @@ communication history, email and WhatsApp merged in one timeline.
       query), IMAP `imap.miowebmail.cz`.
 - [x] WhatsApp bridge fixed ("Client outdated (405)": whatsmeow bumped,
       5 context args added, rebuilt in vendor, user-approved exception).
-- [ ] Link the WhatsApp bridge (user) and re-run a refresh.
+- [x] WhatsApp linked (4,885 messages, 460 chats synced). Matching fixed
+      for hidden-id (`@lid`) chats via the bridge's lid → phone map.
+- [x] Final real refresh: 65 people, 17s, no errors. WhatsApp: 59 people,
+      202 msgs. Email: 19 people, 27 msgs. Both: 15. Neither: 2.
 - [x] Full refresh on real data: 65 people, 19 with email (27 emails), no
       errors. 117s → 15s after switching to one header scan per folder.
 - [x] Phone format: 100 of 144 CRM phones are local format; fixed by using
       `phone_e164` (filled for 143 of 144).
-- [ ] Tune `EMAIL_LIMIT` / `WHATSAPP_LIMIT`; decide whether WhatsApp group
-      chats or local-format phones need handling now.
+- [x] Limits: defaults fine (no person near 50 emails / 500 WhatsApp).
+      Local-format phones solved by `phone_e164`; group chats left out
+      (see issues.txt).
 - Ends with: prototype used for a real outreach session; close update.
 
 ## Decisions
@@ -95,6 +99,4 @@ other channels.
   expand/collapse, show earlier/more, filter, keyboard, search, empty
   states, open row survives a refresh, no horizontal scroll at phone width,
   no JS errors.
-- 2026-11-11: phase 4 mostly done (see above). Next: user links WhatsApp
-  (`cd vendor/whatsapp-mcp/whatsapp-bridge && ./whatsapp-bridge`, scan QR),
-  then refresh and check WhatsApp matches; then close this update.
+- 2026-11-11: all four phases done; update closed.

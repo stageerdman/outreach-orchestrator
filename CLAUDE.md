@@ -93,5 +93,6 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   team-member email/password on every refresh (tokens last 1h). People =
   contacts with an open task assigned to the user; phones come from
   `phone_e164` because the raw `phone` is often local format.
-- WhatsApp matching is by phone digits → `<digits>@s.whatsapp.net`, so CRM
-  phones must include the country code.
+- WhatsApp matching is by phone digits → `<digits>@s.whatsapp.net` plus the
+  `<lid>@lid` chats mapped to that phone in the bridge's `whatsapp.db`
+  (`whatsmeow_lid_map`, read-only). CRM phones must include the country code.

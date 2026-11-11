@@ -29,3 +29,9 @@
   updating whatsmeow is the fix. Newer whatsmeow takes a `context.Context`
   first arg on Download, sqlstore.New, GetFirstDevice, GetGroupInfo and
   Contacts.GetContact.
+- WhatsApp `@lid` chats: most 1:1 chats (358 of 424 here) are stored as
+  `<lid>@lid`, not `<phone>@s.whatsapp.net`. The bridge's whatsmeow store
+  `whatsapp.db` has `whatsmeow_lid_map(lid, pn)` (digits only, no suffix);
+  every lid chat had a mapping. Opened read-only, like messages.db.
+- The bridge must keep running for new messages to sync; closing it keeps the
+  history already stored.
