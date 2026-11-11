@@ -18,14 +18,14 @@ reason) can rewrite templates, add steps, branches or new paths, and lessons.
 - Strategy text (goal, why) in English; message texts in the client's language.
 
 ## Phases
-1. [ ] Research spike (agent): follow-up cadence strategies (multi-channel,
+1. [x] Research spike (agent): follow-up cadence strategies (multi-channel,
    why each ask) + the user's own data (reply rate by follow-up #, channel,
    gap, template), aggregates only → `research-playbooks.md`, build prompt.
 2. [x] `lib/playbooks.js`: store, validation, operations, change log, undo.
    Tests.
 3. [x] Drafting uses playbooks: follow-up position in the context, playbooks
    in the system prompt, `playbookId` / `stepId` on the draft. Tests.
-4. [ ] Learning (`lib/coach.js`): build from scratch; on approve / regenerate
+4. [x] Learning (`lib/coach.js`): build from scratch; on approve / regenerate
    / cancel → Claude returns operations → applied + logged. Tests.
 5. [ ] UI: Playbooks view (steps, branches, lessons, change log with undo).
    UX agents.

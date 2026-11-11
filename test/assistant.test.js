@@ -151,7 +151,7 @@ test('follow-up position: my touches since the client last wrote, close messages
   const f = ai.followupState([m('2026-11-01T10:00:00Z', false), m('2026-11-02T10:00:00Z', true), m('2026-11-02T10:05:00Z', true),
     m('2026-11-05T10:00:00Z', true, 'email'), m('2026-11-08T10:00:00Z', true)], now);
   assert.deepEqual(f, { followups: 3, clientEverWrote: true, daysSinceClient: 10, daysSinceMine: 3, channels: ['whatsapp', 'email', 'whatsapp'] });
-  assert.equal(ai.renderFollowup(f), '3 follow-up(s) since the client last wrote (whatsapp → email → whatsapp), the last 3 day(s) ago. The client last wrote 10 day(s) ago.');
+  assert.equal(ai.renderFollowup(f), '3 message(s) sent since the client last wrote (whatsapp → email → whatsapp), the last 3 day(s) ago. The client last wrote 10 day(s) ago.');
   assert.equal(ai.renderFollowup(ai.followupState([], now)), 'No messages yet: first contact.');
   assert.equal(ai.followupState([m('2026-11-08T10:00:00Z', true)], now).clientEverWrote, false);
   assert.ok(ai.contextPrompt({ person, now, onWa }).includes('Follow-up position: The client wrote last; nothing sent since. The client last wrote 9 day(s) ago.'));

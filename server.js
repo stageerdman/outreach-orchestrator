@@ -5,7 +5,9 @@ import { emailConfigured, smtpConfigured } from './lib/email.js';
 import { whatsappConfigured } from './lib/whatsapp.js';
 import { listTemplates, saveTemplate, deleteTemplate } from './lib/templates.js';
 import { refresh, syncState, snapshotPeople, restoreSnapshot } from './lib/sync.js';
-import { getSettings, saveSettings, DRAFT_PROMPT, STYLE_PROMPT, MODELS } from './lib/settings.js';
+import { getSettings, saveSettings, DRAFT_PROMPT, STYLE_PROMPT, COACH_PROMPT, BUILD_PROMPT, MODELS } from './lib/settings.js';
+import { listPlaybooks, listChanges, applyOperations, undoChange } from './lib/playbooks.js';
+import { buildPlaybooks, coachState } from './lib/coach.js';
 import * as ai from './lib/assistant.js';
 
 const PORT = Number(process.env.PORT || 3000);
@@ -71,12 +73,30 @@ createServer(async (req, res) => {
         return out ? json(res, 200, out) : json(res, 409, { error: 'This request is no longer open' });
       } catch (e) { return json(res, e.status || 502, { error: e.message }); }
     }
+    // Playbooks: the follow-up strategies, their change log (newest first) and the coach's state.
+    if (url.pathname === '/api/playbooks') {
+      return json(res, 200, { playbooks: listPlaybooks(), changes: listChanges().slice(-200).reverse(), coach: coachState() });
+    }
+    if (url.pathname === '/api/playbooks/build' && req.method === 'POST') {
+      return json(res, 202, buildPlaybooks(snapshotPeople(), getSettings().styleGuide));
+    }
+    const u = url.pathname.match(/^\/api\/playbooks\/changes\/([^/]+)\/undo$/);
+    if (u && req.method === 'POST') {
+      const out = undoChange(decodeURIComponent(u[1]));
+      return out.error ? json(res, 409, out) : json(res, 200, out.change);
+    }
+    const pbm = url.pathname.match(/^\/api\/playbooks\/([^/]+)$/);
+    if (pbm && (req.method === 'PUT' || req.method === 'DELETE')) {
+      const id = decodeURIComponent(pbm[1]), body = req.method === 'PUT' ? await readBody(req) : null;
+      const op = body ? { op: 'setPlaybook', reason: 'Edited by the user', playbook: { ...body, id } } : { op: 'deletePlaybook', reason: 'Deleted by the user', id };
+      return json(res, 200, applyOperations([op], { trigger: { kind: 'user' }, summary: body ? `Edited "${body.name || id}"` : `Deleted "${id}"` }) ?? { unchanged: true });
+    }
     if (url.pathname === '/api/settings') {
       if (req.method === 'PUT') {
-        const { model, draftPrompt, stylePrompt, styleGuide } = await readBody(req);
-        saveSettings({ model, draftPrompt, stylePrompt, styleGuide });
+        const { model, draftPrompt, stylePrompt, coachPrompt, buildPrompt, styleGuide } = await readBody(req);
+        saveSettings({ model, draftPrompt, stylePrompt, coachPrompt, buildPrompt, styleGuide });
       }
-      return json(res, 200, { ...getSettings(), defaults: { draftPrompt: DRAFT_PROMPT, stylePrompt: STYLE_PROMPT }, models: MODELS, learning: ai.learnState() });
+      return json(res, 200, { ...getSettings(), defaults: { draftPrompt: DRAFT_PROMPT, stylePrompt: STYLE_PROMPT, coachPrompt: COACH_PROMPT, buildPrompt: BUILD_PROMPT }, models: MODELS, learning: ai.learnState() });
     }
     if (url.pathname === '/api/settings/learn') {
       return json(res, 202, req.method === 'POST' ? ai.learnStyle() : ai.learnState());
