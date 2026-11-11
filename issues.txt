@@ -1,17 +1,9 @@
 Outreach Orchestrator — known issues and TODOs
 Running list. Resolved items move to the relevant update's wiki.md.
 
-- [ ] 2026-11-11 No tests. `npm test` is the npm placeholder that exits 1.
-      Start with CRM normalization, phone → JID matching and email dedup
-      (`node --test`).
-- [ ] 2026-11-11 package.json: empty `description`, and `main` points to a
-      nonexistent `index.js` (entry is `server.js`). No `engines` field, though
-      `node:sqlite` needs Node 22.5+.
-- [ ] 2026-11-11 Email dedup keys on `date|subject`, so two different emails
-      with the same subject and timestamp collapse into one. Message-ID would be
-      the safer key.
 - [ ] 2026-11-11 WhatsApp only matches 1:1 chats (`<digits>@s.whatsapp.net`)
       and needs CRM phones with a country code; group chats and local-format
       numbers are silently missed.
-- [ ] 2026-11-11 Email is fetched live over IMAP on every history request
-      (fresh connection, up to 50 per folder); may be slow on big mailboxes.
+- [ ] 2026-11-11 Refresh searches email one person at a time (one IMAP
+      connection, up to 50 per folder per person). Time it on real data in
+      PROTOTYPE phase 4; may be slow with many people or big mailboxes.

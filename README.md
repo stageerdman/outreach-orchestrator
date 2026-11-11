@@ -10,8 +10,11 @@ cp .env.example .env   # fill in CRM + IMAP settings
 npm start              # http://localhost:3000
 ```
 
-Without any settings it runs on `data/people.sample.json`. The status dots at the top left
-show which sources are connected.
+Without any settings it runs on `data/people.sample.json`. Opening the page (or pressing
+**Refresh**) pulls the people from the CRM and everyone's email and WhatsApp history; click
+a person to expand their merged history. The status line under the search shows which
+sources are connected, off, or failing. History is kept in memory only, so after a restart
+the first page load refreshes again.
 
 ## Sources
 

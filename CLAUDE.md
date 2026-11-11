@@ -78,5 +78,11 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
 - **Private data:** this app touches real emails and WhatsApp messages. Never
   commit message content, real CRM exports, or `messages.db`; only
   `data/people.sample.json` with fake people belongs in git.
+- **Layout:** one people list; clicking a person expands their timeline in
+  place (asked for by the user, replaces "list on one side, timeline on the
+  other" from the UX module).
+- **Refresh flow:** `lib/sync.js` pulls the CRM list, then each person's
+  history through each source's `<channel>Session()` into an in-memory
+  snapshot that the API serves. Register new channels in its `SOURCES`.
 - WhatsApp matching is by phone digits → `<digits>@s.whatsapp.net`, so CRM
   phones must include the country code.

@@ -15,40 +15,40 @@ communication history, email and WhatsApp merged in one timeline.
 
 ## Phases
 
-### 1. Solid sources (tests first)
-- [ ] `node --test` setup in `test/`, `npm test` wired, `package.json`
+### 1. Solid sources (tests first) — done
+- [x] `node --test` setup in `test/`, `npm test` wired, `package.json`
       cleanup (`main`, `description`, `engines: node >=22.5`).
-- [ ] Tests: CRM normalization (`get`, dot paths, string-or-list
+- [x] Tests: CRM normalization (`get`, dot paths, string-or-list
       emails/phones), phone → WhatsApp JID, email dedup.
-- [ ] Email dedup by Message-ID (fallback `date|subject`).
+- [x] Email dedup by Message-ID (fallback `date|subject`).
 - Ends with: `npm test` green.
 
-### 2. Refresh = full sync (server)
-- [ ] `POST /api/refresh`: fetch people fresh from the CRM, then history for
+### 2. Refresh = full sync (server) — done
+- [x] `POST /api/refresh`: fetch people fresh from the CRM, then history for
       everyone. Email over **one** IMAP connection for the whole run (not one
       per person); WhatsApp from one read-only DB handle.
-- [ ] Result kept as an **in-memory snapshot** `{ at, people, errors }`, each
+- [x] Result kept as an **in-memory snapshot** `{ at, people, errors }`, each
       person carrying `messages`, `lastAt` and per-channel counts. Nothing
       private is written to disk.
-- [ ] One refresh at a time; `GET /api/refresh` returns progress
+- [x] One refresh at a time; `GET /api/refresh` returns progress
       (`running`, `done / total`) for the UI to poll.
-- [ ] `GET /api/people` and `/history` served from the snapshot (instant).
-- [ ] Per-source and per-person errors kept, not fatal: one broken mailbox
+- [x] `GET /api/people` and `/history` served from the snapshot (instant).
+- [x] Per-source and per-person errors kept, not fatal: one broken mailbox
       doesn't stop the sync.
 - Ends with: tests for the merge/snapshot shape; run against sample data
   and hit the endpoints.
 
-### 3. UI: people list with expandable history
-- [ ] Refresh button, "last refreshed …" and progress while running. First
+### 3. UI: people list with expandable history — done
+- [x] Refresh button, "last refreshed …" and progress while running. First
       page load starts a refresh if there is no snapshot yet.
-- [ ] People list: name, company, last contact, email/WhatsApp counts.
+- [x] People list: name, company, last contact, email/WhatsApp counts.
       Sorted by last contact (most recent first); search stays.
-- [ ] Click (or Enter/Space) on a person expands their row with the merged
+- [x] Click (or Enter/Space) on a person expands their row with the merged
       timeline; click again collapses. `aria-expanded`, focus states,
       keyboard through the list.
-- [ ] One render function per message type, reused; email/WhatsApp filter
+- [x] One render function per message type, reused; email/WhatsApp filter
       inside the expanded row; long emails clamped with "Show more".
-- [ ] Source errors shown honestly (status bar + inside the person's row).
+- [x] Source errors shown honestly (status bar + inside the person's row).
 - UX experts in parallel: people list, expanded timeline, refresh/status.
 - Ends with: open the UI and click through it.
 
@@ -68,11 +68,27 @@ communication history, email and WhatsApp merged in one timeline.
 - Snapshot lives in memory only: restart = refresh again. Fine for a local
   prototype and keeps private messages off disk.
 - Progress by polling, not SSE/websockets: simplest thing that works.
+- Each source exposes `<channel>Session()` → `{ history(person), close() }`;
+  `lib/sync.js` holds the source list and the snapshot. A new channel = a new
+  lib file + one line in `SOURCES`.
+- People are fetched in one call per refresh; email searches one person at a
+  time over a single IMAP connection (IMAP can't search in parallel on one
+  connection anyway).
+- UI synthesis of three UX reviews (list, timeline, header): one row open at
+  a time with a sticky header, last 20 messages + "Show earlier", filter only
+  when both channels exist, source state in words not just dot colour, list
+  stays usable during a refresh.
 
 ## Out of scope (prototype)
 Sending messages, auto/background refresh, persistent cache, group chats,
 other channels.
 
 ## Status
-- Planned 2026-11-11. Next: phase 1.
-- Blocked for phase 4 on: CRM URL/token and IMAP credentials in `.env`.
+- 2026-11-11: phases 1–3 done. 12 tests green (`npm test`). Verified by
+  running the server and driving the UI in headless Chrome against sample
+  people plus a throwaway fake WhatsApp DB: refresh progress, list,
+  expand/collapse, show earlier/more, filter, keyboard, search, empty
+  states, open row survives a refresh, no horizontal scroll at phone width,
+  no JS errors.
+- Next: phase 4. Blocked on CRM URL/token and IMAP credentials in `.env`,
+  and linking the WhatsApp bridge.
