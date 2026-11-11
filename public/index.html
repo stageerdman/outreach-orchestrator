@@ -10,6 +10,7 @@
     --accent: #2f5bd3; --email: #2f5bd3; --wa: #1f7f50; --me: #eef2fd; --sel: #eef2fd; --err: #b3261e;
     --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px;
     --fs-sm: 12px; --fs: 14px; --fs-lg: 16px; --radius: 6px; --width: 860px; --gh: 32px;
+    --rail: 72px; --list-w: 280px; --icon: 20px;
     /* Pipeline stage colours, top stage first (each ≥4.5:1 on bg, panel and sel) */
     --st-1: #1a7a45; --st-2: #0e7480; --st-3: #8a6a00; --st-4: #b8461b; --st-5: #1f6aa5;
     --st-6: #5a52c4; --st-7: #8b47ad; --st-8: #776c60; --st-9: #646c78;
@@ -22,7 +23,18 @@
   }
   * { box-sizing: border-box; }
   body { margin: 0; font: var(--fs)/1.45 -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text);
-    height: 100vh; display: flex; flex-direction: column; }
+    height: 100vh; display: grid; grid-template-columns: var(--rail) minmax(0, 1fr); }
+  [hidden] { display: none !important; }
+  .view { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+
+  /* Section rail: one link per section */
+  .rail { background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: var(--s1); padding: var(--s2) 0; }
+  .rail a { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: var(--s2) var(--s1);
+    color: var(--muted); text-decoration: none; font-size: var(--fs-sm); }
+  .rail a:hover { background: var(--sel); color: var(--text); }
+  .rail a[aria-current] { color: var(--accent); background: var(--sel); box-shadow: inset 3px 0 var(--accent); }
+  .rail a:focus-visible { outline-offset: -2px; }
+  .rail svg { width: var(--icon); height: var(--icon); }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .wrap { width: 100%; max-width: var(--width); margin: 0 auto; }
@@ -102,26 +114,99 @@
   .link { all: unset; color: var(--accent); font-size: var(--fs-sm); cursor: pointer; margin-top: var(--s1); align-self: flex-start; }
   .link:focus-visible { outline: 2px solid var(--accent); }
 
-  @media (max-width: 700px) { .msg { max-width: 100%; } .rows { border-left: 0; border-right: 0; } }
+  /* Templates: list on the left, editor on the right */
+  .tsplit { flex: 1; min-height: 0; display: grid; grid-template-columns: var(--list-w) minmax(0, 1fr); }
+  .tlist { display: flex; flex-direction: column; min-height: 0; background: var(--panel); border-right: 1px solid var(--line); }
+  .tbar { display: flex; gap: var(--s2); padding: var(--s3); border-bottom: 1px solid var(--line); }
+  #tlist { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
+  .trow { all: unset; box-sizing: border-box; display: block; width: 100%; padding: var(--s2) var(--s3); border-bottom: 1px solid var(--line); cursor: pointer; }
+  .trow:hover { background: var(--sel); }
+  .trow[aria-current] { background: var(--sel); box-shadow: inset 3px 0 var(--accent); }
+  .trow:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .tn, .ts { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tn { font-weight: 600; } .ts { color: var(--muted); font-size: var(--fs-sm); }
+  .editor { overflow-y: auto; padding: var(--s4) var(--s5); display: flex; flex-direction: column; gap: var(--s3); }
+  .editor > * { width: 100%; max-width: var(--width); }
+  .ehead { display: flex; align-items: center; gap: var(--s2); }
+  .input { font: inherit; padding: var(--s2) var(--s3); border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); color: var(--text); min-width: 0; }
+  .tname { flex: 1; font-size: var(--fs-lg); font-weight: 600; padding: var(--s1) var(--s2); border-color: transparent; background: transparent; }
+  .tname:hover, .tname:focus { border-color: var(--line); }
+  .tstatus { color: var(--muted); font-size: var(--fs-sm); white-space: nowrap; } .tstatus.bad { color: var(--err); }
+  .btn { font: inherit; padding: var(--s1) var(--s3); border: 1px solid var(--line); border-radius: var(--radius);
+    background: var(--panel); color: var(--text); cursor: pointer; white-space: nowrap; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+  .btn[aria-pressed=true] { border-color: var(--accent); color: var(--accent); }
+  .btn.sm { font-size: var(--fs-sm); padding: 2px var(--s2); }
+  .quiet { all: unset; color: var(--muted); font-size: var(--fs-sm); cursor: pointer; padding: var(--s1) var(--s2); border-radius: var(--radius); white-space: nowrap; }
+  .quiet:hover { color: var(--text); } .quiet.danger { color: var(--err); font-weight: 600; }
+  .quiet:focus-visible { outline: 2px solid var(--accent); }
+  .actions { position: sticky; top: calc(-1 * var(--s4)); z-index: 1; display: flex; gap: var(--s2); padding: var(--s2) 0; background: var(--bg); }
+  .fields { margin: 0; padding: var(--s3); display: grid; gap: var(--s2); background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+  .fields legend { font-size: var(--fs-sm); font-weight: 600; color: var(--muted); padding: 0 var(--s1); }
+  .field { display: grid; grid-template-columns: 11em minmax(0, 1fr) auto; align-items: center; gap: var(--s3); }
+  .field > :first-child { font-size: var(--fs-sm); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .field.off > :first-child { color: var(--muted); text-decoration: line-through; }
+  .inc { font-size: var(--fs-sm); color: var(--muted); display: flex; gap: var(--s1); align-items: center; }
+  .toolbar { display: flex; gap: var(--s1); align-items: center; flex-wrap: wrap; }
+  .tbody { min-height: 16em; padding: var(--s3) var(--s4); background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow-wrap: anywhere; }
+  .tbody h2 { font-size: var(--fs-lg); }
+  .preview .tbody, .preview .tsubj { background: var(--bg); }
+  .back { display: none; }
+
+  @media (max-width: 700px) {
+    .msg { max-width: 100%; } .rows { border-left: 0; border-right: 0; }
+    body { grid-template: minmax(0, 1fr) auto / minmax(0, 1fr); }
+    .view { grid-row: 1; grid-column: 1; }
+    .rail { grid-row: 2; flex-direction: row; padding: 0; border-right: 0; border-top: 1px solid var(--line); }
+    .rail a { flex: 1; } .rail a[aria-current] { box-shadow: inset 0 3px var(--accent); }
+    .tsplit { grid-template-columns: minmax(0, 1fr); }
+    .tsplit[data-pane=editor] .tlist, .tsplit[data-pane=list] .editor { display: none; }
+    .back { display: inline-block; }
+    .editor { padding: var(--s3); }
+    .field { grid-template-columns: minmax(0, 1fr) auto; } .field > :first-child { grid-column: 1 / -1; }
+  }
 </style>
 </head>
 <body>
+<nav class="rail" aria-label="Sections">
+  <a href="#tasks" data-section="tasks" aria-keyshortcuts="Meta+1" title="Tasks (⌘1)">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5l1.5 1.5L7 4M3 11l1.5 1.5L7 10M10 5.5h7M10 11.5h7M10 16.5h7M3.5 16.5h3"/></svg>
+    <span>Tasks</span></a>
+  <a href="#templates" data-section="templates" aria-keyshortcuts="Meta+2" title="Templates (⌘2)">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 2.5h7l3.5 3.5v11.5h-10.5zM12 2.5V6h3.5M7.5 10h6M7.5 13h6"/></svg>
+    <span>Templates</span></a>
+</nav>
+<div class="view" id="view-tasks">
 <header>
   <div class="wrap">
     <div class="bar">
-      <h1>Outreach</h1>
+      <h1>Tasks</h1>
       <time id="updated"></time>
       <button id="refresh" type="button">Refresh</button>
     </div>
     <input type="search" id="q" aria-label="Search tasks" placeholder="Search name, stage, task, email, phone…  ( / )">
     <div class="status" id="status"></div>
-    <p class="sr-only" aria-live="polite" id="announce"></p>
   </div>
 </header>
 <main id="main">
   <div class="wrap" id="people" aria-busy="true"></div>
 </main>
-<script>
+</div>
+<div class="view" id="view-templates" hidden>
+  <div class="tsplit" id="tsplit" data-pane="list">
+    <div class="tlist">
+      <div class="tbar">
+        <input type="search" id="tq" aria-label="Search templates" placeholder="Search templates…  ( / )">
+        <button type="button" class="btn" id="tnew" aria-label="New template" title="New template (⌘N)">+</button>
+      </div>
+      <ul id="tlist" aria-label="Templates"></ul>
+    </div>
+    <div class="editor" id="editor"></div>
+  </div>
+</div>
+<p class="sr-only" aria-live="polite" id="announce"></p>
+<script type="module">
+import { placeholders, hasGender, resolve, htmlToText } from '/resolve.js';
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const CHANNELS = { email: 'Email', whatsapp: 'WhatsApp' };
@@ -468,12 +553,352 @@ $('#people').addEventListener('keydown', (e) => {
   rows[Math.max(0, Math.min(rows.length - 1, next))].focus();
 });
 document.addEventListener('keydown', (e) => {
-  if (e.key === '/' && document.activeElement !== $('#q')) { e.preventDefault(); $('#q').focus(); }
+  const a = document.activeElement, typing = a?.matches('input, textarea, [contenteditable=true]');
+  if (e.metaKey && SECTIONS.includes(SECTIONS[e.key - 1])) { e.preventDefault(); return showSection(SECTIONS[e.key - 1], true); }
+  if (e.metaKey && e.key === 'n' && section === 'templates') { e.preventDefault(); return newTemplate(); }
+  if (e.key === '/' && !typing) { e.preventDefault(); $(section === 'tasks' ? '#q' : '#tq').focus(); }
 });
 setInterval(() => { renderHeader(); if (!sync.running && people.length && !open) renderList(); }, 30_000);
 
+// ---- sections (the last one is remembered per browser)
+const SECTIONS = ['tasks', 'templates'];
+let section = 'tasks';
+function showSection(name, focus = false) {
+  section = name;
+  for (const s of SECTIONS) {
+    $(`#view-${s}`).hidden = s !== name;
+    const link = document.querySelector(`.rail [data-section="${s}"]`);
+    if (s === name) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current');
+  }
+  try { localStorage.setItem('section', name); } catch {}
+  history.replaceState(null, '', `#${name}`);
+  if (name === 'templates') loadTemplates();
+  if (focus) $(name === 'tasks' ? '#q' : '#tq').focus();
+}
+$('.rail').addEventListener('click', (e) => {
+  const a = e.target.closest('[data-section]');
+  if (a) { e.preventDefault(); showSection(a.dataset.section); }
+});
+
+// ---- templates: list + editor; placeholder values stay in memory and carry
+// over between templates (fill JMENO once, use it in every template).
+let tpls = null, tsel = null, pane = 'list', preview = false, gender = 'female', fieldsKey = '';
+const values = {};                   // NAME -> { value, include }
+const dirty = new Set();             // template ids waiting to be saved
+let saveTimer, statusTimer, delTimer;
+const currentTpl = () => tpls?.find((t) => t.id === tsel);
+const JSON_HEADERS = { 'Content-Type': 'application/json' };
+
+async function loadTemplates() {
+  if (tpls) return;
+  try { tpls = (await api('/api/templates')).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)); }
+  catch (e) { $('#tlist').innerHTML = `<li class="empty err">Could not load templates: ${esc(e.message)}</li>`; return; }
+  tsel = tpls[0]?.id ?? null;
+  renderTList(); renderEditor();
+}
+
+const tmatch = (t, q) => !q || `${t.name}\n${t.subject}\n${htmlToText(t.bodyHtml)}`.toLowerCase().includes(q);
+const renderTRow = (t) => `<li><button type="button" class="trow" data-tid="${esc(t.id)}"${t.id === tsel ? ' aria-current="true"' : ''}>
+  <span class="tn">${esc(t.name || 'Untitled')}</span>${t.subject ? `<span class="ts">${esc(t.subject)}</span>` : ''}</button></li>`;
+
+function renderTList() {
+  if (!tpls) return;
+  const q = $('#tq').value.trim().toLowerCase();
+  const rows = tpls.filter((t) => tmatch(t, q));
+  $('#tlist').innerHTML = rows.length ? rows.map(renderTRow).join('')
+    : `<li class="empty">${q ? `No match for “${esc(q)}”` : 'No templates yet. Press + to add one.'}</li>`;
+}
+
+const TOOLS = [['bold', '<b>B</b>', 'Bold'], ['italic', '<i>I</i>', 'Italic'], ['h2', 'H2', 'Heading'],
+  ['insertUnorderedList', '•', 'Bulleted list'], ['insertOrderedList', '1.', 'Numbered list'], ['link', 'Link', 'Link']];
+
+function renderEditor() {
+  const t = currentTpl(), ed = $('#editor');
+  $('#tsplit').dataset.pane = t ? pane : 'list';
+  preview = false; fieldsKey = '';
+  if (!t) { ed.innerHTML = `<p class="empty">${tpls.length ? 'Pick a template.' : 'No templates yet.'}</p>`; return; }
+  ed.classList.remove('preview');
+  ed.innerHTML = `<button type="button" class="link back" data-act="back">‹ Templates</button>
+    <div class="ehead">
+      <input class="input tname" id="tname" aria-label="Template name" placeholder="Untitled">
+      <span class="tstatus" id="tstatus"></span>
+      <button type="button" class="quiet" data-act="dup">Duplicate</button>
+      <span id="tdel">${renderDelete(false)}</span>
+    </div>
+    <input class="input tsubj" id="tsubj" aria-label="Subject" placeholder="Subject">
+    <div class="actions">
+      <button type="button" class="btn" data-act="copy-subject">Copy subject</button>
+      <button type="button" class="btn primary" data-act="copy-body">Copy body</button>
+      <button type="button" class="btn" data-act="preview" aria-pressed="false">Preview</button>
+    </div>
+    <div id="tfields"></div>
+    <div class="toolbar" role="toolbar" aria-label="Formatting">
+      ${TOOLS.map(([cmd, label, title]) => `<button type="button" class="btn sm" data-cmd="${cmd}" title="${title}" aria-label="${title}">${label}</button>`).join('')}
+      <input type="url" class="input" id="tlink" aria-label="Link address" placeholder="https://…  (Enter)" hidden>
+    </div>
+    <div class="tbody" id="tbody" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Body"></div>`;
+  $('#tname').value = t.name; $('#tsubj').value = t.subject; $('#tbody').innerHTML = t.bodyHtml;
+  syncFields();
+}
+
+const renderDelete = (asking) => asking
+  ? `Delete? <button type="button" class="quiet danger" data-act="del-yes">Delete</button><button type="button" class="quiet" data-act="del-no">Cancel</button>`
+  : `<button type="button" class="quiet" data-act="del">Delete</button>`;
+
+function renderFields(names, withGender) {
+  if (!names.length && !withGender) return '';
+  const rows = names.map((n, i) => {
+    const v = values[n] ??= { value: '', include: true };
+    return `<div class="field${v.include ? '' : ' off'}">
+      <label for="f-${i}" title="${esc(n)}">${esc(n)}</label>
+      <input class="input" id="f-${i}" data-field="${esc(n)}" value="${esc(v.value)}"${v.include ? '' : ' disabled'}>
+      <label class="inc"><input type="checkbox" data-include="${esc(n)}"${v.include ? ' checked' : ''}> Include</label></div>`;
+  });
+  if (withGender) rows.push(`<div class="field"><span>Gender</span><span class="filters">${[['female', 'Female'], ['male', 'Male']]
+    .map(([g, l]) => `<button type="button" data-gender="${g}" aria-pressed="${gender === g}">${l}</button>`).join('')}</span></div>`);
+  return `<fieldset class="fields"><legend>Fields</legend>${rows.join('')}</fieldset>`;
+}
+
+// Re-renders the fields panel only when the set of placeholders changes.
+function syncFields() {
+  const t = currentTpl(), names = placeholders(t.subject, t.bodyHtml), g = hasGender(t.subject, t.bodyHtml);
+  const key = JSON.stringify([names, g]);
+  if (key !== fieldsKey) { fieldsKey = key; $('#tfields').innerHTML = renderFields(names, g); }
+}
+
+function setPreview(on) {
+  const t = currentTpl();
+  preview = on;
+  $('#editor').classList.toggle('preview', on);
+  $('[data-act=preview]').setAttribute('aria-pressed', on);
+  $('#tsubj').readOnly = on;
+  $('#tbody').contentEditable = String(!on);
+  $('.toolbar').hidden = on;
+  $('#tsubj').value = on ? resolve(t.subject, values, gender) : t.subject;
+  $('#tbody').innerHTML = on ? resolve(t.bodyHtml, values, gender, true) : t.bodyHtml;
+}
+
+function tstatus(text, bad = false) {
+  const el = $('#tstatus');
+  clearTimeout(statusTimer);
+  if (!el) return;
+  el.textContent = text; el.classList.toggle('bad', bad);
+  if (text === 'Saved') statusTimer = setTimeout(() => { el.textContent = ''; }, 2000);
+}
+
+function scheduleSave() {
+  dirty.add(tsel); tstatus('Saving…');
+  clearTimeout(saveTimer); saveTimer = setTimeout(flushSaves, 600);
+}
+async function flushSaves(keepalive = false) {
+  clearTimeout(saveTimer);
+  for (const id of [...dirty]) {
+    dirty.delete(id);
+    const t = tpls.find((x) => x.id === id);
+    if (!t) continue;
+    try {
+      const saved = await api(`/api/templates/${encodeURIComponent(id)}`, { method: 'PUT', headers: JSON_HEADERS, keepalive,
+        body: JSON.stringify({ name: t.name, subject: t.subject, bodyHtml: t.bodyHtml }) });
+      t.updatedAt = saved.updatedAt; // keep local text: it may have changed while saving
+      if (id === tsel) tstatus('Saved');
+    } catch (e) { dirty.add(id); if (id === tsel) tstatus(`Not saved: ${e.message}`, true); }
+  }
+}
+
+function selectTpl(id, toEditor = false) {
+  tsel = id;
+  if (toEditor) pane = 'editor';
+  renderTList(); renderEditor();
+}
+
+async function addTemplate(fields, after) {
+  try {
+    const t = await api('/api/templates', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(fields) });
+    tpls.splice(after < 0 ? 0 : after + 1, 0, t);
+    $('#tq').value = '';
+    selectTpl(t.id, true);
+    $('#tname').focus(); $('#tname').select();
+    $('#announce').textContent = 'Template created';
+  } catch (e) { $('#announce').textContent = `Could not create the template: ${e.message}`; }
+}
+async function newTemplate() {
+  if (section !== 'templates') showSection('templates');
+  await loadTemplates();
+  if (tpls) addTemplate({ name: '', subject: '', bodyHtml: '' }, -1);
+}
+
+async function deleteTpl() {
+  const id = tsel;
+  try { await api(`/api/templates/${encodeURIComponent(id)}`, { method: 'DELETE' }); }
+  catch (e) { return tstatus(`Not deleted: ${e.message}`, true); }
+  const q = $('#tq').value.trim().toLowerCase();
+  const visible = tpls.filter((t) => tmatch(t, q)), i = visible.findIndex((t) => t.id === id);
+  dirty.delete(id);
+  tpls = tpls.filter((t) => t.id !== id);
+  const next = visible.filter((t) => t.id !== id)[Math.min(i, visible.length - 2)];
+  pane = 'list';
+  selectTpl(next?.id ?? null);
+  $('#announce').textContent = 'Template deleted';
+  document.querySelector('.trow[aria-current]')?.focus();
+}
+
+function askDelete(asking) {
+  clearTimeout(delTimer);
+  $('#tdel').innerHTML = renderDelete(asking);
+  $(asking ? '[data-act=del-no]' : '[data-act=del]').focus();
+  if (asking) delTimer = setTimeout(() => { if ($('#tdel')) $('#tdel').innerHTML = renderDelete(false); }, 5000);
+}
+
+// Copies HTML (with a plain-text fallback) or just text. The copy event runs
+// inside the click, which WebKit allows; the async clipboard API is the backup.
+async function copyRich(text, html) {
+  const onCopy = (e) => {
+    e.clipboardData.setData('text/plain', text);
+    if (html) e.clipboardData.setData('text/html', html);
+    e.preventDefault();
+  };
+  document.addEventListener('copy', onCopy);
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch {}
+  document.removeEventListener('copy', onCopy);
+  if (ok) return true;
+  try {
+    const item = { 'text/plain': new Blob([text], { type: 'text/plain' }) };
+    if (html) item['text/html'] = new Blob([html], { type: 'text/html' });
+    await navigator.clipboard.write([new ClipboardItem(item)]);
+    return true;
+  } catch { return false; }
+}
+
+async function copyPart(btn, part) {
+  const t = currentTpl();
+  const ok = part === 'subject' ? await copyRich(resolve(t.subject, values, gender))
+    : await copyRich(htmlToText(resolve(t.bodyHtml, values, gender, true)), resolve(t.bodyHtml, values, gender, true));
+  const label = btn.textContent;
+  btn.style.minWidth = `${btn.offsetWidth}px`;
+  btn.textContent = ok ? 'Copied' : 'Copy failed';
+  $('#announce').textContent = ok ? `${part === 'subject' ? 'Subject' : 'Body'} copied` : 'Copy failed';
+  setTimeout(() => { btn.textContent = label; btn.style.minWidth = ''; }, 1500);
+}
+
+// Formatting keeps the body's selection: buttons don't take focus on mousedown.
+let linkRange = null;
+function format(cmd) {
+  const body = $('#tbody');
+  if (cmd === 'link') {
+    const sel = getSelection();
+    linkRange = sel.rangeCount && body.contains(sel.anchorNode) ? sel.getRangeAt(0) : null;
+    const input = $('#tlink');
+    input.hidden = false; input.value = ''; input.focus();
+    return;
+  }
+  body.focus();
+  if (cmd === 'h2') {
+    const inH2 = getSelection().anchorNode?.parentElement?.closest('h2');
+    document.execCommand('formatBlock', false, inH2 ? 'div' : 'h2');
+  } else document.execCommand(cmd);
+}
+function applyLink(url) {
+  const body = $('#tbody'), input = $('#tlink');
+  input.hidden = true;
+  body.focus();
+  if (!url) return;
+  if (linkRange) { const sel = getSelection(); sel.removeAllRanges(); sel.addRange(linkRange); }
+  if (linkRange && !linkRange.collapsed) document.execCommand('createLink', false, url);
+  else document.execCommand('insertHTML', false, `<a href="${esc(url)}">${esc(url)}</a>`);
+}
+
+$('#tq').addEventListener('input', () => {
+  renderTList();
+  $('#announce').textContent = `${document.querySelectorAll('.trow').length} templates`;
+});
+$('#tq').addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowDown') { e.preventDefault(); document.querySelector('.trow')?.focus(); }
+});
+$('#tnew').addEventListener('click', newTemplate);
+$('#tlist').addEventListener('click', (e) => {
+  const row = e.target.closest('.trow');
+  if (row) { selectTpl(row.dataset.tid, true); if (getComputedStyle($('.back')).display !== 'none') $('#tname').focus(); else document.querySelector(`.trow[data-tid="${CSS.escape(tsel)}"]`)?.focus(); }
+});
+// ↑/↓ move through the list and open each template; Enter goes to the editor.
+$('#tlist').addEventListener('keydown', (e) => {
+  const rows = [...document.querySelectorAll('.trow')], i = rows.indexOf(document.activeElement);
+  if (i < 0) return;
+  if (e.key === 'Enter') { e.preventDefault(); selectTpl(rows[i].dataset.tid, true); return $('#tname').focus(); }
+  const next = { ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: rows.length - 1 }[e.key];
+  if (next == null) return;
+  e.preventDefault();
+  if (next < 0) return $('#tq').focus();
+  const id = rows[Math.min(rows.length - 1, next)].dataset.tid;
+  selectTpl(id);
+  document.querySelector(`.trow[data-tid="${CSS.escape(id)}"]`)?.focus();
+});
+
+const editor = $('#editor');
+editor.addEventListener('mousedown', (e) => { if (e.target.closest('[data-cmd]')) e.preventDefault(); });
+editor.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-act], [data-cmd], [data-gender]');
+  if (!b) return;
+  if (b.dataset.cmd) return format(b.dataset.cmd);
+  if (b.dataset.gender) {
+    gender = b.dataset.gender;
+    document.querySelectorAll('[data-gender]').forEach((x) => x.setAttribute('aria-pressed', x.dataset.gender === gender));
+    if (preview) setPreview(true);
+    return;
+  }
+  const t = currentTpl();
+  ({
+    back: () => { pane = 'list'; renderEditor(); document.querySelector('.trow[aria-current]')?.focus(); },
+    dup: () => addTemplate({ name: `${t.name || 'Untitled'} Copy`, subject: t.subject, bodyHtml: t.bodyHtml }, tpls.indexOf(t)),
+    del: () => askDelete(true),
+    'del-no': () => askDelete(false),
+    'del-yes': deleteTpl,
+    'copy-subject': () => copyPart(b, 'subject'),
+    'copy-body': () => copyPart(b, 'body'),
+    preview: () => setPreview(!preview),
+  })[b.dataset.act]?.();
+});
+editor.addEventListener('input', (e) => {
+  const t = currentTpl(), el = e.target;
+  if (el.dataset.field != null) { values[el.dataset.field].value = el.value; if (preview) setPreview(true); return; }
+  if (el.dataset.include != null) return;
+  if (el.id === 'tlink' || preview) return;
+  if (el.id === 'tname') t.name = el.value;
+  else if (el.id === 'tsubj') t.subject = el.value;
+  else if (el.id === 'tbody') t.bodyHtml = el.innerHTML;
+  else return;
+  scheduleSave();
+  if (el.id !== 'tbody') renderTList();
+  if (el.id !== 'tname') syncFields();
+});
+editor.addEventListener('change', (e) => {
+  const n = e.target.dataset.include;
+  if (n == null) return;
+  values[n].include = e.target.checked;
+  const row = e.target.closest('.field');
+  row.classList.toggle('off', !e.target.checked);
+  row.querySelector('[data-field]').disabled = !e.target.checked;
+  if (preview) setPreview(true);
+});
+editor.addEventListener('keydown', (e) => {
+  if (e.target.id === 'tlink') {
+    if (e.key === 'Enter') { e.preventDefault(); applyLink(e.target.value.trim()); }
+    if (e.key === 'Escape') { e.preventDefault(); applyLink(''); }
+    return;
+  }
+  if (e.key !== 'Escape') return;
+  e.preventDefault();
+  if ($('[data-act=del-no]')) return askDelete(false);
+  pane = 'list';
+  $('#tsplit').dataset.pane = 'list';
+  document.querySelector('.trow[aria-current]')?.focus();
+});
+addEventListener('pagehide', () => { if (dirty.size) flushSaves(true); });
+
 // First load: show the last snapshot, or start one if there is none.
 (async () => {
+  const saved = (() => { try { return localStorage.getItem('section'); } catch { return null; } })();
+  showSection([location.hash.slice(1), saved].find((x) => SECTIONS.includes(x)) || 'tasks');
   sources = await api('/api/status');
   sync = await api('/api/refresh');
   renderHeader();
