@@ -18,3 +18,8 @@ Running list. Resolved items move to the relevant update's wiki.md.
       after the next refresh.
 - [ ] 2026-11-11 Approving an AI request doesn't complete the CRM task
       (the app is read-only towards ResultsON).
+- [ ] 2026-11-11 "Has WhatsApp" is a guess: a number counts only if the
+      bridge has a WhatsApp id (lid) or a chat for it. A new lead the phone
+      has never seen may have none yet and gets email instead. Definitive fix:
+      a bridge endpoint using whatsmeow's IsOnWhatsApp (vendor patch, needs
+      approval).
