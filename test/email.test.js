@@ -27,3 +27,17 @@ test('without Message-ID, date + subject is the fallback key', () => {
   ]);
   assert.equal(out.length, 1);
 });
+
+test('matching picks emails from/to/cc the person, newest `limit` per folder', async () => {
+  const { matching } = await import('../lib/email.js');
+  const index = [
+    { folder: 'INBOX', uid: 3, addresses: ['me@x', 'ana@x'] },
+    { folder: 'INBOX', uid: 1, addresses: ['ana@x'] },
+    { folder: 'INBOX', uid: 2, addresses: ['bo@x'] },
+    { folder: 'INBOX', uid: 5, addresses: ['me@x', 'ana@x'] },
+    { folder: 'Sent', uid: 9, addresses: ['me@x', 'ana@x'] },
+  ];
+  assert.deepEqual(matching(index, ['ana@x'], 2), { INBOX: [3, 5], Sent: [9] });
+  assert.deepEqual(matching(index, ['nobody@x'], 2), {});
+  assert.deepEqual(matching(index, [], 2), {});
+});
