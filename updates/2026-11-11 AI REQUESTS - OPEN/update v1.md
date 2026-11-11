@@ -46,5 +46,10 @@ an editable style guide; all prompts live in a **Settings** section.
   WhatsApp, one from a template), regenerate with a note. UI checked in
   headless Chrome (tasks arrows, group batch, cards, dialog, edit autosave,
   cancel, badge). Email sending checked against a local fake SMTP only.
+- 2026-11-11 times in the AI's context are Prague time (was the Mac's local
+  time). Stage fixes: self-booked meetings ("rezervoval si sám", "Domluvená
+  schůzka") count as Meeting Booked; Installment sticks to the person
+  (closed installment tasks, "Prodej na splátky" notes). Real data: 5 people
+  moved Answered → Meeting Booked. 50 tests green.
 - Next: the user sends a first real email and WhatsApp from the app; decide
   whether approving should also complete the CRM task.

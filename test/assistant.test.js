@@ -49,6 +49,13 @@ test('context has the task, history, unsent drafts with reasons, and the instruc
   assert.ok(s.indexOf('Dobrý den') < s.indexOf('Kolik'), 'oldest first');
 });
 
+test('times in the context are Prague time, whatever the local timezone', () => {
+  const s = ai.contextPrompt({ person, now: new Date('2026-11-11T23:30:00Z'), onWa });
+  assert.ok(s.startsWith('Now: 2026-11-12 00:30 (Thursday). All times here are Prague time'), s.split('\n')[0]);
+  assert.ok(s.includes('due 2026-11-10 10:00'));
+  assert.ok(s.includes('[2026-11-01 11:00 · WhatsApp · ME]'));
+});
+
 test('system prompt carries the style guide and templates as plain text', () => {
   const s = ai.systemPrompt({ draftPrompt: 'MY PROMPT', stylePrompt: '', styleGuide: 'Píše krátce.' },
     [{ id: 't1', name: 'Po konzultaci', subject: 'Díky', bodyHtml: '<p>Ahoj {{ JMENO }}</p>' }]);
