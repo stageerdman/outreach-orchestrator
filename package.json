@@ -1,10 +1,10 @@
 {
   "name": "outreach-orchestrator",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Local outreach UI: CRM people with their email and WhatsApp history in one timeline",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test",
     "start": "node --env-file-if-exists=.env server.js",
     "dev": "node --watch --env-file-if-exists=.env server.js"
   },
@@ -15,5 +15,8 @@
   "dependencies": {
     "imapflow": "^2.11.0",
     "mailparser": "^3.14.3"
+  },
+  "engines": {
+    "node": ">=22.5"
   }
 }
