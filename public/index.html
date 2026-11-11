@@ -152,6 +152,8 @@
   .rrow { padding: var(--s2) var(--s4); border-bottom: 1px solid var(--line); background: var(--panel); font-size: var(--fs-sm); color: var(--muted);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .rrow b { color: var(--text); }
+  .card.past { box-shadow: inset 3px 0 var(--line); }
+  .rsub { margin: 0; font-weight: 600; }
   .working { display: flex; align-items: center; gap: var(--s2); color: var(--muted); font-size: var(--fs-sm); }
   dialog { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); color: var(--text); padding: var(--s4);
     width: min(28rem, calc(100% - 2 * var(--s4))); }
@@ -524,7 +526,8 @@ function renderTimeline(st = open) {
     return sep + `<li class="${m.channel}${m.fromMe ? ' me' : ''}">${RENDER[m.channel](m, p)}</li>`;
   }).join('');
   const note = p.task?.note ? `<p class="note"><b>Task note:</b> ${esc(p.task.note)}</p>` : '';
-  return note + renderErrors(errors) + (messages.length ? filters + earlier + `<ol class="msgs">${items}</ol>` : renderEmpty(p));
+  const after = st.data.after ? `<p class="day">${esc(st.data.after)}</p>` : '';
+  return note + renderErrors(errors) + (messages.length ? filters + earlier + `<ol class="msgs">${items}</ol>` : renderEmpty(p)) + after;
 }
 
 function rerenderOpen() {
@@ -554,7 +557,7 @@ async function loadHistory(id) {
     catch (e) { const p = people.find((x) => x.id === id); hist.set(id, { person: p, messages: [], errors: { load: e.message } }); }
   }
   if (open?.id === id) open.data = hist.get(id);
-  if (ropen?.id === id) ropen.data = hist.get(id);
+  if (ropen?.id === id && !ropen.ctx) ropen.data = hist.get(id);
   rerenderOpen();
 }
 
@@ -590,7 +593,7 @@ async function loadPeople() {
   if (focusedId) document.getElementById(`row-${focusedId}`)?.focus({ preventScroll: true });
   if (focusedRank) document.querySelector(`.gt[data-rank="${focusedRank}"]`)?.focus({ preventScroll: true });
   if (open) { open.data = null; rerenderOpen(); loadHistory(open.id); }
-  if (ropen) { ropen.data = null; rerenderOpen(); loadHistory(ropen.id); }
+  if (ropen && !ropen.ctx) { ropen.data = null; rerenderOpen(); loadHistory(ropen.id); }
   renderRequests();
 }
 
@@ -677,6 +680,7 @@ const ICONS = {
   regen: 'M16 10a6 6 0 1 1-1.8-4.3M16 3.5v3h-3',
   conv: 'M3 4h10v7H7l-3 2.5V11H3zM13 8h4v6h-1v2l-2.5-2H9v-2',
   cancel: 'M5 5l10 10M15 5L5 15',
+  recover: 'M7 4L3 8l4 4M3 8h9a5 5 0 0 1 0 10H9',
 };
 const icon = (name) => `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICONS[name]}"/></svg>`;
 const SPIN = '<svg class="spin" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7" stroke-dasharray="30 14"/></svg>';
@@ -684,7 +688,8 @@ const REQ_OPEN = ['generating', 'pending', 'failed'];
 
 let requests = [], reqError = '', reqLoaded = false;
 let ropen = null;            // the request whose conversation is open: { reqId, id, data, filter, all }
-let recentOpen = false, rdefer = false, rtimer;
+let recentOpen = false, cancelledOpen = false, cancelledShown = 20, rdefer = false, rtimer;
+const CANCELLED_PAGE = 20;
 const activeReq = (personId) => requests.filter((r) => r.personId === personId && REQ_OPEN.includes(r.status)).at(-1);
 const busy = (p) => ['generating', 'pending'].includes(activeReq(p.id)?.status);
 const reachable = (p) => p.emails.length > 0 || p.phones.length > 0;
@@ -785,14 +790,20 @@ function renderRequests() {
   const waiting = requests.filter((r) => r.status === 'pending').sort((a, b) => rank(a) - rank(b) || due(a).localeCompare(due(b)));
   const working = requests.filter((r) => r.status === 'failed' || r.status === 'generating').sort((a, b) => (a.status === 'failed' ? -1 : 0) - (b.status === 'failed' ? -1 : 0));
   const week = Date.now() - 7 * 864e5;
-  const recent = requests.filter((r) => !REQ_OPEN.includes(r.status) && new Date(r.updatedAt) > week).slice(-20).reverse();
+  const recent = requests.filter((r) => !REQ_OPEN.includes(r.status) && r.status !== 'cancelled' && new Date(r.updatedAt) > week).slice(-20).reverse();
+  const cancelled = requests.filter((r) => r.status === 'cancelled' && r.text).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const shown = cancelled.slice(0, cancelledShown), left = cancelled.length - shown.length;
   const group = (title, list, body) => list.length ? `<section class="group"><h2>${title} <span>· ${list.length}</span></h2>${body}</section>` : '';
   el.innerHTML = (waiting.length || working.length ? '' : `<p class="empty">Nothing waiting. Press ${icon('draft').replace('<svg', '<svg width="14" height="14"')} on a task to draft a follow-up.</p>`)
     + group('Waiting for you', waiting, `<ul class="cards">${waiting.map(renderCard).join('')}</ul>`)
     + group('In progress', working, `<ul class="cards">${working.map(renderCard).join('')}</ul>`)
     + (recent.length ? `<section class="group"><h2><button type="button" class="gt" data-recent aria-expanded="${recentOpen}" aria-controls="recent-rows">
         <span class="chev" aria-hidden="true">▸</span><span class="label">Recent</span> <span>· ${recent.length}</span></button></h2>
-        <ul class="cards" id="recent-rows"${recentOpen ? '' : ' hidden'}>${recentOpen ? recent.map(renderRecent).join('') : ''}</ul></section>` : '');
+        <ul class="cards" id="recent-rows"${recentOpen ? '' : ' hidden'}>${recentOpen ? recent.map(renderRecent).join('') : ''}</ul></section>` : '')
+    + (cancelled.length ? `<section class="group"><h2><button type="button" class="gt" data-cancelled aria-expanded="${cancelledOpen}" aria-controls="cancelled-rows">
+        <span class="chev" aria-hidden="true">▸</span><span class="label">Cancelled</span> <span>· ${cancelled.length}</span></button></h2>
+        <ul class="cards" id="cancelled-rows"${cancelledOpen ? '' : ' hidden'}>${cancelledOpen ? shown.map(renderCancelled).join('')
+          + (left ? `<li class="rrow"><button type="button" class="link" data-cmore>Show ${Math.min(left, CANCELLED_PAGE)} more (${left} left)</button></li>` : '') : ''}</ul></section>` : '');
 }
 
 const renderRecent = (r) => `<li class="rrow"><b>${esc(r.personName)}</b> · ${r.kind === 'meeting' ? 'Meeting' : CHANNELS[r.channel] || 'Draft'} ${STATUS[r.status] || r.status}
@@ -806,9 +817,63 @@ function renderCardHead(r, p) {
   return `<h3><span class="name">${esc(p.name)}</span>${renderDue(p)}</h3>${renderContact(p)}<p class="task">${parts.filter(Boolean).join(' · ')}</p>`;
 }
 
+const renderConv = (r, p, isOpen, label = `Conversation with ${p.name}`) =>
+  `<button type="button" class="ib" data-act="conv" aria-expanded="${isOpen}" aria-controls="rtl-${esc(r.id)}" aria-label="${esc(label)}" title="${esc(label)}">${icon('conv')}</button>`;
+
+const renderReason = (r) => (r.note ? `<p class="note"><b>Reason:</b> ${esc(r.note)}</p>` : '<p class="why">No reason given</p>');
+
+// Recover: a copy goes back to "Waiting for you". The server says why not (r.recover).
+function renderRecover(r) {
+  const copy = requests.find((x) => x.recoveredFrom === r.id);
+  if (copy) return `<span class="why">Recovered${copy.status === 'pending' ? ` · <button type="button" class="link" data-goto="${esc(copy.id)}">open</button>` : ` · ${STATUS[copy.status] || copy.status}`}</span>`;
+  const label = `Recover the draft for ${r.personName}`;
+  return `<button type="button" class="btn sm" data-act="recover" title="${esc(r.recover || 'Make this a waiting draft again')}"
+    aria-label="${esc(r.recover ? `${label}: ${r.recover}` : label)}"${r.recover ? ' aria-disabled="true"' : ''}>${icon('recover')}Recover</button>`;
+}
+
+// A cancelled draft as a record: the reason, the message, and (on demand) what the AI saw.
+function renderCancelled(r) {
+  const p = personOf(r), id = esc(r.id), isOpen = ropen?.reqId === r.id;
+  const what = r.kind === 'meeting' ? 'Offer a meeting' : CHANNELS[r.channel];
+  return `<li class="card past" id="card-${id}" data-req="${id}" tabindex="-1">
+    <h3><span class="name">${esc(r.personName)}</span>${timeTag(r.updatedAt, `cancelled ${ago(r.updatedAt)}`)}</h3>
+    <p class="task"><b class="${r.kind === 'meeting' ? '' : esc(r.channel)}">${what}</b> · drafted ${timeTag(r.createdAt, ago(r.createdAt))}</p>
+    ${renderReason(r)}${r.subject ? `<p class="rsub">${esc(r.subject)}</p>` : ''}<p class="brief">${esc(r.text)}</p>
+    <div class="ractions">${renderConv(r, p, isOpen, `What the AI saw before drafting for ${r.personName}`)}<span class="cancel">${renderRecover(r)}</span></div></li>
+    ${isOpen ? `<li><section class="timeline" id="rtl-${id}" role="region" aria-label="What the AI saw before drafting for ${esc(r.personName)}">${renderTimeline(ropen)}</section></li>` : ''}`;
+}
+
+// The saved context as timeline data; the draft was written right after the last message.
+function contextData(r, ctx) {
+  const counts = {};
+  for (const m of ctx.messages) counts[m.channel] = (counts[m.channel] || 0) + 1;
+  return { person: { ...personOf(r), name: r.personName, task: ctx.task, counts }, messages: ctx.messages, errors: {},
+    after: `${ctx.rebuilt ? 'Rebuilt from the current history (older drafts have no saved context). ' : ''}The AI drafted here${ctx.stage ? ` · stage ${ctx.stage}` : ''}.` };
+}
+
+async function openContext(r) {
+  try { const one = await api(`/api/requests/${encodeURIComponent(r.id)}`); if (ropen?.reqId === r.id) ropen.data = contextData(r, one.context); }
+  catch (e) { if (ropen?.reqId === r.id) ropen.data = { person: { ...personOf(r), counts: {} }, messages: [], errors: { load: e.message } }; }
+  rerenderOpen();
+}
+
+async function recoverDraft(card, r, btn) {
+  if (btn.getAttribute('aria-disabled') === 'true') { $('#announce').textContent = r.recover; return; }
+  btn.setAttribute('aria-disabled', 'true'); btn.lastChild.textContent = 'Recovering…';
+  try {
+    const copy = await requestAction(r, 'recover');
+    $('#announce').textContent = `Draft for ${r.personName} recovered, waiting for you`;
+    rerenderTasks(); gotoRequest(copy.id);
+  } catch (e) {
+    await loadRequests();
+    $('#announce').textContent = `Could not recover: ${e.message}`;
+    document.querySelector(`#card-${CSS.escape(r.id)} [data-act=recover]`)?.focus();
+  }
+}
+
 function renderCard(r) {
   const p = personOf(r), id = esc(r.id), isOpen = ropen?.reqId === r.id;
-  const conv = `<button type="button" class="ib" data-act="conv" aria-expanded="${isOpen}" aria-controls="rtl-${id}" aria-label="Conversation with ${esc(p.name)}" title="Conversation">${icon('conv')}</button>`;
+  const conv = renderConv(r, p, isOpen);
   const regen = (label) => `<button type="button" class="ib" data-act="regen" aria-label="${label}" title="${label}">${icon('regen')}</button>`;
   const cancel = `<button type="button" class="ib cancel" data-act="cancel" aria-label="Cancel" title="Cancel">${icon('cancel')}</button>`;
   let body;
@@ -913,6 +978,15 @@ $('#requests').addEventListener('click', (e) => {
   const cp = e.target.closest('[data-copy]');
   if (cp) return copy(cp);
   if (e.target.closest('[data-recent]')) { recentOpen = !recentOpen; renderRequests(); return $('[data-recent]')?.focus(); }
+  if (e.target.closest('[data-cancelled]')) {
+    cancelledOpen = !cancelledOpen; cancelledShown = CANCELLED_PAGE; renderRequests(); return $('[data-cancelled]')?.focus();
+  }
+  if (e.target.closest('[data-cmore]')) {
+    const first = cancelledShown; cancelledShown += CANCELLED_PAGE; renderRequests();
+    return $('#cancelled-rows').querySelectorAll('.card')[first]?.focus();
+  }
+  const go = e.target.closest('[data-goto]');
+  if (go) return gotoRequest(go.dataset.goto);
   const card = e.target.closest('.card');
   const r = card && requests.find((x) => x.id === card.dataset.req);
   if (!r) return ropen && timelineClick(e, ropen);
@@ -920,12 +994,15 @@ $('#requests').addEventListener('click', (e) => {
   if (!btn) return;
   const act = btn.dataset.act;
   if (act === 'conv') {
-    ropen = ropen?.reqId === r.id ? null : { reqId: r.id, id: r.personId, data: hist.get(r.personId), filter: 'all', all: false };
+    const ctx = r.status === 'cancelled';
+    ropen = ropen?.reqId === r.id ? null : { reqId: r.id, id: r.personId, data: ctx ? null : hist.get(r.personId), filter: 'all', all: false, ctx };
     renderRequests();
     document.querySelector(`#card-${CSS.escape(r.id)} [data-act=conv]`)?.focus({ preventScroll: true });
-    if (ropen && !ropen.data) loadHistory(r.personId);
+    if (ropen?.ctx) openContext(r);
+    else if (ropen && !ropen.data) loadHistory(r.personId);
     return;
   }
+  if (act === 'recover') return recoverDraft(card, r, btn);
   if (act === 'send') return approve(card, r, btn);
   if (act === 'retry') return requestAction(r, 'regenerate').then(rerenderTasks).catch((er) => cardStatus(card, er.message, true));
   if (act === 'cancel' && r.status === 'generating') return requestAction(r, 'cancel').then(rerenderTasks);

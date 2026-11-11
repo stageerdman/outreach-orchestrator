@@ -5,7 +5,6 @@ import { emailConfigured, smtpConfigured } from './lib/email.js';
 import { whatsappConfigured } from './lib/whatsapp.js';
 import { listTemplates, saveTemplate, deleteTemplate } from './lib/templates.js';
 import { refresh, syncState, snapshotPeople, restoreSnapshot } from './lib/sync.js';
-import { listRequests } from './lib/requests.js';
 import { getSettings, saveSettings, DRAFT_PROMPT, STYLE_PROMPT, MODELS } from './lib/settings.js';
 import * as ai from './lib/assistant.js';
 
@@ -54,18 +53,23 @@ createServer(async (req, res) => {
         const { personIds = [], instruction = '' } = await readBody(req);
         return json(res, 202, ai.draft(personIds, instruction));
       }
-      return json(res, 200, listRequests());
+      return json(res, 200, ai.listForUi());
     }
-    const r = url.pathname.match(/^\/api\/requests\/([^/]+)(?:\/(send|regenerate|cancel))?$/);
+    const r = url.pathname.match(/^\/api\/requests\/([^/]+)(?:\/(send|regenerate|cancel|recover))?$/);
+    if (r && !r[2] && req.method === 'GET') {
+      const one = ai.requestWithContext(decodeURIComponent(r[1]));
+      return one ? json(res, 200, one) : json(res, 404, { error: 'Request not found' });
+    }
     if (r && req.method !== 'GET') {
       const [, id, action] = r, body = await readBody(req);
       try {
         const out = action === 'send' ? await ai.approve(id, body)
           : action === 'regenerate' ? ai.regenerate(id, body.note)
           : action === 'cancel' ? ai.cancel(id, body.note)
+          : action === 'recover' ? ai.recover(id)
           : ai.editRequest(id, body);
         return out ? json(res, 200, out) : json(res, 409, { error: 'This request is no longer open' });
-      } catch (e) { return json(res, 502, { error: e.message }); }
+      } catch (e) { return json(res, e.status || 502, { error: e.message }); }
     }
     if (url.pathname === '/api/settings') {
       if (req.method === 'PUT') {

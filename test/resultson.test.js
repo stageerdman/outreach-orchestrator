@@ -48,7 +48,7 @@ test('toPeople: soonest task leads, e164 phone, follow type and sold note used',
   const calls = [{ contact_id: 'a', vysledek: 'termin' }, { contact_id: 'b', vysledek: null, poznamka: null }];
   const notes = [{ contact_id: 'b', text: 'Prodáno UM 44 000 Kč' }];
   const [ana, bo] = toPeople(tasks, contacts, calls, notes, { 2: 'konzultace' });
-  assert.deepEqual(ana.task, { kind: 'followup', rule: '', followType: 'konzultace', dueAt: '2026-11-10T10:00:00Z', note: 'ring' });
+  assert.deepEqual(ana.task, { id: 2, kind: 'followup', rule: '', followType: 'konzultace', dueAt: '2026-11-10T10:00:00Z', note: 'ring' });
   assert.deepEqual(ana.emails, ['ana@x.cz']);
   assert.deepEqual(ana.phones, ['+420775000000']);
   assert.equal(ana.stage.label, 'Thinking about it');

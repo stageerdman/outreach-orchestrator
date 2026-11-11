@@ -115,3 +115,32 @@ test('claude runs with no tools, structured output and the chosen model', () => 
   assert.deepEqual(a.slice(0, 8), ['-p', '--output-format', 'json', '--tools', '', '--strict-mcp-config', '--no-session-persistence', '--system-prompt']);
   assert.ok(a.includes('--json-schema') && a.at(-1) === 'opus');
 });
+
+test('a draft keeps the context the AI saw: stage, task and the last 30 messages, clipped', () => {
+  const many = Array.from({ length: 35 }, (_, i) => ({ channel: 'whatsapp', id: `m${i}`, at: `2026-11-01T10:${String(i).padStart(2, '0')}:00Z`, fromMe: false, text: i === 34 ? 'x'.repeat(2000) : `t${i}` }));
+  const c = ai.contextOf({ ...person, task: { ...person.task, id: 7 }, messages: many });
+  assert.equal(c.stage, 'Thinking about it'); assert.equal(c.task.id, 7);
+  assert.equal(c.messages.length, 30); assert.equal(c.messages[0].id, 'm5');
+  assert.ok(c.messages.at(-1).text.endsWith(' …') && c.messages.at(-1).text.length < 1300);
+  const r = store.createRequest({ ...person, task: { id: 7 } }, c);
+  assert.equal(r.taskId, 7); assert.equal(r.context.messages.length, 30);
+});
+
+test('a cancelled draft is recoverable only while its task exists and nothing was sent or is waiting', () => {
+  const p = { ...person, task: { id: 7 }, messages: [{ channel: 'email', id: 'e', at: '2026-11-02T10:00:00Z', fromMe: true, text: 'old' }] };
+  const r = { id: 'r1', personId: 'c1', status: 'cancelled', kind: 'message', channel: 'email', text: 'Hi', taskId: 7, createdAt: '2026-11-05T10:00:00Z' };
+  const why = (over = {}, people = [p], list = []) => ai.recoverBlock({ ...r, ...over }, people, list, onWa);
+  assert.equal(why(), '');
+  assert.equal(why({ taskId: null }), '', 'old drafts without a task id: any open task will do');
+  assert.equal(why({ status: 'sent' }), 'Only cancelled drafts can be recovered');
+  assert.equal(why({ text: '' }), 'Cancelled before a draft was written');
+  assert.equal(why({}, []), 'No open task for this person any more');
+  assert.equal(why({ taskId: 6 }), 'The task it was for is closed');
+  assert.equal(why({}, [p], [{ personId: 'c1', status: 'pending' }]), 'Another draft for this person is waiting');
+  assert.equal(why({}, [p], [{ personId: 'c1', status: 'sent', updatedAt: '2026-11-06T00:00:00Z' }]), 'A later draft was sent');
+  assert.equal(why({}, [p], [{ personId: 'c1', status: 'sent', updatedAt: '2026-11-04T00:00:00Z' }]), '', 'a send before the draft does not count');
+  assert.equal(why({}, [{ ...p, messages: [...p.messages, { fromMe: true, at: '2026-11-06T00:00:00Z' }] }]), 'You wrote to them since');
+  assert.equal(why({}, [p], [{ recoveredFrom: 'r1', status: 'sent', personId: 'x' }]), 'Already recovered');
+  assert.equal(why({ channel: 'whatsapp' }, [{ ...p, phones: [] }]), "WhatsApp isn't available for this person any more");
+  assert.equal(why({ kind: 'meeting', channel: 'whatsapp' }, [{ ...p, phones: [] }]), '');
+});

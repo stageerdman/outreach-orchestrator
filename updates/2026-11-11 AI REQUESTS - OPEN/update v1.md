@@ -39,6 +39,13 @@ an editable style guide; all prompts live in a **Settings** section.
 5. [x] Verify on real data: learn style, generate for a few tasks (real
    WhatsApp open and email send left to the user). Docs (CLAUDE.md, wiki).
 
+6. [x] Cancelled drafts as a record: each draft saves the context the AI saw
+   (old ones get it rebuilt from history up to the draft time). A collapsed
+   "Cancelled" group shows reason, message, context; Recover makes a pending
+   copy when the task still exists, nothing was sent, no draft is waiting.
+   UX agents' specs (row layout, recover states) synthesized. Tests: context
+   snapshot, every recover rule.
+
 ## Status
 - 2026-11-11 started.
 - 2026-11-11 phases 1–4 done, 42 tests green. Verified on real data: style
@@ -51,5 +58,9 @@ an editable style guide; all prompts live in a **Settings** section.
   schůzka") count as Meeting Booked; Installment sticks to the person
   (closed installment tasks, "Prodej na splátky" notes). Real data: 5 people
   moved Answered → Meeting Booked. 50 tests green.
+- 2026-11-11 phase 6 done, 52 tests green. Checked on a copy of the real data
+  in headless Chrome: 9 cancelled drafts with reasons, context with the
+  "AI drafted here" marker, recover → focus in the new draft, "Already
+  recovered" refused, no errors, no horizontal scroll at phone width.
 - Next: the user sends a first real email and WhatsApp from the app; decide
   whether approving should also complete the CRM task.
