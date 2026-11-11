@@ -23,7 +23,7 @@ reason) can rewrite templates, add steps, branches or new paths, and lessons.
    gap, template), aggregates only → `research-playbooks.md`, build prompt.
 2. [x] `lib/playbooks.js`: store, validation, operations, change log, undo.
    Tests.
-3. [ ] Drafting uses playbooks: follow-up position in the context, playbooks
+3. [x] Drafting uses playbooks: follow-up position in the context, playbooks
    in the system prompt, `playbookId` / `stepId` on the draft. Tests.
 4. [ ] Learning (`lib/coach.js`): build from scratch; on approve / regenerate
    / cancel → Claude returns operations → applied + logged. Tests.

@@ -68,7 +68,7 @@ test('a draft keeps only valid channel and template, subject only for email mess
   const tpls = [{ id: 't1' }];
   const base = { action: 'message', channel: 'email', subject: ' Re: Cena ', text: ' Text ', templateId: 't1', reasoning: 'why' };
   assert.deepEqual(ai.toDraft(base, ['whatsapp', 'email'], tpls),
-    { kind: 'message', channel: 'email', subject: 'Re: Cena', text: 'Text', reasoning: 'why', templateId: 't1' });
+    { kind: 'message', channel: 'email', subject: 'Re: Cena', text: 'Text', reasoning: 'why', templateId: 't1', playbookId: null, stepId: null });
   const d = ai.toDraft({ ...base, channel: 'email', templateId: 'gone' }, ['whatsapp'], tpls);
   assert.equal(d.channel, 'whatsapp'); assert.equal(d.subject, ''); assert.equal(d.templateId, null);
   assert.equal(ai.toDraft({ ...base, action: 'meeting' }, ['email'], tpls).kind, 'meeting');
@@ -143,4 +143,28 @@ test('a cancelled draft is recoverable only while its task exists and nothing wa
   assert.equal(why({}, [p], [{ recoveredFrom: 'r1', status: 'sent', personId: 'x' }]), 'Already recovered');
   assert.equal(why({ channel: 'whatsapp' }, [{ ...p, phones: [] }]), "WhatsApp isn't available for this person any more");
   assert.equal(why({ kind: 'meeting', channel: 'whatsapp' }, [{ ...p, phones: [] }]), '');
+});
+
+test('follow-up position: my touches since the client last wrote, close messages count once', () => {
+  const now = new Date('2026-11-11T12:00:00Z');
+  const m = (at, fromMe, channel = 'whatsapp') => ({ channel, at, fromMe, text: '' });
+  const f = ai.followupState([m('2026-11-01T10:00:00Z', false), m('2026-11-02T10:00:00Z', true), m('2026-11-02T10:05:00Z', true),
+    m('2026-11-05T10:00:00Z', true, 'email'), m('2026-11-08T10:00:00Z', true)], now);
+  assert.deepEqual(f, { followups: 3, clientEverWrote: true, daysSinceClient: 10, daysSinceMine: 3, channels: ['whatsapp', 'email', 'whatsapp'] });
+  assert.equal(ai.renderFollowup(f), '3 follow-up(s) since the client last wrote (whatsapp → email → whatsapp), the last 3 day(s) ago. The client last wrote 10 day(s) ago.');
+  assert.equal(ai.renderFollowup(ai.followupState([], now)), 'No messages yet: first contact.');
+  assert.equal(ai.followupState([m('2026-11-08T10:00:00Z', true)], now).clientEverWrote, false);
+  assert.ok(ai.contextPrompt({ person, now, onWa }).includes('Follow-up position: The client wrote last; nothing sent since. The client last wrote 9 day(s) ago.'));
+});
+
+test('a draft names the playbook step it followed, only if that step exists', () => {
+  const pbs = [{ id: 'na', steps: [{ id: 's1' }], responses: [{ id: 'no-time' }] }];
+  const base = { action: 'message', channel: 'whatsapp', subject: '', text: 'x', templateId: null, reasoning: '', playbookId: 'na', stepId: 's1' };
+  assert.deepEqual([ai.toDraft(base, ['whatsapp'], [], pbs)].map((d) => [d.playbookId, d.stepId]), [['na', 's1']]);
+  assert.equal(ai.toDraft({ ...base, stepId: 'no-time' }, ['whatsapp'], [], pbs).stepId, 'no-time');
+  assert.equal(ai.toDraft({ ...base, stepId: 'zzz' }, ['whatsapp'], [], pbs).stepId, null);
+  assert.equal(ai.toDraft({ ...base, playbookId: 'gone' }, ['whatsapp'], [], pbs).playbookId, null);
+  const sys = ai.systemPrompt({ draftPrompt: 'P', stylePrompt: '', styleGuide: '' }, [], [{ id: 'na', name: 'NA', stages: [], situation: 'no-reply', goal: '', steps: [], responses: [], lessons: [] }]);
+  assert.ok(sys.includes('# Playbooks\nOur follow-up strategy') && sys.includes('## na · NA'));
+  assert.ok(!ai.systemPrompt({ draftPrompt: 'P', stylePrompt: '', styleGuide: '' }, [], []).includes('# Playbooks'));
 });
