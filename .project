@@ -5,7 +5,7 @@ visibility: private
 adopted: 2026-11-11
 claude_md_generated: 2026-11-11
 modules: [WORKFLOW, STRUCTURE, CODING, UX]
-secrets: [CRM_TOKEN, IMAP_PASS]
+secrets: [CRM_LOGIN_PASSWORD, IMAP_PASS]
 ---
 
 # Outreach Orchestrator
@@ -29,12 +29,14 @@ Plain Node (ESM, no build step, Node 22.5+ for `node:sqlite`), `imapflow` +
 WhatsApp, and a single static `public/index.html`.
 
 ## Secrets
-- `CRM_TOKEN` — auth for the CRM endpoint (`CRM_URL`).
+- `CRM_LOGIN_PASSWORD` — ResultsON team-member password (with
+  `CRM_LOGIN_EMAIL`), exchanged for a fresh token on every refresh.
 - `IMAP_PASS` — IMAP app password.
 
 Non-secret config (`CRM_URL`, field mappings, `IMAP_HOST`/`USER`, `PORT`, …)
 is documented in `.env.example`.
 
 ## Status
-Adopted under AI Control on 2026-11-11. Working first version; no tests yet.
-See `issues.txt`.
+Prototype working on real data (ResultsON CRM + IMAP) as of 2026-11-11;
+WhatsApp bridge patched, waiting to be linked. See
+`updates/2026-11-11 PROTOTYPE - OPEN/` and `issues.txt`.

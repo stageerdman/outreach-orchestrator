@@ -53,10 +53,15 @@ communication history, email and WhatsApp merged in one timeline.
 - Ends with: open the UI and click through it.
 
 ### 4. Real data check
-- [ ] Fill `.env` (CRM URL/token + field mapping, IMAP host/user/app
-      password), link the WhatsApp bridge.
-- [ ] Run a full refresh on real data: time it, check matching (people with
-      no history = missing country code? wrong field mapping?).
+- [x] `.env` filled: ResultsON CRM (login per refresh, "my open tasks"
+      query), IMAP `imap.miowebmail.cz`.
+- [x] WhatsApp bridge fixed ("Client outdated (405)": whatsmeow bumped,
+      5 context args added, rebuilt in vendor, user-approved exception).
+- [ ] Link the WhatsApp bridge (user) and re-run a refresh.
+- [x] Full refresh on real data: 65 people, 19 with email (27 emails), no
+      errors. 117s → 15s after switching to one header scan per folder.
+- [x] Phone format: 100 of 144 CRM phones are local format; fixed by using
+      `phone_e164` (filled for 143 of 144).
 - [ ] Tune `EMAIL_LIMIT` / `WHATSAPP_LIMIT`; decide whether WhatsApp group
       chats or local-format phones need handling now.
 - Ends with: prototype used for a real outreach session; close update.
@@ -90,5 +95,6 @@ other channels.
   expand/collapse, show earlier/more, filter, keyboard, search, empty
   states, open row survives a refresh, no horizontal scroll at phone width,
   no JS errors.
-- Next: phase 4. Blocked on CRM URL/token and IMAP credentials in `.env`,
-  and linking the WhatsApp bridge.
+- 2026-11-11: phase 4 mostly done (see above). Next: user links WhatsApp
+  (`cd vendor/whatsapp-mcp/whatsapp-bridge && ./whatsapp-bridge`, scan QR),
+  then refresh and check WhatsApp matches; then close this update.

@@ -1,9 +1,9 @@
 Outreach Orchestrator — known issues and TODOs
 Running list. Resolved items move to the relevant update's wiki.md.
 
-- [ ] 2026-11-11 WhatsApp only matches 1:1 chats (`<digits>@s.whatsapp.net`)
-      and needs CRM phones with a country code; group chats and local-format
-      numbers are silently missed.
-- [ ] 2026-11-11 Refresh searches email one person at a time (one IMAP
-      connection, up to 50 per folder per person). Time it on real data in
-      PROTOTYPE phase 4; may be slow with many people or big mailboxes.
+- [ ] 2026-11-11 WhatsApp only matches 1:1 chats (`<digits>@s.whatsapp.net`);
+      group chats are missed. CRM phones now come from `phone_e164`, but a
+      contact without it (1 of 144) won't match.
+- [ ] 2026-11-11 Email refresh reads every message header in Inbox, Sent and
+      Archive each time. Fine for this mailbox (~90 messages); revisit if it
+      grows to many thousands.

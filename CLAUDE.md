@@ -72,7 +72,12 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
 <!-- Local project rules below are preserved across CLAUDE.md rebuilds. -->
 ## Project-specific notes
 - **`vendor/whatsapp-mcp` is external code** (a cloned third-party repo,
-  gitignored, with its own `.git`). Don't edit it. The app only reads the
+  gitignored, with its own `.git`). Don't edit it, with one approved
+  exception (2026-11-11): `whatsapp-bridge/` has whatsmeow bumped to latest
+  plus 5 `context.Background()` args in `main.go`, because WhatsApp rejects
+  the old client with "Client outdated (405)". If upstream is re-pulled,
+  re-apply that (`go get go.mau.fi/whatsmeow@latest && go mod tidy`, fix
+  the compile errors) and rebuild. The app only reads the
   bridge's SQLite DB, **read-only** — never write to it; the bridge writes
   to it while running.
 - **Private data:** this app touches real emails and WhatsApp messages. Never
@@ -84,5 +89,9 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
 - **Refresh flow:** `lib/sync.js` pulls the CRM list, then each person's
   history through each source's `<channel>Session()` into an in-memory
   snapshot that the API serves. Register new channels in its `SOURCES`.
+- **CRM is ResultsON** (Supabase/PostgREST). The app logs in with a
+  team-member email/password on every refresh (tokens last 1h). People =
+  contacts with an open task assigned to the user; phones come from
+  `phone_e164` because the raw `phone` is often local format.
 - WhatsApp matching is by phone digits → `<digits>@s.whatsapp.net`, so CRM
   phones must include the country code.
