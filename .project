@@ -5,7 +5,7 @@ visibility: private
 adopted: 2026-11-11
 claude_md_generated: 2026-11-11
 modules: [WORKFLOW, STRUCTURE, CODING, UX]
-secrets: [CRM_LOGIN_PASSWORD, IMAP_PASS]
+secrets: [RESULTSON_PASSWORD, IMAP_PASS]
 ---
 
 # Outreach Orchestrator
@@ -29,8 +29,8 @@ Plain Node (ESM, no build step, Node 22.5+ for `node:sqlite`), `imapflow` +
 WhatsApp, and a single static `public/index.html`.
 
 ## Secrets
-- `CRM_LOGIN_PASSWORD` — ResultsON team-member password (with
-  `CRM_LOGIN_EMAIL`), exchanged for a fresh token on every refresh.
+- `RESULTSON_PASSWORD` — ResultsON team-member password (with
+  `RESULTSON_EMAIL`), exchanged for a fresh token on every refresh.
 - `IMAP_PASS` — IMAP app password.
 
 Non-secret config (`CRM_URL`, field mappings, `IMAP_HOST`/`USER`, `PORT`, …)
