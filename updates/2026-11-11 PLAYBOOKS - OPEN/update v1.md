@@ -27,9 +27,18 @@ reason) can rewrite templates, add steps, branches or new paths, and lessons.
    in the system prompt, `playbookId` / `stepId` on the draft. Tests.
 4. [x] Learning (`lib/coach.js`): build from scratch; on approve / regenerate
    / cancel → Claude returns operations → applied + logged. Tests.
-5. [ ] UI: Playbooks view (steps, branches, lessons, change log with undo).
+5. [x] UI: Playbooks view (steps, branches, lessons, change log with undo).
    UX agents.
-6. [ ] Verify on real data: build, draft, cancel with a reason → a change.
+6. [x] Verify on real data: build, draft, cancel with a reason → a change.
 
 ## Status
 - 2026-11-11 started.
+- 2026-11-11 phases 1–6 done, 62 tests green. Build on a copy of the real
+  data (~3 min, sonnet): 9 playbooks (universal no-reply + one per stage,
+  3–7 steps, 2–5 reply branches, lessons), 20 new Czech templates, existing
+  templates reused where they fit. UI checked in headless Chrome: grouped
+  list, editing (autosave, reorder, attach/detach templates), the learning
+  log with diffs, undo, phone width, no errors.
+- Next: the user builds the playbooks in the real app (Playbooks → Build),
+  then uses drafts as usual; watch what the coach learns from the first
+  cancels and edits.

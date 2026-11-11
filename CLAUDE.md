@@ -122,7 +122,7 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   `<lid>@lid` chats mapped to that phone in the bridge's `whatsapp.db`
   (`whatsmeow_lid_map`, read-only). CRM phones must include the country code.
 - **Sections:** a left rail switches views (Tasks, AI Requests, Templates,
-  Settings); a new section
+  Playbooks, Settings); a new section
   = a link in `.rail`, a `#view-<name>` block, and its name in `SECTIONS`.
 - **Templates** (`lib/templates.js`, `/api/templates`) live in
   `templates.json` in the app data folder (never the repo); the first run
@@ -150,6 +150,16 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   WhatsApp is offered only for numbers the bridge knows (`whatsappKnown`: a
   lid in `whatsmeow_lid_map` or a chat); otherwise email, or WhatsApp flagged
   "not found" when there's no email.
+- **Playbooks** (`lib/playbooks.js`, `lib/coach.js`, `/api/playbooks`): a
+  follow-up strategy per stage (plus a universal "no reply" one), ≤10 steps
+  (channel, wait, ask, why, template variants), reply branches and lessons,
+  in `playbooks.json` (app data folder). Drafts get the playbooks and the
+  follow-up position (messages sent since the client last wrote) and record
+  the step they followed. Building and learning run through the coach, one at
+  a time: after every send / regenerate / cancel it returns operations on
+  playbooks and templates, applied as one logged change; any change (also the
+  user's own edits, merged per 10 min) can be undone if nothing changed it
+  since. Method and data in the PLAYBOOKS update's `research-playbooks.md`.
 - **Style guide** (Settings → Learn my style): `lib/style.js` builds reply
   pairs, follow-ups and measured stats from the snapshot; one Claude run turns
   them into a Markdown guide (method in the AI REQUESTS update's
