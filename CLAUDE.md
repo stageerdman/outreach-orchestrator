@@ -137,6 +137,9 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   note. A person with a generating/pending draft can't get another. The AI
   sees the last 30 messages, its unsent drafts with the user's notes, and
   drafts sent since the last refresh. The CRM stays read-only.
+  WhatsApp is offered only for numbers the bridge knows (`whatsappKnown`: a
+  lid in `whatsmeow_lid_map` or a chat); otherwise email, or WhatsApp flagged
+  "not found" when there's no email.
 - **Style guide** (Settings → Learn my style): `lib/style.js` builds reply
   pairs, follow-ups and measured stats from the snapshot; one Claude run turns
   them into a Markdown guide (method in the AI REQUESTS update's

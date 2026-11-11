@@ -22,3 +22,14 @@
   calls, whatever the flags; test polling UIs with one in-page async script.
 - Two overlapping loads of `/api/requests` could apply an older answer last
   and stop polling; only the newest load's answer is applied now.
+
+## Who has WhatsApp
+- WhatsApp gives the bridge a hidden id (lid, `whatsmeow_lid_map`) for every
+  account it has seen. On 2026-11-11, 60 of 65 CRM numbers had one; the 5
+  without (e.g. +420776003114, plus malformed ones like +420911…, an Austrian
+  number) had no WhatsApp history either. So no lid and no chat = treated as
+  "not on WhatsApp": the AI gets email only, or WhatsApp flagged when there's
+  no email.
+- It's a heuristic: a brand-new lead the phone has never seen may have no lid
+  yet. A definitive check is whatsmeow's `IsOnWhatsApp`, which would need a new
+  bridge endpoint (a vendor patch, user approval needed).

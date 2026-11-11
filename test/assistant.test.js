@@ -21,15 +21,27 @@ const person = {
   ],
 };
 
+const onWa = () => true, noWa = () => false;
+
 test('channels are the first phone (WhatsApp) and email', () => {
-  assert.deepEqual(ai.channelsOf(person), { whatsapp: '+420775623723', email: 'jana@x.cz' });
-  assert.deepEqual(ai.channelsOf({ ...person, phones: [] }), { email: 'jana@x.cz' });
+  assert.deepEqual(ai.channelsOf(person, onWa), { whatsapp: '+420775623723', email: 'jana@x.cz' });
+  assert.deepEqual(ai.channelsOf({ ...person, phones: [] }, onWa), { email: 'jana@x.cz' });
+});
+
+test('a number not on WhatsApp is dropped when there is an email, kept (and flagged) when not', () => {
+  assert.deepEqual(ai.channelsOf(person, noWa), { email: 'jana@x.cz' });
+  assert.deepEqual(ai.channelsOf({ ...person, phones: ['+1', '+420775623723'] }, (ph) => ph === '+420775623723'),
+    { whatsapp: '+420775623723', email: 'jana@x.cz' });
+  assert.deepEqual(ai.channelsOf({ ...person, emails: [] }, noWa), { whatsapp: '+420775623723' });
+  const s = ai.contextPrompt({ person, onWa: noWa });
+  assert.ok(s.includes('Available channels: email (jana@x.cz)\nWhatsApp: +420775623723 was not found on WhatsApp'));
+  assert.ok(!ai.contextPrompt({ person, onWa }).includes('not found on WhatsApp'));
 });
 
 test('context has the task, history, unsent drafts with reasons, and the instruction', () => {
   const drafts = [{ status: 'cancelled', kind: 'message', channel: 'whatsapp', createdAt: '2026-11-09T08:00:00Z', text: 'Ahoj, už jste se rozhodla?', note: 'too pushy' }];
   const sent = [{ channel: 'email', updatedAt: '2026-11-11T08:00:00Z', subject: 'Re: Cena', text: 'Posílám ceník' }];
-  const s = ai.contextPrompt({ person, drafts, sent, instruction: 'shorter', now: new Date('2026-11-11T12:00:00Z') });
+  const s = ai.contextPrompt({ person, drafts, sent, instruction: 'shorter', now: new Date('2026-11-11T12:00:00Z'), onWa });
   for (const part of ['Pipeline stage: Thinking about it', 'Follow up · Po konzultaci', '(overdue)', 'Task note: Ozvat se po víkendu',
     'whatsapp (+420775623723), email (jana@x.cz)', 'WhatsApp · ME]\nDobrý den', 'Email · CLIENT] Subject: Cena\nKolik to stojí?',
     'Sent by me since the last sync', 'Posílám ceník', 'cancelled by the user · reason: "too pushy"', 'instruction for this draft\nshorter'])
