@@ -35,3 +35,13 @@
   every lid chat had a mapping. Opened read-only, like messages.db.
 - The bridge must keep running for new messages to sync; closing it keeps the
   history already stored.
+- WhatsApp history after linking: the phone first sends ~1 message per chat,
+  then more in the background while it's online (4,889 → 8,734 messages in
+  an hour here). For specific chats, whatsmeow's on-demand history sync
+  (`BuildHistorySyncRequest(oldest msg, 50)` + `SendPeerMessage`) returns the
+  50 messages before the oldest known one as an ON_DEMAND history-sync event.
+  When nothing is older, the phone re-sends the anchor message (count 1,
+  nothing new stored) — that's the stop signal. ~2–4s per request.
+- `RequireFullSync` in whatsmeow's DeviceProps only works on a fresh link and
+  pulls everything; on-demand per chat avoids re-linking and keeps it to CRM
+  people.

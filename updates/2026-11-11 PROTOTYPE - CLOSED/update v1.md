@@ -70,6 +70,17 @@ communication history, email and WhatsApp merged in one timeline.
       (see issues.txt).
 - Ends with: prototype used for a real outreach session; close update.
 
+### Follow-up (2026-11-11): older WhatsApp history
+- [x] Reported: a contact with many messages showed only one. Cause: at link
+      time the phone sends only the latest message per chat, then trickles
+      more history in the background.
+- [x] User chose history for CRM people only (not a full re-link): bridge
+      `POST /api/history` (on-demand sync, one chat, 50 msgs, waits for the
+      phone's answer) + `whatsappBackfill` after each refresh.
+- [x] Real run: 435 → 692 WhatsApp messages for 60 people; people with a
+      single message 32 → 5. List visible at ~15s, older history done in
+      ~3–4 min in the background; next refresh 12s (finished chats skipped).
+
 ## Decisions
 - Expand-in-place replaces the right-hand detail panel (asked for
   explicitly; supersedes the CLAUDE.md "list on one side, timeline on the

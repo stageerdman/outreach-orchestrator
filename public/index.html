@@ -132,7 +132,8 @@ const timeTag = (at, label) => `<time datetime="${esc(at)}" title="${esc(fullDat
 function renderHeader() {
   const btn = $('#refresh');
   btn.setAttribute('aria-disabled', sync.running);
-  btn.textContent = !sync.running ? 'Refresh' : sync.total ? `Refreshing ${sync.done} / ${sync.total}` : 'Refreshing…';
+  const step = { history: 'Refreshing', whatsapp: 'Older WhatsApp' }[sync.stage] || 'Refreshing';
+  btn.textContent = !sync.running ? 'Refresh' : sync.total ? `${step} ${sync.done} / ${sync.total}` : `${step}…`;
   if (sync.at) {
     const mins = Math.floor((Date.now() - new Date(sync.at)) / 6e4);
     const label = mins < 1 ? 'just now' : mins < 60 ? `${mins} min ago` : `${Math.floor(mins / 60)} h ago`;
@@ -276,15 +277,16 @@ async function loadPeople() {
 }
 
 async function poll() {
-  const wasRunning = sync.running;
+  const wasRunning = sync.running, prevAt = sync.at;
   sync = await api('/api/refresh');
   renderHeader();
+  // A refresh publishes twice (history, then older WhatsApp); show each as it lands.
+  if (sync.at !== prevAt) await loadPeople();
   if (sync.running) {
     if (!people.length) renderList();
     return setTimeout(poll, 1000);
   }
   if (wasRunning) {
-    await loadPeople();
     const failed = Object.keys(sync.errors).map((k) => `${CHANNELS[k] || 'CRM'} failed.`).join(' ');
     $('#announce').textContent = `Updated, ${people.length} people. ${failed}`;
   }

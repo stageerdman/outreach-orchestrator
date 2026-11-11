@@ -7,3 +7,9 @@ Running list. Resolved items move to the relevant update's wiki.md.
 - [ ] 2026-11-11 Email refresh reads every message header in Inbox, Sent and
       Archive each time. Fine for this mailbox (~90 messages); revisit if it
       grows to many thousands.
+- [ ] 2026-11-11 Which WhatsApp chats are fully fetched is kept in memory, so
+      after a server restart the first refresh re-asks the phone once per
+      chat (~3 min in the background for 60 chats).
+- [ ] 2026-11-11 The WhatsApp bridge must keep running (new messages and older
+      history both go through it). It currently runs from a terminal or a
+      Claude session; a login item would keep it up.

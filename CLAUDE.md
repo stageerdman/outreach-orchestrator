@@ -72,12 +72,13 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
 <!-- Local project rules below are preserved across CLAUDE.md rebuilds. -->
 ## Project-specific notes
 - **`vendor/whatsapp-mcp` is external code** (a cloned third-party repo,
-  gitignored, with its own `.git`). Don't edit it, with one approved
-  exception (2026-11-11): `whatsapp-bridge/` has whatsmeow bumped to latest
-  plus 5 `context.Background()` args in `main.go`, because WhatsApp rejects
-  the old client with "Client outdated (405)". If upstream is re-pulled,
-  re-apply that (`go get go.mau.fi/whatsmeow@latest && go mod tidy`, fix
-  the compile errors) and rebuild. The app only reads the
+  gitignored, with its own `.git`). Don't edit it, except the user-approved
+  bridge patch (2026-11-11), kept in `patches/whatsapp-bridge.patch`:
+  whatsmeow bumped to latest (WhatsApp rejects the old client with "Client
+  outdated (405)") plus a `POST /api/history` endpoint that asks the phone
+  for older messages of one chat. After re-cloning or pulling upstream:
+  `git -C vendor/whatsapp-mcp apply ../../patches/whatsapp-bridge.patch`,
+  then `go build -o whatsapp-bridge .` in `whatsapp-bridge/`. The app only reads the
   bridge's SQLite DB, **read-only** — never write to it; the bridge writes
   to it while running.
 - **Private data:** this app touches real emails and WhatsApp messages. Never
@@ -96,3 +97,7 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
 - WhatsApp matching is by phone digits → `<digits>@s.whatsapp.net` plus the
   `<lid>@lid` chats mapped to that phone in the bridge's `whatsapp.db`
   (`whatsmeow_lid_map`, read-only). CRM phones must include the country code.
+- **Older WhatsApp history** is fetched only for CRM people's chats: after a
+  refresh publishes, `whatsappBackfill` pages back via the bridge's
+  `/api/history` (50 per request) until the phone has nothing older, then
+  republishes. The app still never writes to the bridge's DBs.
