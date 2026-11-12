@@ -53,3 +53,26 @@ reason) can rewrite templates, add steps, branches or new paths, and lessons.
      small and right (the learning run is untested on real decisions).
   3. If the coach over-edits: tighten COACH_PROMPT (lib/settings.js) or
      skip learning on unchanged approvals.
+
+### 7. Batched learning + style edits (user, 2026-11-12) — done
+- [x] Decisions become lessons in `lessons.json` (rendered at decision time,
+      clipped: last 12 messages × 600 chars, drafts 3000, lesson ≤12k); one
+      coach run per 15 (`BATCH`) or "Learn now"; removed on success, kept and
+      retried at the next lesson on failure. Trigger `batch` with count/notes.
+- [x] `setStyle` op: the coach edits the style guide (full text in, small
+      edits out), logged before/after, undoable while unchanged since.
+      COACH_PROMPT rewritten for batches; the op schema rides on
+      `--json-schema`, so a custom coach prompt still gets it.
+- [x] Edited drafts: the lesson shows `<ai>` vs `<sent>`/`<edited>` for
+      every decision; the next draft sees an edited unsent draft as "the
+      user's version".
+- [x] UI: quiet count line + Learn now; "Reviewed N: nothing to change" after
+      a run without changes; setStyle changes show the changed lines + Undo.
+- [x] Tests (test/lessons.test.js, playbooks setStyle): 101 green.
+- Verified on the isolated data copy (port 3102): a discarded, hand-edited
+  draft queued 1 lesson with `<edited>`; Learn now ran a real sonnet batch
+  (≈1 decision, no note) and correctly changed nothing; a setStyle change
+  rendered and undid cleanly.
+- Next: watch the first real 15-batch; if it over-edits the style guide,
+  tighten the setStyle rule in COACH_PROMPT.
+

@@ -154,8 +154,11 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
 - **Composer = chat with the AI only** (nothing typed there reaches a
   client; the AI picks channel and subject): Enter = ✨ (⌘J / Alt+Enter too),
   Shift+Enter = newline. No draft: the text is ✨'s instruction; a draft on the
-  way: the note for the regenerate. The gray draft bubble is read-only, with
-  two round buttons: ↑ (`--ok`) sends via `/api/requests/:id/send` (disabled
+  way: the note for the regenerate. The gray draft bubble's text is edited in
+  place (click or Enter/Space on it; email: subject too; Enter = newline,
+  Esc/blur ends; autosaved via PUT `/api/requests/:id`, flushed before
+  send/✨/×; `aiText`/`aiSubject` keep the AI's version, "edited by you"). Its
+  only buttons are two round ones: ↑ (`--ok`) sends via `/api/requests/:id/send` (disabled
   while a note is typed) and × (`--err`) discards / stops / dismisses, taking
   the typed text as the reason. Tasks rows show a draft only as a spinner or
   dot after the name.
@@ -205,11 +208,18 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   in `playbooks.json` (app data folder). Drafts get the playbooks and the
   follow-up position (messages sent since the client last wrote) and record
   the step they followed. Building and learning run through the coach, one at
-  a time: after every send / regenerate / cancel it returns operations on
-  playbooks and templates, applied as one logged change; any change (also the
+  a time. Every send / regenerate / cancel is saved as a lesson in
+  `lessons.json` (app data folder; the decision, AI vs. user's text when
+  edited, the clipped conversation, rendered at decision time); every
+  `BATCH` (15) lessons, or "Learn now" (`POST /api/playbooks/learn`), ONE run
+  over all of them returns operations on playbooks, templates and the style
+  guide (`setStyle`, full text, small edits; a cut to under half is refused),
+  applied as one logged change (trigger `batch`); those lessons are removed
+  only on success, a failure retries at the next lesson. Any change (also the
   user's own edits, merged per 10 min) can be undone if nothing changed it
   since. Method and data in the PLAYBOOKS update's `research-playbooks.md`.
-  Learning is silent in the UI; only a failure shows (Playbooks + rail "!").
+  Learning is silent except in Playbooks: "N of 15 decisions collected ·
+  Learn now", a failure (also rail "!").
 - **AI Requests UI:** Drafts tab = just the waiting cards (name, contact,
   message, actions; no AI reasoning, task row or due); History tab =
   cancelled and replaced drafts with reasons and context, plus sent ones.

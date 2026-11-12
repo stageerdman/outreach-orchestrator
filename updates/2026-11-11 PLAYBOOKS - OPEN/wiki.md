@@ -17,3 +17,13 @@
   touches; WhatsApp ≫ email; 2–4 day gaps; short messages with a question.
 - Headless Chrome: navigating to the same URL with a hash doesn't reload the
   page; use Page.reload when checking CSS changes.
+- Learning is batched (2026-11-12): per-decision runs were costly and noisy;
+  15 decisions in one run let the coach see repeated corrections. Lessons
+  are rendered when they happen so a later run doesn't depend on changed
+  requests or history. Removing exactly the reviewed lesson ids keeps
+  lessons that arrived during the run.
+- The style guide is never clipped in the coach input: setStyle returns the
+  full text, so a clipped input would truncate the guide. A setStyle cutting
+  the guide to under half is treated as a broken answer and skipped.
+- A run that returns no operations logs nothing; the coach state keeps
+  `last { count, summary, changed }` so Playbooks can say "nothing to change".

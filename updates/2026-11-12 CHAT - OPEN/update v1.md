@@ -149,3 +149,19 @@ WhatsApp messages show up within seconds.
 - Next: dock badge in the macOS wrapper (observe `webView.title`); watch
   whether 45 "unread" chats on first run (client wrote last, never read in
   the app) is noise; a live new-WhatsApp check in the UI with a real message.
+### 5. Editable drafts, batched learning (user, 2026-11-12) — done
+- [x] The gray draft's text is editable in place: click or Enter/Space
+      (focusable, "Edit draft", focus ring), email subject too, Enter =
+      newline, Esc/blur ends; autosaved (PUT, 600 ms debounce), flushed
+      before send (text sent with it), ✨ and ×. Only the text part is
+      swapped, so the two round buttons stay the only buttons and keep
+      working mid-edit; no re-render while editing. "edited by you" in the
+      bubble's meta line when it differs from the AI's version.
+- [x] Learning is batched (see the PLAYBOOKS update, phase 7).
+- Verified (isolated data, port 3102, headless Chrome over CDP): click →
+  textarea focused; Enter added a line (no ✨); "Saving…" → "Saved"; server
+  text ends with the edit, `aiText` unchanged; Esc and blur end editing;
+  Enter on the focused text reopens it; reload shows the edit + "edited by
+  you"; × mid-edit discarded it → lesson with `<edited>`; Playbooks "1 of 15
+  decisions collected · Learn now". Send was never pressed.
+
