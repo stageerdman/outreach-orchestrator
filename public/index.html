@@ -8,6 +8,7 @@
   :root {
     --bg: #f7f7f5; --panel: #fff; --text: #1d1d1b; --muted: #6b6a65; --line: #e6e5e0;
     --accent: #2f5bd3; --email: #2f5bd3; --wa: #1f7f50; --me: #eef2fd; --sel: #eef2fd; --err: #b3261e;
+    --draft-row: color-mix(in srgb, var(--accent) 9%, transparent); /* rows with an AI draft waiting */
     --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px;
     --fs-sm: 12px; --fs: 14px; --fs-lg: 16px; --radius: 6px; --width: 860px; --gh: 32px;
     --rail: 72px; --list-w: 280px; --feed-w: 380px; --feed-min: 240px; --feed-max: 640px; --chat-min: 360px; --icon: 20px; --hit: 28px; --badge: 16px;
@@ -271,6 +272,8 @@
   .cn > * { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; } .cn .sd { margin-left: var(--s1); }
   .prev { color: var(--muted); font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .crow.unread .prev .t { color: var(--text); font-weight: 600; }
+  .crow.draft { background: var(--draft-row); } .crow.draft:hover, .crow.draft[aria-current] { background: var(--sel); }
+  .prev .dl { color: var(--accent); font-weight: 600; } .prev .dl.bad { color: var(--err); }
   .unread-n { justify-self: end; min-width: var(--badge); height: var(--badge); padding: 0 var(--s1); border-radius: 99px; background: var(--wa); color: var(--panel);
     font-size: var(--fs-sm); line-height: var(--badge); text-align: center; font-weight: 600; }
   .chat { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--bg); }
@@ -1185,25 +1188,42 @@ function announceIncoming(list) {
   }, 1500);
 }
 
+// An open AI draft replaces the preview, WhatsApp-style ("Draft: …").
+const DRAFT_LABEL = { generating: 'Drafting…', pending: 'Draft:', failed: 'Draft failed' };
+const renderChatPreview = (l, r) => (r
+  ? `<span class="dl${r.status === 'failed' ? ' bad' : ''}">${DRAFT_LABEL[r.status]}</span> ${r.status === 'pending' ? `<span class="t">${esc(r.kind === 'meeting' ? 'Offer a meeting' : r.text)}</span>` : ''}`
+  : `${l.fromMe ? 'You: ' : ''}<span class="t">${l.text ? esc(l.text) : '<i>Message</i>'}</span>`);
 function renderChatRow(c) {
-  const st = c.stage, n = c.unread, l = c.last, id = esc(c.id);
-  const label = [c.name, st?.label, n && `${n} unread`, `${chatTime(l.at)}: ${l.fromMe ? 'You: ' : ''}${l.text || 'Message'}`].filter(Boolean).join(', ');
-  return `<li><button type="button" class="crow${n ? ' unread' : ''}" id="crow-${id}" data-id="${id}"${sel.messages === c.id ? ' aria-current="true"' : ''} aria-controls="chat" aria-label="${esc(label)}">
+  const st = c.stage, n = c.unread, l = c.last, id = esc(c.id), r = activeReq(c.id);
+  const label = [c.name, st?.label, n && `${n} unread`, r ? `${DRAFT_LABEL[r.status].replace(':', '')}${r.status === 'pending' ? ` ${r.text}` : ''}`
+    : `${chatTime(l.at)}: ${l.fromMe ? 'You: ' : ''}${l.text || 'Message'}`].filter(Boolean).join(', ');
+  return `<li><button type="button" class="crow${n ? ' unread' : ''}${r ? ' draft' : ''}" id="crow-${id}" data-id="${id}"${sel.messages === c.id ? ' aria-current="true"' : ''} aria-controls="chat" aria-label="${esc(label)}">
     <span class="cn"><span class="tn">${esc(c.name)}</span>${st ? `<span class="sd" style="--st: ${stageColor(st.rank)}"></span><span class="stage-l">${esc(st.label)}</span>` : ''}</span>
     <span class="when">${timeTag(l.at, chatTime(l.at))}</span>
-    <span class="prev">${l.fromMe ? 'You: ' : ''}<span class="t">${l.text ? esc(l.text) : '<i>Message</i>'}</span></span>
+    <span class="prev">${renderChatPreview(l, r)}</span>
     ${n ? `<span class="unread-n">${n > 99 ? '99+' : n}</span>` : ''}</button></li>`;
 }
 
 // While the pointer or focus is in the list, rows update in place and keep
 // their order (new chats go on top); the new order applies once it leaves.
+// Chats with an open AI draft go on top, newest draft first; someone drafted
+// for from Tasks without any messages yet gets a row too.
+function withDrafts(list) {
+  const open = new Map(requests.filter((r) => REQ_OPEN.includes(r.status)).map((r) => [r.personId, r]));
+  const extra = [...open.values()].filter((r) => !list.some((c) => c.id === r.personId)).map((r) => {
+    const p = people.find((x) => x.id === r.personId);
+    return { id: r.personId, name: p?.name || r.personName, stage: p?.stage || null, channels: [], unread: 0, last: { at: r.createdAt, fromMe: true, text: '' } };
+  });
+  const at = (c) => open.get(c.id)?.createdAt;
+  return [...extra, ...list].sort((a, b) => (at(b) ?? '').localeCompare(at(a) ?? '')); // stable: the rest keep the server's order
+}
 const frozen = () => listHover || $('#clist').contains(document.activeElement);
 function renderChatList() {
   const el = $('#clist');
   if (!chatsLoaded) { el.innerHTML = '<li class="empty">Loading chats…</li>'; return; }
   el.removeAttribute('aria-busy');
   const q = fold($('#mq').value.trim());
-  let list = chats.filter((c) => !q || fold(`${c.name} ${c.stage?.label ?? ''} ${c.last.text}`).includes(q));
+  let list = withDrafts(chats).filter((c) => !q || fold(`${c.name} ${c.stage?.label ?? ''} ${c.last.text}`).includes(q));
   if (frozen()) { const at = new Map(corder.map((id, i) => [id, i])); list = [...list].sort((a, b) => (at.get(a.id) ?? -1) - (at.get(b.id) ?? -1)); }
   const focusId = document.activeElement?.closest?.('.crow')?.dataset.id;
   const empty = q ? `No match for “${esc($('#mq').value.trim())}”` : sync.running ? 'Loading contacts and messages…' : 'No messages with CRM contacts yet.';
@@ -1448,7 +1468,7 @@ async function loadRequests() {
   const done = requests.filter((r) => before.get(r.id) === 'generating' && r.status !== 'generating');
   if (done.length === 1) $('#announce').textContent = done[0].status === 'failed' ? `Draft failed for ${done[0].personName}` : `Draft ready for ${done[0].personName}`;
   else if (done.length) $('#announce').textContent = `${done.filter((r) => r.status !== 'failed').length} drafts ready, ${done.filter((r) => r.status === 'failed').length} failed`;
-  rerenderTasks(); renderRequests(); renderBadge();
+  rerenderTasks(); renderRequests(); renderBadge(); if (chatsLoaded) renderChatList();
   if (chat) { renderDraft(); updateComposer(); stick(renderMessages); }
 }
 

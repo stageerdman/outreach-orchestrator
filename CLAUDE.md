@@ -93,7 +93,9 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   the whole conversation, newest at the bottom (last 50, "Show earlier"),
   with the composer under it. ≤900px: panes swap (`data-pane`, `.back`).
   No channel tags anywhere in Messages rows or bubbles. Messages rows: name +
-  stage, time / snippet + unread. Tasks rows and the chat header: two lines
+  stage, time / snippet + unread; a person with an open AI draft is on top
+  (newest draft first, tinted, "Draft: …" as the snippet; also without any
+  messages yet). Tasks rows and the chat header: two lines
   (name, stage, contact; no task line).
   A chat is marked read after 1 s open, visible and focused.
 - **Refresh flow:** runs on server start and on demand. `lib/sync.js` pulls
