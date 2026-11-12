@@ -41,7 +41,8 @@ test('decisions queue as lessons without a Claude call until the 15th, which run
   assert.deepEqual(c.trigger, { kind: 'batch', count: 15, notes: 1 });
   assert.equal(c.ops[0].op, 'setStyle');
   assert.equal(getSettings().styleGuide, answer.operations[0].styleGuide);
-  assert.deepEqual(coach.coachState().last, { count: 15, summary: 'Shorter greetings', changed: true });
+  const { at, ...last } = coach.coachState().last;
+  assert.deepEqual(last, { count: 15, summary: 'Shorter greetings', changed: true, asked: 0 });
 });
 
 test('a failed run keeps the lessons and retries at the next one; Learn now runs below 15', async () => {

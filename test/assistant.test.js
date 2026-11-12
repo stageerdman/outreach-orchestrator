@@ -79,7 +79,9 @@ test('a draft keeps only valid channel and template, subject only for email mess
   const tpls = [{ id: 't1' }];
   const base = { action: 'message', channel: 'email', subject: ' Re: Cena ', text: ' Text ', templateId: 't1', reasoning: 'why' };
   assert.deepEqual(ai.toDraft(base, ['whatsapp', 'email'], tpls),
-    { kind: 'message', channel: 'email', subject: 'Re: Cena', text: 'Text', reasoning: 'why', templateId: 't1', playbookId: null, stepId: null });
+    { kind: 'message', channel: 'email', subject: 'Re: Cena', text: 'Text', reasoning: 'why', templateId: 't1', playbookId: null, stepId: null, ruleIds: [] });
+  const rules = [{ id: 'r1', status: 'active' }, { id: 'r2', status: 'rejected' }];
+  assert.deepEqual(ai.toDraft({ ...base, ruleIds: ['r1', 'r2', 'gone', 'r1'] }, ['email'], tpls, [], rules).ruleIds, ['r1'], 'known, live rules only');
   const d = ai.toDraft({ ...base, channel: 'email', templateId: 'gone' }, ['whatsapp'], tpls);
   assert.equal(d.channel, 'whatsapp'); assert.equal(d.subject, ''); assert.equal(d.templateId, null);
   assert.equal(ai.toDraft({ ...base, action: 'meeting' }, ['email'], tpls).kind, 'meeting');

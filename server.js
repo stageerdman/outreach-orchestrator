@@ -9,11 +9,13 @@ import { chatList, markRead, markUnread } from './lib/chats.js';
 import { events } from './lib/events.js';
 import { getSettings, saveSettings, DRAFT_PROMPT, STYLE_PROMPT, COACH_PROMPT, BUILD_PROMPT, MODELS } from './lib/settings.js';
 import { listPlaybooks, listChanges, applyOperations, undoChange } from './lib/playbooks.js';
-import { buildPlaybooks, coachState, learnNow } from './lib/coach.js';
+import { buildPlaybooks, coachState, learnNow, distill, pastDecisions, answerQuestion, skipQuestion, migrateLessons } from './lib/coach.js';
+import { listRules, openQuestions, getRule } from './lib/rules.js';
 import * as ai from './lib/assistant.js';
 
 const PORT = Number(process.env.PORT || 3000);
 restoreSnapshot();
+migrateLessons(); // once: the playbooks' lessons become rules
 
 // The Tasks feed: people in Fronta's list (queue set; a CRM without queues
 // puts everyone in), in Fronta order when there is one.
@@ -25,7 +27,7 @@ const feed = (people) => {
 const findPerson = (id) => snapshotPeople().find((p) => p.id === decodeURIComponent(id));
 
 // Server-Sent Events: the UI's live stream (see lib/events.js for the events).
-const STREAM = ['snapshot', 'messages', 'requests'];
+const STREAM = ['snapshot', 'messages', 'requests', 'personal'];
 function stream(req, res) {
   res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
   res.write('retry: 3000\n\n');
@@ -117,6 +119,29 @@ createServer(async (req, res) => {
       const id = decodeURIComponent(pbm[1]), body = req.method === 'PUT' ? await readBody(req) : null;
       const op = body ? { op: 'setPlaybook', reason: 'Edited by the user', playbook: { ...body, id } } : { op: 'deletePlaybook', reason: 'Deleted by the user', id };
       return json(res, 200, applyOperations([op], { trigger: { kind: 'user' }, summary: body ? `Edited "${body.name || id}"` : `Deleted "${id}"`, merge: true }) ?? { unchanged: true });
+    }
+    // Personalization: the user's rules and facts, the AI's open questions, the
+    // changes that touched rules (newest first), the coach's state.
+    if (url.pathname === '/api/personal') {
+      const changes = listChanges().filter((c) => c.ops.some((o) => o.op === 'setRule' || o.op === 'deleteRule')).slice(-100).reverse();
+      return json(res, 200, { rules: listRules(), questions: openQuestions(), changes, coach: coachState(), past: pastDecisions().length });
+    }
+    if (url.pathname === '/api/personal/distill' && req.method === 'POST') return json(res, 202, distill());
+    const rm = url.pathname.match(/^\/api\/rules(?:\/([^/]+))?$/);
+    if (rm && ['POST', 'PUT', 'DELETE'].includes(req.method)) {
+      const id = rm[1] && decodeURIComponent(rm[1]);
+      if (req.method !== 'POST' && !getRule(id)) return json(res, 404, { error: 'Rule not found' });
+      const body = req.method === 'DELETE' ? null : await readBody(req);
+      const op = body ? { op: 'setRule', reason: 'By you', rule: { ...body, id: id ?? body.id } } : { op: 'deleteRule', reason: 'Deleted by you', id };
+      const what = (body?.kind || getRule(id)?.kind) === 'fact' ? 'fact' : 'rule';
+      const summary = !body ? `Deleted a ${what}` : !id ? `Added a ${what}` : body.status === 'rejected' ? `Rejected a ${what}` : `Edited a ${what}`;
+      return json(res, 200, applyOperations([op], { trigger: { kind: 'user' }, summary, merge: true }) ?? { unchanged: true });
+    }
+    const qm = url.pathname.match(/^\/api\/questions\/([^/]+)\/(answer|skip)$/);
+    if (qm && req.method === 'POST') {
+      const id = decodeURIComponent(qm[1]);
+      const out = qm[2] === 'skip' ? skipQuestion(id) : answerQuestion(id, await readBody(req));
+      return out ? json(res, 200, out) : json(res, 409, { error: 'This question is no longer open' });
     }
     if (url.pathname === '/api/settings') {
       if (req.method === 'PUT') {

@@ -54,14 +54,14 @@ changed something. Method in `research-personalization.md`.
 ## Phases
 1. [x] Research spikes (agents): agent-creator's extraction method; active
    preference elicitation literature → `research-personalization.md`.
-2. [ ] `lib/rules.js`: store, clean/validate, confidence + fading, rule ops
+2. [x] `lib/rules.js`: store, clean/validate, confidence + fading, rule ops
    in `applyOperations`' change log (undo). Tests.
-3. [ ] Coach: rule ops + question generation in the batch run (prompt +
+3. [x] Coach: rule ops + question generation in the batch run (prompt +
    schema), the one-off distill run over past notes/edits. Tests on inputs.
-4. [ ] `lib/questions.js` + API: list / answer / skip; answers update the
+4. [x] Questions (kept in `lib/rules.js`; answer/skip in `lib/coach.js`) + API: list / answer / skip; answers update the
    rule (source, support/against) and queue a lesson. Tests.
-5. [ ] Drafting: rules in the system prompt, `ruleIds` on the draft. Tests.
-6. [ ] Personalization tab (UX agents: questions cards, rules list, change
+5. [x] Drafting: rules in the system prompt, `ruleIds` on the draft. Tests.
+6. [~] Personalization tab (UX agents: questions cards, rules list, change
    log). Rail dot, ⌘ shortcuts.
 7. [ ] Verify on real data: distill on a copy of the app data, read the
    rules, answer questions, draft → the rule is cited.
@@ -69,15 +69,37 @@ changed something. Method in `research-personalization.md`.
    with/without the rules; a rule that doesn't help stays `testing`. A
    fidelity number (share of drafts sent unchanged, by week) in the tab.
 
-## Open decisions (for the user)
-- Questions only in the Personalization tab (quiet, proposed), or also one
-  card in the chat right after a send?
-- Should rules replace playbook "lessons" (migrate them into rules scoped to
-  that stage) or live next to them? Proposed: new judgement goes to rules;
-  existing playbook lessons stay until a later migration.
-- Is a rule active after you confirm it once, or should the AI also see it
-  hold in practice first? Proposed: one confirmation is enough.
+## Decisions (user, 2026-11-12)
+- Questions only in the Personalization tab (rail dot), never in the chat.
+- Rules replace playbook lessons: a one-off migration (trigger `migrate`,
+  undoable) turns each playbook's lessons into rules scoped to its stages;
+  playbooks no longer get lessons (schema dropped them).
+- Facts about the offer (kind `fact`, e.g. "the free consultation is free
+  only for a limited time") are added by hand in the tab; the AI may propose
+  them as testing. Drafts must not contradict them.
+- One confirmation makes a rule active.
 
 ## Status
-- 2026-11-12 started. Research done (phase 1); design and roadmap above,
-  waiting on the user's go and the open decisions before phase 2.
+- 2026-11-12 started. Research done (phase 1).
+- 2026-11-12 phases 2–5 done, 113 tests green (test/rules.test.js):
+  `lib/rules.js` (rules.json: rules, questions, migrated flag; SSE
+  `personal`), setRule/deleteRule ops in the change log with undo, coach
+  batch emits rules + questions, `distill` over past noted/edited
+  decisions, answers applied at once + queued as lessons, drafts get
+  "# The user's rules" and return `ruleIds`. API: GET /api/personal,
+  POST /api/personal/distill, POST|PUT|DELETE /api/rules[/:id],
+  POST /api/questions/:id/answer|skip. Migration runs on server start.
+- Phase 6 written, NOT yet checked in a browser: rail "You" (⌘5, Settings
+  ⌘6, dot when a question waits), `#view-personal` (Asking you, How you
+  decide by stage, About your offer, Still testing, Rejected, Recent
+  learning with the log + Undo), rule edit in place. Script syntax checks.
+- Paused here at the user's request. Next:
+  1. Run the app on a copy of the app data (port 3102), open
+     Personalization: migration result, add a fact, edit/confirm/reject,
+     Undo, a fake question (answer, skip, keys 1–4), ≤900px.
+  2. Known gap: the "Personalization" link in the playbook editor is an
+     `<a data-section>` outside `.rail`, so the rail's click handler doesn't
+     catch it; wire it (or a hashchange listener).
+  3. Press "Learn from my past decisions" on the copy (phase 7), read the
+     rules and questions it proposes; then phase 8 (replay check).
+  4. Update CLAUDE.md (sections list, Personalization notes, lessons → rules).
