@@ -46,12 +46,21 @@ WhatsApp messages show up within seconds.
   recorded like a sent draft.
 
 ## Phases
-### 1. Fronta order — next
-- [ ] `lib/fronta.js`: pure derive/hide/merge/classify/callNow/sort (Prague
-      time), mirroring section 4 of `fronta-rules.md`.
-- [ ] `lib/resultson.js`: whole tables in parallel (paginated), token reused
-      while valid, every contact a person with stage + queue.
-- Ends with: tests for every group, hide rule, merge and sort key.
+### 1. Fronta order — done
+- [x] `lib/fronta.js`: pure facts/hide/merge/classify/callNow/sort (Prague
+      time), mirroring `19-Cockpit.js` (local checkout of ResultsON's
+      `update/nedokonceno-followup-tabs` branch) where the doc is vague.
+- [x] `lib/resultson.js`: 9 tables read whole in parallel (limit/offset
+      pages, as many at once as last time), token reused while valid; every
+      contact a person with stage + queue. `myTasks` removed.
+- [x] Tests: `test/fronta.test.js` (every group, check order, hide rules,
+      merge + qualify, multi-booking, both meeting formats, sort key; also
+      passes under other TZs) and the new `toPeople` shape.
+- Measured 2026-11-12 on real data: 547 people, 88 in the call-now list:
+  DOMLUVENÝ FOLLOW-UP 14, NO SHOW 2, FOLLOWUP PO KONZULTACI 19, VRÁCÍ SE 1,
+  SPLÁTKY 1, NEDOVOLANÉ 26, LEADY KOLEGŮ 25 (no live meetings today, so no
+  TRIÁŽ / POTVRZENÍ / NOVÝ LEAD rows). CRM 1.6 s cold (login ~0.7 s),
+  0.8–0.9 s with the token reused (was 3.1 s).
 ### 2. Fast refresh + live — next
 - [ ] Refresh on server start; CRM + WhatsApp publish first, email merges in.
 - [ ] One long-lived IMAP connection (IDLE on INBOX) instead of a new one

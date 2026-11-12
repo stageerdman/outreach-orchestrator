@@ -92,12 +92,13 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   history through each source's `<channel>Session()` into an in-memory
   snapshot that the API serves. Register new channels in its `SOURCES`.
 - **CRM is ResultsON** (Supabase/PostgREST), `lib/resultson.js`, `RESULTSON_*`
-  keys. Logs in as a team member on every refresh (tokens last 1h), looks up
-  the team-member id, and returns one person per contact with an open task
-  assigned to the user, or unassigned unless the contact belongs to a
-  teammate (`myTasks`; shown as "unassigned"): task (kind, rule, follow type, due, note),
-  `phone_e164`, and a pipeline stage (`stageOf`). The stage belongs to the
-  person, not the current task. The user's pipeline, top
+  keys, read-only (GET only, besides the login). Logs in as a team member
+  (token reused while valid, 1 h), reads the needed tables whole, in parallel
+  and paginated (1000 rows max per response), and returns every contact
+  (except `nerelevantni` and pending deletions) as a person: task (the Fronta
+  row's, else the soonest open one, else null; kind, rule, follow type, due,
+  note), `phone_e164`, a pipeline stage (`stageOf`) and `queue`. The stage
+  belongs to the person, not the current task. The user's pipeline, top
   first: Installment (any `splatka` task, open or closed, or a "Prodej na
   splátky" / "Upraveny platby" note; not once the contact is `paid` or a later
   lost note), Waiting for Payment ("Prodáno" or
@@ -112,10 +113,16 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   Notes and all the contact's tasks (closed ones too) are read for these.
   "LTO nákup" (bought LTO) tasks are just new leads to the user: no special
   stage, they follow the same call-result rules.
-- **UI feed:** only tasks due today or overdue (meeting tasks — Meeting
-  Booked/Confirmed stage or a confirm task — only once their time has come);
-  people already messaged today (Prague day; history or a draft sent from
-  the app) are hidden unless the client wrote back since; stage groups collapsed by
+- **Fronta** (`lib/fronta.js`, pure): ResultsON Cockpit's "Volat teď" main
+  list replicated (rules in the CHAT update's `fronta-rules.md`): hide, merge
+  per contact in memory only, group/score, who sees what (teammates' rows
+  too, LEADY KOLEGŮ last), sort; Prague time throughout. `queue` = `{ group,
+  score, color, order, meetingAt, due, qualify }` for rows in that list, else
+  null. Never lock, close merged tasks or self-heal.
+- **UI feed:** only people with a `queue` (Fronta's call-now list), in its
+  order (non-ResultsON CRMs: `queue` undefined = in the feed); people already
+  messaged today (Prague day; history or a draft sent from the app) are
+  hidden unless the client wrote back since; stage groups collapsed by
   default (expanded state in memory only), empty ones hidden, colour per
   stage (`--st-1..9`).
 - **Local cache** (`lib/cache.js`, node:sqlite) lives in

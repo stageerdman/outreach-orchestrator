@@ -1,8 +1,19 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { stageOf, toPeople, myTasks, isSoldNote, isConsultedNote, isNoShowNote, isBookedNote, isInstallmentNote, STAGES } from '../lib/resultson.js';
+import { stageOf, toPeople, isSoldNote, isConsultedNote, isNoShowNote, isBookedNote, isInstallmentNote, STAGES } from '../lib/resultson.js';
 
 const label = (task, results = [], flags = {}) => stageOf(task, results, flags).label;
+
+// toPeople from tables: open tasks (v_queue rows) also exist in `tasks`; contacts default from the tasks.
+const NOW = Date.parse('2026-11-12T10:00:00Z');
+const people = ({ queue = [], tasks = [], contacts, calls = [], notes = [], events = [], campaigns = [], deletions = [], team = [], followTypes = {} }) => {
+  const ids = [...new Set([...queue, ...tasks].map((t) => t.contact_id))];
+  contacts ??= [];
+  for (const id of ids) if (!contacts.some((c) => c.id === id)) contacts.push({ id, name: queue.find((q) => q.contact_id === id)?.name });
+  const all = [...queue.map((q) => ({ id: q.task_id, contact_id: q.contact_id, kind: q.kind, note: q.note, follow_typ: followTypes[q.task_id] ?? null })), ...tasks];
+  return toPeople({ queue: queue.map((q) => ({ attempts: 0, assigned_to: null, ...q })), tasks: all, contacts, calls, notes, events, campaigns, deletions, team, me: { id: 'me', jmeno: 'Me' } }, NOW);
+};
+const stages = (list) => Object.fromEntries(list.map((p) => [p.name, p.stage.label]));
 
 test('pipeline order is the one the user gave', () => {
   assert.deepEqual(STAGES, ['Installment', 'Waiting for Payment', 'Thinking about it', 'No Show',
@@ -47,7 +58,7 @@ test('toPeople: soonest task leads, e164 phone, follow type and sold note used',
   ];
   const calls = [{ contact_id: 'a', vysledek: 'termin' }, { contact_id: 'b', vysledek: null, poznamka: null }];
   const notes = [{ contact_id: 'b', text: 'Prodáno UM 44 000 Kč' }];
-  const [ana, bo] = toPeople(tasks, contacts, calls, notes, { 2: 'konzultace' });
+  const [ana, bo] = people({ queue: tasks, contacts, calls, notes, followTypes: { 2: 'konzultace' } });
   assert.deepEqual(ana.task, { id: 2, unassigned: true, kind: 'followup', rule: '', followType: 'konzultace', dueAt: '2026-11-10T10:00:00Z', note: 'ring' });
   assert.deepEqual(ana.emails, ['ana@x.cz']);
   assert.deepEqual(ana.phones, ['+420775000000']);
@@ -82,8 +93,7 @@ test('toPeople reads no-show and consultation signals from notes and closed task
   const calls = ['j', 'm', 'k'].map((id) => ({ contact_id: id, vysledek: 'nedovolano' }));
   const notes = [{ contact_id: 'm', text: 'Bez nabídky — Nemá finance — Jsme domluvení na followup za měsíc' }];
   const past = [{ id: 9, contact_id: 'k', note: ' | uzavřeno: schůzka už proběhla (no_show)' }];
-  const people = toPeople(tasks, [], calls, notes, { 2: 'domluveny' }, past);
-  assert.deepEqual(Object.fromEntries(people.map((p) => [p.name, p.stage.label])), { Jiří: 'No Show', Michal: 'Thinking about it', Karel: 'No Show' });
+  assert.deepEqual(stages(people({ queue: tasks, calls, notes, tasks: past, followTypes: { 2: 'domluveny' } })), { Jiří: 'No Show', Michal: 'Thinking about it', Karel: 'No Show' });
 });
 
 test('a later "lost" note cancels waiting for payment; an earlier one does not', () => {
@@ -95,7 +105,7 @@ test('a later "lost" note cancels waiting for payment; an earlier one does not',
     { contact_id: 'y', created_at: '2026-10-01T00:00:00Z', text: 'Uzavřeno jako ztracené — x' },
     { contact_id: 'y', created_at: '2026-10-09T00:00:00Z', text: 'Domluveno — čeká se na platbu: UM PRO' },
   ];
-  const [z, y] = toPeople(tasks, [], [], notes);
+  const [z, y] = people({ queue: tasks, notes });
   assert.equal(z.stage.label, 'New lead');
   assert.equal(y.stage.label, 'Waiting for Payment');
 });
@@ -105,7 +115,7 @@ test('a booked meeting from notes or task notes is Meeting Booked, even with onl
     assert.ok(isBookedNote(t), t);
   assert.ok(!isBookedNote('Napsal na WA, že bude řídit'));
   const tasks = [{ task_id: 2, contact_id: 'f', name: 'Flori', kind: 'call', due_at: '2026-11-10T00:00:00Z', note: 'Kvalifikovat a potvrdit termín — rezervoval si sám.' }];
-  const [f] = toPeople(tasks, [], [{ contact_id: 'f', vysledek: 'follow' }]);
+  const [f] = people({ queue: tasks, calls: [{ contact_id: 'f', vysledek: 'follow' }] });
   assert.equal(f.stage.label, 'Meeting Booked');
 });
 
@@ -117,15 +127,37 @@ test('installment is the person\'s stage: a closed installment task or sale note
     { task_id: 7, contact_id: 'p', name: 'Paid', kind: 'call', due_at: '2026-11-10T00:00:00Z' }];
   const past = [{ id: 1, contact_id: 't', kind: 'splatka', note: 'Splátka 2/3' }, { id: 2, contact_id: 'p', kind: 'splatka' }];
   const notes = [{ contact_id: 'n', created_at: '2026-10-20T00:00:00Z', text: 'Prodej na splátky — UM PRO' }];
-  const people = toPeople(tasks, [{ id: 'p', paid: true }], [{ contact_id: 't', vysledek: 'triage' }], notes, {}, past);
-  assert.deepEqual(Object.fromEntries(people.map((p) => [p.name, p.stage.label])), { Tomáš: 'Installment', Nora: 'Installment', Paid: 'New lead' });
+  const list = people({ queue: tasks, contacts: [{ id: 'p', name: 'Paid', paid: true }], calls: [{ contact_id: 't', vysledek: 'triage' }], notes, tasks: past });
+  assert.deepEqual(stages(list), { Paid: 'New lead', Tomáš: 'Installment', Nora: 'Installment' });
 });
 
-test('my tasks plus unassigned ones, unless the contact belongs to a teammate', () => {
-  const tasks = [{ task_id: 1, contact_id: 'a', assigned_to: 'me' }, { task_id: 2, contact_id: 'b', assigned_to: null },
-    { task_id: 3, contact_id: 'c', assigned_to: null }, { task_id: 4, contact_id: 'd', assigned_to: null }, { task_id: 5, contact_id: 'e', assigned_to: 'other' }];
-  const contacts = [{ id: 'b', owner_id: null }, { id: 'c', owner_id: 'other' }, { id: 'd', owner_id: 'me' }];
-  assert.deepEqual(myTasks(tasks, contacts, 'me').map((t) => t.task_id), [1, 2, 4]);
-  const [p] = toPeople([{ task_id: 2, contact_id: 'b', assigned_to: null, kind: 'call', due_at: '2026-11-01T00:00:00Z' }], [], []);
-  assert.equal(p.task.unassigned, true);
+test('every contact is a person; Fronta rows get queue + the winning task, others their soonest task or none', () => {
+  const contacts = [
+    { id: 'a', name: 'Ana', owner_id: null }, { id: 'b', name: 'Bo', owner_id: 'other' }, { id: 'c', name: 'Cy' },
+    { id: 'd', name: 'Dee', nerelevantni: true }, { id: 'e', name: 'Eve' }, { id: 'f', name: 'Fay' },
+  ];
+  const queue = [
+    { task_id: 1, contact_id: 'a', kind: 'call', due_at: '2026-11-12T08:00:00Z', name: 'Ana' },
+    { task_id: 2, contact_id: 'a', kind: 'confirm', due_at: '2026-11-12T09:00:00Z', name: 'Ana', note: 'Potvrdit' },
+    { task_id: 3, contact_id: 'b', kind: 'call', due_at: '2026-11-12T08:00:00Z', name: 'Bo', attempts: 2 },
+    { task_id: 4, contact_id: 'c', kind: 'call', due_at: '2026-11-13T08:00:00Z', name: 'Cy' }, // not due yet
+    { task_id: 5, contact_id: 'c', kind: 'followup', due_at: '2026-11-14T08:00:00Z', name: 'Cy' },
+    { task_id: 6, contact_id: 'd', kind: 'call', due_at: '2026-11-12T08:00:00Z', name: 'Dee' },
+    { task_id: 7, contact_id: 'e', kind: 'call', due_at: '2026-11-12T08:00:00Z', name: 'Eve' },
+  ];
+  const list = people({ queue, contacts, deletions: [{ contact_id: 'e' }] });
+  assert.deepEqual(list.map((p) => p.name), ['Ana', 'Bo', 'Cy', 'Fay']);
+  const [ana, bo, cy, fay] = list;
+  assert.deepEqual(ana.queue, { group: 'POTVRZENÍ SCHŮZKY', score: 900, color: 'B', order: 1, meetingAt: null, due: true, qualify: true });
+  assert.deepEqual(ana.task, { id: 2, unassigned: true, kind: 'confirm', rule: '', followType: '', dueAt: '2026-11-12T09:00:00Z', note: 'Potvrdit' });
+  assert.deepEqual([bo.queue.group, bo.queue.order, bo.queue.color, bo.ownerId], ['LEADY KOLEGŮ', 2, 'C', 'other']);
+  assert.deepEqual([cy.queue, cy.task.id], [null, 4]);
+  assert.deepEqual([fay.queue, fay.task, fay.stage.label], [null, null, 'New lead']);
+});
+
+test('a live meeting shows as meetingAt and puts the person in triage', () => {
+  const queue = [{ task_id: 1, contact_id: 'a', kind: 'call', due_at: '2026-11-12T08:00:00Z', name: 'Ana' }];
+  const events = [{ id: 1, contact_id: 'a', event: 'call_booked', occurred_at: '2026-11-12T09:00:00Z', meta: { meeting_at: 'November 14, 2026 3:00 PM' } }];
+  const [ana] = people({ queue, events });
+  assert.deepEqual([ana.queue.group, ana.queue.meetingAt], ['TRIÁŽ', '2026-11-14T14:00:00.000Z']);
 });
