@@ -184,7 +184,11 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   AI Requests view). Messages = every CRM contact with messages, newest
   first (`/api/chats`), unread pill, with a Requests / Unanswered / All switch
   on top (people with an open draft / unread chats / everyone; localStorage
-  `mtab`; the open chat stays listed until another is picked). Rail badge and
+  `mtab`; the open chat stays listed until another is picked). Right-click
+  (or the context-menu key) on a row: Mark as unread / read; marked chats
+  (`marks.json`, app data folder) count as unread (a dot, no number), sit
+  on top (under drafts) and stay unread while open until picked again;
+  reading the chat clears the mark. Rail badge and
   `(n) Outreach` title = waiting drafts + people with unread; rows keep their
   order while the pointer or focus is in the list. A new section
   = a link in `.rail`, a `#view-<name>` block, and its name in `SECTIONS`.
@@ -205,7 +209,10 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   prefilled and counts as sent), regenerates or cancels with an optional
   note. A person with a generating/pending draft can't get another. The AI
   sees the last 30 messages, its unsent drafts with the user's notes, and
-  drafts sent since the last refresh. Every time it sees is Prague time
+  drafts sent since the last refresh. A regenerate also gets the whole
+  revision chain (`previousId` back, ≤10): per version the user's
+  instruction, the AI's text and the user's edit, so every earlier note
+  still holds. Every time it sees is Prague time
   (Europe/Prague), whatever the Mac's timezone. Each draft keeps the context the AI saw
   (stage, task, last 30 messages) and its task id, as training data with the
   user's decision (`POST /api/requests/:id/recover` still exists server-side,

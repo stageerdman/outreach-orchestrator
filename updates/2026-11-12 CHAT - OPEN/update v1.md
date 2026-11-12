@@ -202,6 +202,15 @@ WhatsApp messages show up within seconds.
       it" (`thinking`); the rest kept. 6 playbooks; "No Show" / "Installment"
       names renamed by hand to the category names (user edits, undoable).
 
+## Phase 8: mark unread, regenerate memory (2026-11-12)
+- [x] Right-click a Messages row → Mark as unread / read (`marks.json`,
+      `POST /api/chats/:id/unread`); marked chats go on top until read.
+- [x] Regenerate sees every earlier version of the draft (instruction, AI
+      text, the user's edit), not just the last note (`revisionsOf`).
+- Verified: API on an isolated data copy (port 3999); revision prompt on a
+      real 3-version chain; `npm test` 105 pass. The right-click menu itself
+      not clicked through (no browser connected).
+
 ## Status (2026-11-12, paused)
 - Done through phase 7; app running the new code (Outreach.app restarted).
 - Next, when we resume: confirm the two category exceptions with the user,
