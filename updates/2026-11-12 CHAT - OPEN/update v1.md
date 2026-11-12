@@ -91,8 +91,37 @@ WhatsApp messages show up within seconds.
   unread }]`. `POST /api/chats/:id/read` → `{ id, readAt }`. SSE events:
   `snapshot { at, stage }` (per published channel), `messages { ids }`,
   `requests { id, personId, status }`, `: ping` every 25 s.
-### 3. UI — after 1–2
-- [ ] UX specs from parallel UX agents (feed, chat column, Messages list).
-- [ ] Tasks: Fronta groups; click → chat column. Composer + ✨ draft flow.
-- [ ] Messages section above Tasks, live unread counts.
-- Ends with: verified in the browser on real data (no sends).
+### 3. UI — done (2026-11-12)
+- [x] UX specs from three parallel UX agents (feed, chat column, Messages
+      list) plus a synthesis that overrides them where they differ.
+- [x] Server bits for the composer: a draft keeps `channel` (POST
+      `/api/requests` and regenerate accept one; the AI is held to it),
+      `instruction` and `previousId` (regenerate); PUT can switch a waiting
+      draft's channel (email subject = "Re: last"); `/history` adds `reach`
+      (where the composer can write) and `waKnown`. Tests: 4 new, 95/95.
+- [x] Tasks: Fronta groups in server order, Czech names, A/B/C dots,
+      LEADY KOLEGŮ closed; "replied 5m" / "+ qualify" / meeting time on rows;
+      per-row AI arrow removed (status text instead), "Draft N" kept.
+- [x] One chat column for Tasks and Messages: header (name, stage, copyable
+      contact, task line + note), thread from the bottom with day separators,
+      channel tag only where it changes, quoted email history behind "Show
+      quoted", "↓ N new" when reading up; composer with the two modes, ✨
+      notes shown in the chat, earlier versions folded, draft editable in place.
+- [x] Messages section (first, default): WhatsApp-style rows, unread pills,
+      rail + title badge, read after 1 s on screen, order frozen under the
+      pointer/focus, polite announcements of new messages from others.
+- [x] One SSE stream replaces the 1 s refresh poll and the 2 s request poll.
+- Verified on real data (isolated app data copy, port 3102, headless Chrome
+  over CDP since Claude in Chrome wasn't connected): Fronta groups in order,
+  row click opens the chat scrolled to the bottom, ↑/↓ selection + debounced
+  chat, Enter → composer, Esc back, ← to the group header, 820 px pane swap,
+  dark mode, Messages badge 45 → 44 after opening an unread chat. ✨ end to
+  end: first draft 9.6 s, regenerate with "make it shorter" 5.1 s, note line +
+  "Earlier draft" shown, updates arrived over SSE. No send was pressed.
+- Decided: no × close in the chat (Esc / select another), no channel filters,
+  no dock badge / notifications / sound, no pointer-defer for Tasks
+  re-ordering (only scroll anchoring), status line hidden when all is well,
+  "teammate's" label dropped (teammates' rows only exist in LEADY KOLEGŮ).
+- Next: dock badge in the macOS wrapper (observe `webView.title`); watch
+  whether 45 "unread" chats on first run (client wrote last, never read in
+  the app) is noise; a live new-WhatsApp check in the UI with a real message.

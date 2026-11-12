@@ -85,9 +85,12 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
 - **Private data:** this app touches real emails and WhatsApp messages. Never
   commit message content, real CRM exports, or `messages.db`; only
   `data/people.sample.json` with fake people belongs in git.
-- **Layout:** one people list; clicking a person expands their timeline in
-  place (asked for by the user, replaces "list on one side, timeline on the
-  other" from the UX module).
+- **Layout:** Messages and Tasks are a list (`--feed-w`) plus ONE shared chat
+  column (`#chat`, moved between the two views; each list keeps its own
+  selection). Selecting a row (click, or ↑/↓ with a 150 ms debounce) opens
+  the whole conversation, newest at the bottom (last 50, "Show earlier"),
+  with the composer under it. ≤900px: panes swap (`data-pane`, `.back`).
+  A chat is marked read after 1 s open, visible and focused.
 - **Refresh flow:** runs on server start and on demand. `lib/sync.js` pulls
   the CRM list, then each source's `<channel>Session(people)` (register new
   channels in `SOURCES`, fastest first); each source is published as soon as
@@ -133,12 +136,22 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   too, LEADY KOLEGŮ last), sort; Prague time throughout. `queue` = `{ group,
   score, color, order, meetingAt, due, qualify }` for rows in that list, else
   null. Never lock, close merged tasks or self-heal.
-- **UI feed:** only people with a `queue` (Fronta's call-now list), in its
-  order (non-ResultsON CRMs: `queue` undefined = in the feed); people already
-  messaged today (Prague day; history or a draft sent from the app) are
-  hidden unless the client wrote back since; stage groups collapsed by
-  default (expanded state in memory only), empty ones hidden, colour per
-  stage (`--st-1..9`).
+- **UI feed (Tasks):** only people with a `queue` (Fronta's call-now list),
+  in its order, grouped by `queue.group` with the Czech Fronta names (dot
+  colour A/B/C: `--q-a`, `--q-b`, hollow); groups open except LEADY KOLEGŮ
+  (in memory only). Non-ResultsON CRMs: `queue` undefined = in the feed,
+  grouped by stage. People already messaged today (Prague day; history or a
+  sent request) are hidden unless the client wrote back since. Rows show the
+  draft status as text; drafting starts from ✨ in the chat or "Draft N".
+- **Live UI:** one `EventSource('/api/events')` drives everything (no polling,
+  except `/api/refresh` once a second while a refresh runs). The status line
+  only shows what's off (failed/unconnected source, sample data, live
+  updates down >30 s).
+- **Composer:** Enter = newline, ⌘↩ = send, ⌘J (Alt+Enter) = ✨. No draft:
+  the text is the message (or ✨'s instruction). A draft generating/waiting/
+  failed: the text is a note for ✨ (regenerate), Send sends the gray draft
+  bubble (editable in place). Channel toggle only with phone + email; on a
+  waiting draft it switches the draft's channel without an AI run.
 - **Local cache** (`lib/cache.js`, node:sqlite) lives in
   `~/Library/Application Support/Outreach/`, never in the repo: last
   snapshot, email headers/bodies per folder (`imapNext:<folder>` in kv),
@@ -147,8 +160,11 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
 - WhatsApp matching is by phone digits → `<digits>@s.whatsapp.net` plus the
   `<lid>@lid` chats mapped to that phone in the bridge's `whatsapp.db`
   (`whatsmeow_lid_map`, read-only). CRM phones must include the country code.
-- **Sections:** a left rail switches views (Tasks, AI Requests, Templates,
-  Playbooks, Settings); a new section
+- **Sections:** a left rail switches views (Messages, Tasks, AI Requests,
+  Templates, Playbooks, Settings; ⌘1–6, Messages is the default). Messages =
+  every CRM contact with messages, newest first (`/api/chats`), unread pill,
+  rail badge and `(n) Outreach` title = people with unread; rows keep their
+  order while the pointer or focus is in the list. A new section
   = a link in `.rail`, a `#view-<name>` block, and its name in `SECTIONS`.
 - **Templates** (`lib/templates.js`, `/api/templates`) live in
   `templates.json` in the app data folder (never the repo); the first run
@@ -190,6 +206,9 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
 - **AI Requests UI:** Drafts tab = just the waiting cards (name, contact,
   message, actions; no AI reasoning, task row or due); History tab =
   cancelled and replaced drafts with reasons and context, plus sent ones.
+  The same requests show in the chat (a draft keeps `channel`, `instruction`
+  and `previousId`, the version it replaced, so the chat shows the notes and
+  earlier versions); both stay in sync through SSE `requests`.
 - **Style guide** (Settings → Learn my style): `lib/style.js` builds reply
   pairs, follow-ups and measured stats from the snapshot; one Claude run turns
   them into a Markdown guide (method in the AI REQUESTS update's

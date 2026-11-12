@@ -54,3 +54,21 @@
   sent outside the app only after the next refresh" (the WhatsApp watcher
   sees them within ~1 s, IMAP IDLE sees new INBOX mail at once and Sent
   within 2 min).
+- UI (Phase 3): the chat column is one DOM node moved between the Messages
+  and Tasks views; each list keeps its own selection. The composer is built
+  once per open chat and only updated (`updateComposer`), and the draft box
+  never re-renders under a focused field (deferred to focusout), so SSE
+  updates can't eat what the user types.
+- A refresh's last `snapshot` event comes before `running` turns false, so
+  the UI still polls `/api/refresh` once a second while a refresh runs; the
+  spinner stops when stage reaches `email` (CRM + WhatsApp are in).
+- Sent messages not yet in the history are shown from the requests (status
+  sent, newer than my last message), so no client-side pending state is
+  needed; WhatsApp ones say "opened in WhatsApp".
+- Unread = client messages after max(read in app, my last message): on a
+  first run every chat where the client wrote last counts (45 of 257 here).
+- `x?.a.b` throws when `x` is `false` (optional chaining only skips
+  null/undefined): write `cond ? find() : null`, not `cond && find()`.
+- Headless Chrome over CDP (`--remote-debugging-port`, Node's global
+  WebSocket) is a workable stand-in for browser checks when Claude in Chrome
+  isn't connected; navigate via about:blank, a same-URL hash change doesn't reload.
