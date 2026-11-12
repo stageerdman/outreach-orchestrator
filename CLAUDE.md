@@ -88,9 +88,23 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
 - **Layout:** one people list; clicking a person expands their timeline in
   place (asked for by the user, replaces "list on one side, timeline on the
   other" from the UX module).
-- **Refresh flow:** `lib/sync.js` pulls the CRM list, then each person's
-  history through each source's `<channel>Session()` into an in-memory
-  snapshot that the API serves. Register new channels in its `SOURCES`.
+- **Refresh flow:** runs on server start and on demand. `lib/sync.js` pulls
+  the CRM list, then each source's `<channel>Session(people)` (register new
+  channels in `SOURCES`, fastest first); each source is published as soon as
+  it's in, merged onto the current snapshot. `running` ends when the data is
+  complete; the older-WhatsApp backfill runs after, in `state.backfill`.
+  Live (`startLive()`): a WhatsApp DB watcher (`MAX(rowid)`, every second,
+  read-only) and `emailWatch` (one long-lived IMAP connection, IPv4 first —
+  the mail host's IPv6 hangs ~20 s —, IDLE on INBOX plus a STATUS check of
+  all folders every 2 min) re-collect only the people involved. The snapshot
+  holds every CRM contact.
+- **Events:** `lib/events.js`, served as SSE at `GET /api/events`:
+  `snapshot {at, stage}`, `messages {ids}`, `requests {id, personId, status}`.
+- **Messages** (`lib/chats.js`, `/api/chats`): every CRM contact with
+  messages; read state in `reads.json` (app data folder); unread = client
+  messages after the later of last read and my last message.
+- **Composer sends:** `POST /api/people/:id/send` records a request with
+  `own: true` and goes through `ai.approve` (no playbook learning for these).
 - **CRM is ResultsON** (Supabase/PostgREST), `lib/resultson.js`, `RESULTSON_*`
   keys, read-only (GET only, besides the login). Logs in as a team member
   (token reused while valid, 1 h), reads the needed tables whole, in parallel
@@ -127,7 +141,9 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   stage (`--st-1..9`).
 - **Local cache** (`lib/cache.js`, node:sqlite) lives in
   `~/Library/Application Support/Outreach/`, never in the repo: last
-  snapshot, email headers/bodies per folder, fully fetched WhatsApp chats.
+  snapshot, email headers/bodies per folder (`imapNext:<folder>` in kv),
+  fully fetched WhatsApp chats and when each was last asked (`wa_asked`;
+  re-asked after `WHATSAPP_BACKFILL_HOURS`, default 12, ≤5 pages per run).
 - WhatsApp matching is by phone digits → `<digits>@s.whatsapp.net` plus the
   `<lid>@lid` chats mapped to that phone in the bridge's `whatsapp.db`
   (`whatsmeow_lid_map`, read-only). CRM phones must include the country code.
