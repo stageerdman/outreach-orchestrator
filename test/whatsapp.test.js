@@ -23,3 +23,24 @@ test('the WhatsApp link opens the chat by phone digits with the text encoded', a
   assert.equal(whatsappLink('+420 775 623 723', 'Dobrý den, jak?'),
     'whatsapp://send?phone=420775623723&text=Dobr%C3%BD%20den%2C%20jak%3F');
 });
+
+test('chat jids map back to their people, a shared number to each of them', async () => {
+  const { jidIndex } = await import('../lib/whatsapp.js');
+  const lids = (d) => (d === '420111' ? ['999'] : []);
+  const index = jidIndex([
+    { id: 'a', phones: ['+420 111'] }, { id: 'b', phones: ['420111', '+1 2'] }, { id: 'c', phones: [] },
+  ], lids);
+  assert.deepEqual(Object.fromEntries(index), {
+    '420111@s.whatsapp.net': ['a', 'b'], '999@lid': ['a', 'b'], '12@s.whatsapp.net': ['b'],
+  });
+});
+
+test('backfill asks a chat again only when incomplete and not asked within the hours', async () => {
+  const { backfillDue } = await import('../lib/whatsapp.js');
+  const now = Date.parse('2026-11-12T12:00:00Z');
+  assert.equal(backfillDue({ complete: false, askedAt: null }, now), true);
+  assert.equal(backfillDue({ complete: true, askedAt: null }, now), false);
+  assert.equal(backfillDue({ complete: false, askedAt: '2026-11-12T01:00:00Z' }, now), false); // 11 h ago
+  assert.equal(backfillDue({ complete: false, askedAt: '2026-11-11T23:00:00Z' }, now), true); // 13 h ago
+  assert.equal(backfillDue({ complete: false, askedAt: '2026-11-12T11:00:00Z' }, now, 0.5), true);
+});

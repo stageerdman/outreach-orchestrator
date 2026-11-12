@@ -34,3 +34,10 @@ test('WhatsApp complete chats are remembered', () => {
   cache.markWaComplete('1@lid');
   assert.equal(cache.waComplete('1@lid'), true);
 });
+
+test('when a WhatsApp chat was last asked for older history is remembered', () => {
+  assert.equal(cache.waAskedAt('2@lid'), null);
+  cache.markWaAsked('2@lid', '2026-11-12T10:00:00.000Z');
+  cache.markWaAsked('2@lid', '2026-11-12T11:00:00.000Z');
+  assert.equal(cache.waAskedAt('2@lid'), '2026-11-12T11:00:00.000Z');
+});

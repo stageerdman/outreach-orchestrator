@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { collect } from '../lib/sync.js';
+import { collect, collectChannel, mergeChannel, carryOver } from '../lib/sync.js';
 
 const msg = (channel, at) => ({ channel, id: `${channel}:${at}`, at, fromMe: false, text: '' });
 const people = [
@@ -45,4 +45,43 @@ test('a per-person failure is kept on that person, and progress is reported', as
   assert.deepEqual(out.find((p) => p.id === '1').errors, { email: 'timeout' });
   assert.deepEqual(seen, [1, 2, 3]);
   assert.ok(closed);
+});
+
+test('sessions get the people they will be asked about (one query for all)', async () => {
+  let given;
+  await collectChannel(people, async (ps) => { given = ps; return { history: async () => [], close: async () => {} }; });
+  assert.equal(given, people);
+});
+
+// Staged publish: WhatsApp first, email merged in later, live updates kept.
+const names = ['whatsapp', 'email'];
+test('a fresh CRM list keeps the snapshot messages until a channel is collected again', () => {
+  const previous = [{ id: '1', name: 'Ana old', messages: [msg('email', '2026-01-01')], errors: { email: 'x' } }];
+  const [ana, bo] = carryOver([{ id: '1', name: 'Ana' }, { id: '2', name: 'Bo' }], previous, names);
+  assert.equal(ana.name, 'Ana'); // CRM fields are fresh
+  assert.deepEqual(ana.counts, { whatsapp: 0, email: 1 });
+  assert.deepEqual(ana.errors, { email: 'x' });
+  assert.deepEqual(bo.messages, []);
+});
+
+test('merging a channel replaces only that channel, only for the people collected', async () => {
+  const base = carryOver(people, [
+    { id: '1', messages: [msg('email', '2026-01-01'), msg('whatsapp', '2026-01-02')], errors: { email: 'old failure' } },
+    { id: '2', messages: [msg('email', '2026-01-05')] },
+  ], names);
+  const r = await collectChannel([people[0]], fake({ 1: [msg('email', '2026-01-03')] }));
+  const out = mergeChannel(base, 'email', r, names);
+  assert.deepEqual(out[0].messages.map((m) => m.id), ['whatsapp:2026-01-02', 'email:2026-01-03']);
+  assert.deepEqual(out[0].errors, {});
+  assert.equal(out[0].lastAt, '2026-01-03');
+  assert.equal(out[1], base[1]); // not collected: untouched
+  assert.equal(mergeChannel(base, 'email', { byId: new Map(), failed: new Map(), error: 'down' }, names), base);
+});
+
+test('a person whose channel failed keeps the old messages of that channel and gets the error', async () => {
+  const base = carryOver([people[0]], [{ id: '1', messages: [msg('email', '2026-01-01')] }], names);
+  const r = await collectChannel([people[0]], async () => ({ history: async () => { throw new Error('timeout'); }, close: async () => {} }));
+  const [ana] = mergeChannel(base, 'email', r, names);
+  assert.deepEqual(ana.messages.map((m) => m.id), ['email:2026-01-01']);
+  assert.deepEqual(ana.errors, { email: 'timeout' });
 });
