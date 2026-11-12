@@ -122,6 +122,30 @@ WhatsApp messages show up within seconds.
   no dock badge / notifications / sound, no pointer-defer for Tasks
   re-ordering (only scroll anchoring), status line hidden when all is well,
   "teammate's" label dropped (teammates' rows only exist in LEADY KOLEGŮ).
+### 4. Refinements (user, 2026-11-12) — done
+- [x] Messages rows: name + stage dot/label, time; snippet ("You: ") + unread
+      pill. No WA/Email tags in rows or chat bubbles.
+- [x] Draggable list width (Tasks + Messages share it): `role=separator`,
+      pointer drag, ←/→ (Shift ×4), Home/End, double-click reset, localStorage
+      with try/catch, clamped 240–640 px and to leave the chat 360 px; hidden ≤900px.
+- [x] Composer talks to the AI only: no channel toggle, subject or own send;
+      Enter = ✨, Shift+Enter = newline. Removed `POST /api/people/:id/send`
+      and the `own` request flag. The UI no longer sends `channel` (server
+      support kept).
+- [x] Draft bubble read-only with two round buttons: ↑ green (`--ok`) send /
+      open WhatsApp / mark meeting offered; × red discard (stop drafting,
+      dismiss a failure). ⌘↩ no longer sends from the chat (Enter now runs ✨
+      right next to it).
+- [x] Chat header and Tasks rows lose the task line; Tasks rows show a draft
+      as a spinner / accent dot / red dot after the name.
+- Verified (isolated data, port 3102, headless Chrome over CDP): 257 chat rows
+  with 0 tags, chat header 2 lines, drag 380→488 px, clamps 640/240, →→ 272,
+  Shift+→ 336, reload keeps 336 in Tasks, double-click back to 380 and the key
+  removed; Enter drafted (spinner on the row, "Stop drafting"), then
+  "Open in WhatsApp to send" + "Discard draft"; a typed note disables ↑ and
+  relabels ×; Shift+Enter added a line without a run; Enter regenerated
+  (note + "Earlier draft" shown); × cancelled it. Light/dark, 1400/700 px.
+  Send was never pressed. 96/96 tests.
 - Next: dock badge in the macOS wrapper (observe `webView.title`); watch
   whether 45 "unread" chats on first run (client wrote last, never read in
   the app) is noise; a live new-WhatsApp check in the UI with a real message.

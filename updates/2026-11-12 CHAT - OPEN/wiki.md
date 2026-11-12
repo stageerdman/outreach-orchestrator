@@ -24,9 +24,9 @@
   lock → ImapFlow idles there; `exists` = new mail). Anything that selects
   Sent/Archive goes back to INBOX afterwards, or IDLE would watch the wrong
   folder. Checks run one after another through a promise chain.
-- The user's own composer messages go through `createRequest` +
-  `ai.approve` with `own: true`; approve skips playbook learning for them
-  (they aren't drafts, and each lesson is a Claude run).
+- The composer once sent the user's own typed messages (`own: true`
+  requests); the user dropped that (2026-11-12): the box only talks to the
+  AI, so Enter can safely run ✨ and drafts change only through the AI.
 - The Cockpit source is the reference where `fronta-rules.md` is vague
   (`/Users/stage/dev/MAN 20/ResultsON`, `19-Cockpit.js` + `aktivniRezervace`
   in `16-ReklamyPrehled.js`). Followed it on: the meeting is the *latest*
@@ -72,3 +72,8 @@
 - Headless Chrome over CDP (`--remote-debugging-port`, Node's global
   WebSocket) is a workable stand-in for browser checks when Claude in Chrome
   isn't connected; navigate via about:blank, a same-URL hash change doesn't reload.
+- The list width lives in one root variable (`--feed-w`) that CSS clamps
+  (`clamp(--feed-min, --feed-w, min(--feed-max, 100vw - rail - --chat-min))`),
+  so the stored preference survives a smaller window; the separator sits
+  absolutely on the list's right edge, which keeps the chat column (moved
+  between views) out of the grid change.

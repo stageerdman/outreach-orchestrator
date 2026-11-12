@@ -85,11 +85,16 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
 - **Private data:** this app touches real emails and WhatsApp messages. Never
   commit message content, real CRM exports, or `messages.db`; only
   `data/people.sample.json` with fake people belongs in git.
-- **Layout:** Messages and Tasks are a list (`--feed-w`) plus ONE shared chat
+- **Layout:** Messages and Tasks are a list (`--feed-w`, one width for both:
+  a draggable `.gutter` separator, ←/→, double-click resets, kept in
+  localStorage `feedW`, clamped to `--feed-min`/`--feed-max`) plus ONE shared chat
   column (`#chat`, moved between the two views; each list keeps its own
   selection). Selecting a row (click, or ↑/↓ with a 150 ms debounce) opens
   the whole conversation, newest at the bottom (last 50, "Show earlier"),
   with the composer under it. ≤900px: panes swap (`data-pane`, `.back`).
+  No channel tags anywhere in Messages rows or bubbles. Messages rows: name +
+  stage, time / snippet + unread. Tasks rows and the chat header: two lines
+  (name, stage, contact; no task line).
   A chat is marked read after 1 s open, visible and focused.
 - **Refresh flow:** runs on server start and on demand. `lib/sync.js` pulls
   the CRM list, then each source's `<channel>Session(people)` (register new
@@ -106,8 +111,6 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
 - **Messages** (`lib/chats.js`, `/api/chats`): every CRM contact with
   messages; read state in `reads.json` (app data folder); unread = client
   messages after the later of last read and my last message.
-- **Composer sends:** `POST /api/people/:id/send` records a request with
-  `own: true` and goes through `ai.approve` (no playbook learning for these).
 - **CRM is ResultsON** (Supabase/PostgREST), `lib/resultson.js`, `RESULTSON_*`
   keys, read-only (GET only, besides the login). Logs in as a team member
   (token reused while valid, 1 h), reads the needed tables whole, in parallel
@@ -142,17 +145,20 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   colour A/B/C: `--q-a`, `--q-b`, hollow); groups open except LEADY KOLEGŮ
   (in memory only). Non-ResultsON CRMs: `queue` undefined = in the feed,
   grouped by stage. People already messaged today (Prague day; history or a
-  sent request) are hidden unless the client wrote back since. Rows show the
-  draft status as text; drafting starts from ✨ in the chat or "Draft N".
+  sent request) are hidden unless the client wrote back since. Drafting
+  starts from ✨ in the chat or "Draft N".
 - **Live UI:** one `EventSource('/api/events')` drives everything (no polling,
   except `/api/refresh` once a second while a refresh runs). The status line
   only shows what's off (failed/unconnected source, sample data, live
   updates down >30 s).
-- **Composer:** Enter = newline, ⌘↩ = send, ⌘J (Alt+Enter) = ✨. No draft:
-  the text is the message (or ✨'s instruction). A draft generating/waiting/
-  failed: the text is a note for ✨ (regenerate), Send sends the gray draft
-  bubble (editable in place). Channel toggle only with phone + email; on a
-  waiting draft it switches the draft's channel without an AI run.
+- **Composer = chat with the AI only** (nothing typed there reaches a
+  client; the AI picks channel and subject): Enter = ✨ (⌘J / Alt+Enter too),
+  Shift+Enter = newline. No draft: the text is ✨'s instruction; a draft on the
+  way: the note for the regenerate. The gray draft bubble is read-only, with
+  two round buttons: ↑ (`--ok`) sends via `/api/requests/:id/send` (disabled
+  while a note is typed) and × (`--err`) discards / stops / dismisses, taking
+  the typed text as the reason. Tasks rows show a draft only as a spinner or
+  dot after the name.
 - **Local cache** (`lib/cache.js`, node:sqlite) lives in
   `~/Library/Application Support/Outreach/`, never in the repo: last
   snapshot, email headers/bodies per folder (`imapNext:<folder>` in kv),
