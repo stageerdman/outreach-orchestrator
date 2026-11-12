@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { stageOf, toPeople, isSoldNote, isConsultedNote, isNoShowNote, isBookedNote, isInstallmentNote, STAGES } from '../lib/resultson.js';
+import { stageOf, toPeople, isSoldNote, isConsultedNote, isNoShowNote, isBookedNote, isInstallmentNote, STAGES, categoryOf } from '../lib/resultson.js';
 
 const label = (task, results = [], flags = {}) => stageOf(task, results, flags).label;
 
@@ -15,24 +15,23 @@ const people = ({ queue = [], tasks = [], contacts, calls = [], notes = [], even
 };
 const stages = (list) => Object.fromEntries(list.map((p) => [p.name, p.stage.label]));
 
-test('pipeline order is the one the user gave', () => {
-  assert.deepEqual(STAGES, ['Installment', 'Waiting for Payment', 'Thinking about it', 'No Show',
-    'Meeting Confirmed', 'Meeting Booked', 'Answered', 'Not answered', 'New lead']);
+test('the categories, in the order the user gave', () => {
+  assert.deepEqual(STAGES, ['Installments', 'Thinking about it', 'No show', 'To be booked', 'Not answered', 'New lead']);
 });
 
 test('specific signals win: installment, sold, after-consultation follow-up, cancelled', () => {
-  assert.equal(label({ kind: 'splatka' }, ['potvrzeno'], { sold: true }), 'Installment');
-  assert.equal(label({ kind: 'call' }, ['potvrzeno'], { sold: true }), 'Waiting for Payment');
+  assert.equal(label({ kind: 'splatka' }, ['potvrzeno'], { sold: true }), 'Installments');
+  assert.equal(label({ kind: 'call' }, ['potvrzeno'], { sold: true }), 'Thinking about it');
   assert.equal(label({ kind: 'followup', followType: 'konzultace' }, ['potvrzeno']), 'Thinking about it');
-  assert.equal(label({ kind: 'call', rule: 'Zrušení konzultace klientem → zavolat' }, ['potvrzeno']), 'No Show');
+  assert.equal(label({ kind: 'call', rule: 'Zrušení konzultace klientem → zavolat' }, ['potvrzeno']), 'No show');
 });
 
 test('otherwise the furthest call result reached', () => {
-  assert.equal(label({ kind: 'call' }, ['nedovolano', 'potvrzeno', 'nedovolano']), 'Meeting Confirmed');
-  assert.equal(label({ kind: 'confirm', rule: 'Termín domluven → potvrdit 24 h předem' }, []), 'Meeting Booked');
-  assert.equal(label({ kind: 'call' }, ['nedovolano', 'termin']), 'Meeting Booked');
-  assert.equal(label({ kind: 'followup', followType: 'domluveny' }, ['nedovolano', 'triage']), 'Answered');
-  assert.equal(label({ kind: 'call' }, ['follow']), 'Answered');
+  assert.equal(label({ kind: 'call' }, ['nedovolano', 'potvrzeno', 'nedovolano']), 'To be booked');
+  assert.equal(label({ kind: 'confirm', rule: 'Termín domluven → potvrdit 24 h předem' }, []), 'To be booked');
+  assert.equal(label({ kind: 'call' }, ['nedovolano', 'termin']), 'To be booked');
+  assert.equal(label({ kind: 'followup', followType: 'domluveny' }, ['nedovolano', 'triage']), 'To be booked');
+  assert.equal(label({ kind: 'call' }, ['follow']), 'To be booked');
   assert.equal(label({ kind: 'call' }, ['nedovolano', 'nedovolano']), 'Not answered');
   assert.equal(label({ kind: 'call', rule: 'LTO nákup → volat do 5 minut (upsell)' }, []), 'New lead');
 });
@@ -64,7 +63,7 @@ test('toPeople: soonest task leads, e164 phone, follow type and sold note used',
   assert.deepEqual(ana.phones, ['+420775000000']);
   assert.equal(ana.stage.label, 'Thinking about it');
   assert.equal(bo.name, 'Bo');
-  assert.equal(bo.stage.label, 'Waiting for Payment');
+  assert.equal(bo.stage.label, 'Thinking about it');
 });
 
 test('a consultation that happened (no sale yet) is Thinking about it, even with a later missed call', () => {
@@ -77,8 +76,8 @@ test('a consultation that happened (no sale yet) is Thinking about it, even with
   for (const t of ['Prodej — UM PRO', 'Odbaveno — x', 'Jsme bez nabídky zatím', '', null]) assert.ok(!isConsultedNote(t), t);
 });
 
-test('a no-show from notes or task notes is No Show, above call results', () => {
-  assert.equal(label({ kind: 'call' }, ['nedovolano', 'nedovolano'], { noShow: true }), 'No Show');
+test('a no-show from notes or task notes is No show, above call results', () => {
+  assert.equal(label({ kind: 'call' }, ['nedovolano', 'nedovolano'], { noShow: true }), 'No show');
   for (const t of ['Nedorazil (no-show)', 'Kvalifikovat a potvrdit termín — rezervoval si sám. | Nedorazil na free konzultaci (1×).',
     ' | uzavřeno: schůzka už proběhla (no_show)']) assert.ok(isNoShowNote(t), t);
   assert.ok(!isNoShowNote('Odbaveno — přišel včas'));
@@ -93,7 +92,19 @@ test('toPeople reads no-show and consultation signals from notes and closed task
   const calls = ['j', 'm', 'k'].map((id) => ({ contact_id: id, vysledek: 'nedovolano' }));
   const notes = [{ contact_id: 'm', text: 'Bez nabídky — Nemá finance — Jsme domluvení na followup za měsíc' }];
   const past = [{ id: 9, contact_id: 'k', note: ' | uzavřeno: schůzka už proběhla (no_show)' }];
-  assert.deepEqual(stages(people({ queue: tasks, calls, notes, tasks: past, followTypes: { 2: 'domluveny' } })), { Jiří: 'No Show', Michal: 'Thinking about it', Karel: 'No Show' });
+  assert.deepEqual(stages(people({ queue: tasks, calls, notes, tasks: past })), { Jiří: 'No show', Michal: 'Thinking about it', Karel: 'No show' });
+  // In Fronta's agreed follow-ups, Michal is To be booked: the group wins.
+  assert.equal(stages(people({ queue: tasks, calls, notes, tasks: past, followTypes: { 2: 'domluveny' } })).Michal, 'To be booked');
+});
+
+test('the Fronta group is the category, except NOVÝ LEAD and over Installments', () => {
+  const h = (label) => ({ rank: STAGES.indexOf(label) + 1, label });
+  assert.deepEqual(categoryOf('Not answered', h('To be booked')), h('Not answered'));
+  assert.deepEqual(categoryOf('NO SHOW', h('Thinking about it')), h('No show'));
+  assert.deepEqual(categoryOf('NOVÝ LEAD', h('Thinking about it')), h('Thinking about it'));
+  assert.deepEqual(categoryOf('POTVRZENÍ SCHŮZKY', h('To be booked')), h('To be booked'));
+  assert.deepEqual(categoryOf('To be booked', h('Installments')), h('Installments'));
+  assert.deepEqual(categoryOf(undefined, h('New lead')), h('New lead'));
 });
 
 test('a later "lost" note cancels waiting for payment; an earlier one does not', () => {
@@ -107,16 +118,16 @@ test('a later "lost" note cancels waiting for payment; an earlier one does not',
   ];
   const [z, y] = people({ queue: tasks, notes });
   assert.equal(z.stage.label, 'New lead');
-  assert.equal(y.stage.label, 'Waiting for Payment');
+  assert.equal(y.stage.label, 'Thinking about it');
 });
 
-test('a booked meeting from notes or task notes is Meeting Booked, even with only a "follow" call', () => {
+test('a booked meeting from notes or task notes is To be booked, even with only a "follow" call', () => {
   for (const t of ['Domluvená schůzka 12. 11. 10:00', ' | uzavřeno: klient má domluvenou schůzku', 'Kvalifikovat a potvrdit termín — rezervoval si sám.'])
     assert.ok(isBookedNote(t), t);
   assert.ok(!isBookedNote('Napsal na WA, že bude řídit'));
   const tasks = [{ task_id: 2, contact_id: 'f', name: 'Flori', kind: 'call', due_at: '2026-11-10T00:00:00Z', note: 'Kvalifikovat a potvrdit termín — rezervoval si sám.' }];
   const [f] = people({ queue: tasks, calls: [{ contact_id: 'f', vysledek: 'follow' }] });
-  assert.equal(f.stage.label, 'Meeting Booked');
+  assert.equal(f.stage.label, 'To be booked');
 });
 
 test('installment is the person\'s stage: a closed installment task or sale note keeps a new call task there', () => {
@@ -128,7 +139,7 @@ test('installment is the person\'s stage: a closed installment task or sale note
   const past = [{ id: 1, contact_id: 't', kind: 'splatka', note: 'Splátka 2/3' }, { id: 2, contact_id: 'p', kind: 'splatka' }];
   const notes = [{ contact_id: 'n', created_at: '2026-10-20T00:00:00Z', text: 'Prodej na splátky — UM PRO' }];
   const list = people({ queue: tasks, contacts: [{ id: 'p', name: 'Paid', paid: true }], calls: [{ contact_id: 't', vysledek: 'triage' }], notes, tasks: past });
-  assert.deepEqual(stages(list), { Paid: 'New lead', Tomáš: 'Installment', Nora: 'Installment' });
+  assert.deepEqual(stages(list), { Paid: 'New lead', Tomáš: 'Installments', Nora: 'Installments' });
 });
 
 test('every contact is a person; Fronta rows get queue + the winning task, others their soonest task or none', () => {

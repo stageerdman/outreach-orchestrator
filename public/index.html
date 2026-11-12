@@ -483,7 +483,9 @@ function renderHeader() {
 // ---- task feed: Fronta's list, in Fronta's groups and order
 const KIND = { call: 'Call', followup: 'Follow up', confirm: 'Confirm consultation', splatka: 'Installment' };
 const OTHER = { rank: 99, label: 'Other' };
-const stageColor = (rank) => (rank >= 1 && rank <= 9 ? `var(--st-${rank})` : 'var(--muted)');
+// The six categories (rank 1–6, lib/resultson.js STAGES) keep their former stages' colours.
+const ST_VAR = [1, 3, 4, 6, 8, 9];
+const stageColor = (rank) => (ST_VAR[rank - 1] ? `var(--st-${ST_VAR[rank - 1]})` : 'var(--muted)');
 const Q_COLOR = { A: 'var(--q-a)', B: 'var(--q-b)' };
 // Already messaged today (Prague day), from the history or a draft sent from
 // the app since: Fronta still lists the task, but it's done for today
@@ -1852,7 +1854,7 @@ addEventListener('pagehide', () => { if (dirty.size) flushSaves(true); });
 
 // ---- Playbooks: a follow-up strategy per stage; the AI builds them and learns
 // from every decision on a draft. The left list has the learning log first.
-const PB_STAGES = ['Installment', 'Waiting for Payment', 'Thinking about it', 'No Show', 'Meeting Confirmed', 'Meeting Booked', 'Answered', 'Not answered', 'New lead'];
+const PB_STAGES = ['Installments', 'Thinking about it', 'No show', 'To be booked', 'Not answered', 'New lead']; // = STAGES in lib/resultson.js
 const PB_CHANNELS = { whatsapp: 'WhatsApp', email: 'Email', any: 'Any channel' };
 const LEARNED = '__learned';
 const MAX_STEPS = 10;

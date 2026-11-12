@@ -47,7 +47,7 @@ test('context has the task, history, unsent drafts with reasons, and the instruc
   const drafts = [{ status: 'cancelled', kind: 'message', channel: 'whatsapp', createdAt: '2026-11-09T08:00:00Z', text: 'Ahoj, už jste se rozhodla?', note: 'too pushy' }];
   const sent = [{ channel: 'email', updatedAt: '2026-11-11T08:00:00Z', subject: 'Re: Cena', text: 'Posílám ceník' }];
   const s = ai.contextPrompt({ person, drafts, sent, instruction: 'shorter', now: new Date('2026-11-11T12:00:00Z'), onWa });
-  for (const part of ['Pipeline stage: Thinking about it', 'Follow up · Po konzultaci', '(overdue)', 'Task note: Ozvat se po víkendu',
+  for (const part of ['Category (stage): Thinking about it', 'Follow up · Po konzultaci', '(overdue)', 'Task note: Ozvat se po víkendu',
     'whatsapp (+420775623723), email (jana@x.cz)', 'WhatsApp · ME]\nDobrý den', 'Email · CLIENT] Subject: Cena\nKolik to stojí?',
     'Sent by me since the last sync', 'Posílám ceník', 'cancelled by the user · reason: "too pushy"', 'instruction for this draft\nshorter'])
     assert.ok(s.includes(part), part);

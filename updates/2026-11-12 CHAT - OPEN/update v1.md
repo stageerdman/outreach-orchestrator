@@ -177,3 +177,23 @@ WhatsApp messages show up within seconds.
 - Verified on the running app (headless Chrome over CDP): rail without
   Requests; badge 37 = 1 draft + 36 unread; Requests → 1 row, Unanswered →
   36, All → 257; no console errors; `npm test` 101 pass.
+
+### 7. Six categories replace the stages (user, 2026-11-12) — done
+- Decided (user): categories = New lead · Not answered · To be booked ·
+  No show · Thinking about it · Installments (Answered / Meeting Booked /
+  Meeting Confirmed → To be booked; Waiting for Payment → Thinking about it).
+  The Fronta group wins for people in Tasks.
+- Two exceptions to "Fronta wins" (mine): NOVÝ LEAD doesn't override the
+  history (Fronta puts any call task without calls there, ignoring notes:
+  a sold or consulted client would show as a new lead), and a client paying
+  installments stays Installments.
+- [x] `STAGES`, `stageOf`, `categoryOf`, `LEGACY` in `lib/resultson.js`; stored
+      playbooks (and undos) migrate to the categories on load; the coach's
+      build and batch prompts list the categories and the former names'
+      meaning; build prompt folds old-stage playbooks into categories.
+- [x] UI: Playbooks' stage chips are the six; colours keep the former
+      stages' (`ST_VAR`).
+- Verified (isolated data copy, port 3102): 257 chats → To be booked 112,
+  Thinking 53, Not answered 44, No show 29, Installments 17, New lead 2;
+  the 9 playbooks map onto the categories; `npm test` 103 pass.
+- [ ] Rebuild the playbooks from the existing ones (coach build run).

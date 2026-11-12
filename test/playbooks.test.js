@@ -103,3 +103,8 @@ test('setStyle replaces the style guide as a logged change; undo only while noth
   saveSettings({ styleGuide: 'edited by the user in Settings' });
   assert.match(pb.undoChange(pb.listChanges().at(-1).id).error, /undo the later change first/);
 });
+
+test('playbooks naming the former stages get the new categories', () => {
+  const p = pb.cleanPlaybook({ id: 'x', name: 'X', stages: ['Meeting Booked', 'Answered', 'Waiting for Payment', 'No Show', 'Gone'] }, new Set());
+  assert.deepEqual(p.stages, ['To be booked', 'Thinking about it', 'No show']);
+});

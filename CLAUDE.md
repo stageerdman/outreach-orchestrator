@@ -120,21 +120,28 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   (except `nerelevantni` and pending deletions) as a person: task (the Fronta
   row's, else the soonest open one, else null; kind, rule, follow type, due,
   note), `phone_e164`, a pipeline stage (`stageOf`) and `queue`. The stage
-  belongs to the person, not the current task. The user's pipeline, top
-  first: Installment (any `splatka` task, open or closed, or a "Prodej na
-  splátky" / "Upraveny platby" note; not once the contact is `paid` or a later
-  lost note), Waiting for Payment ("Prodáno" or
-  "Domluveno — čeká se na platbu" note, unless a later "Uzavřeno jako
-  ztracené" note), Thinking about it (the consultation happened: follow-up
-  `follow_typ=konzultace`, a "Neprodáno" / "Bez nabídky" / "Konzultace bez
-  nabídky" note, a task closed "(show_offer)" / "(show_no_offer)", or call
-  result `neprodej`), No Show (cancelled-consultation rule, a "Nedorazil"
-  note or task note, a task closed "(no_show)"), then the furthest call
-  result: Meeting Confirmed, Meeting Booked (also a "Domluvená schůzka" /
-  "domluvenou schůzku" / "rezervoval si sám" note or task note), Answered, Not answered, New lead.
-  Notes and all the contact's tasks (closed ones too) are read for these.
-  "LTO nákup" (bought LTO) tasks are just new leads to the user: no special
-  stage, they follow the same call-result rules.
+  belongs to the person, not the current task. Stages are the user's six
+  categories only (2026-11-12; `STAGES`, top first): Installments, Thinking
+  about it, No show, To be booked, Not answered, New lead. From the history
+  (`stageOf`): Installments (any `splatka` task, open or closed, or a
+  "Prodej na splátky" / "Upraveny platby" note; not once the contact is
+  `paid` or a later lost note), Thinking about it (the consultation happened:
+  follow-up `follow_typ=konzultace`, a "Neprodáno" / "Bez nabídky" /
+  "Konzultace bez nabídky" note, a task closed "(show_offer)" /
+  "(show_no_offer)", call result `neprodej`; also sold and waiting for the
+  payment: "Prodáno" or "Domluveno — čeká se na platbu", unless a later
+  "Uzavřeno jako ztracené"), No show (cancelled-consultation rule, a
+  "Nedorazil" note or task note, a task closed "(no_show)"), To be booked
+  (any answered call, a booked or confirmed meeting, also a "Domluvená
+  schůzka" / "domluvenou schůzku" / "rezervoval si sám" note), Not answered,
+  New lead. Someone in Fronta's list takes their group's category instead
+  (`categoryOf`: To be booked, Thinking about it, Not answered, Installments,
+  NO SHOW → No show), except NOVÝ LEAD (history decides) and a client on
+  Installments. The former stage names (Meeting Booked, Answered…) map via
+  `LEGACY`; playbooks naming them are migrated on load, and the coach is told
+  what they mean. Notes and all the contact's tasks (closed ones too) are
+  read. "LTO nákup" (bought LTO) tasks are just new leads to the user: no
+  special stage, they follow the same call-result rules.
 - **Fronta** (`lib/fronta.js`, pure): ResultsON Cockpit's "Volat teď" main
   list replicated (rules in the CHAT update's `fronta-rules.md`): hide, merge
   per contact in memory only, group/score, who sees what (teammates' rows

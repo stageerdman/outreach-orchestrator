@@ -43,5 +43,5 @@ test('the learning input shows the decision, the note, the edit and what the AI 
 test('the operations schema allows at most 10 steps and only known stages', () => {
   const pb = coach.OPS_SCHEMA.properties.operations.items.properties.playbook.anyOf[0];
   assert.equal(pb.properties.steps.maxItems, 10);
-  assert.ok(pb.properties.stages.items.enum.includes('No Show'));
+  assert.ok(pb.properties.stages.items.enum.includes('No show'));
 });
