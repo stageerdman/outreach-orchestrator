@@ -96,10 +96,6 @@
   .empty { color: var(--muted); padding: var(--s5); text-align: center; margin: 0; }
   .count { color: var(--muted); font-size: var(--fs-sm); padding: var(--s2) var(--s4); margin: 0; }
 
-  /* Expanded timeline */
-  .timeline { padding: var(--s4) var(--s4) var(--s5); border-bottom: 1px solid var(--line); background: var(--bg);
-    display: flex; flex-direction: column; gap: var(--s2); }
-  .timeline .empty { padding: var(--s3); }
   .info { color: var(--muted); font-size: var(--fs-sm); margin: 0; }
   .filters { display: flex; gap: var(--s1); }
   .filters button { font: inherit; font-size: var(--fs-sm); padding: 2px var(--s3); border-radius: 99px; border: 1px solid var(--line);
@@ -115,8 +111,6 @@
   .msgs > li { display: flex; flex-direction: column; align-items: flex-start; }
   li.me { align-items: flex-end; } li.me .msg { background: var(--me); }
   .meta { font-size: var(--fs-sm); color: var(--muted); margin-bottom: var(--s1); }
-  .tag { font-weight: 600; }
-  .email .tag { color: var(--email); } .whatsapp .tag { color: var(--wa); }
   .subject { font-weight: 600; margin-bottom: var(--s1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .body { white-space: pre-wrap; overflow-wrap: anywhere; }
   .body.clamp { max-height: 9.5em; overflow: hidden; }
@@ -145,8 +139,7 @@
     background: var(--accent); color: var(--panel); font-size: var(--fs-sm); line-height: var(--badge); text-align: center; font-weight: 600; }
   .count-badge.bad { background: var(--err); }
 
-  /* AI Requests: one card per draft, conversation opens below it */
-  .cards { list-style: none; margin: 0; padding: 0; }
+  /* cards (Playbooks changes) */
   .card { position: relative; padding: var(--s3) var(--s4); border-bottom: 1px solid var(--line); background: var(--panel);
     box-shadow: inset 3px 0 var(--st, var(--line)); display: flex; flex-direction: column; gap: var(--s2); }
   .card h3 { margin: 0; font-size: var(--fs); display: flex; justify-content: space-between; gap: var(--s3); }
@@ -154,21 +147,10 @@
   .why { margin: 0; color: var(--muted); font-size: var(--fs-sm); }
   .brief { margin: 0; padding: var(--s2) var(--s3); background: var(--bg); border-radius: var(--radius); white-space: pre-wrap; }
   textarea.input { width: 100%; resize: vertical; line-height: 1.45; }
-  .rsubj { width: 100%; }
   .ractions { display: flex; align-items: center; gap: var(--s1); }
   .ractions .cancel { margin-left: auto; }
-  .rrow { padding: var(--s2) var(--s4); border-bottom: 1px solid var(--line); background: var(--panel); font-size: var(--fs-sm); color: var(--muted);
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .rrow b { color: var(--text); }
   .card.past { box-shadow: inset 3px 0 var(--line); }
-  .rsub { margin: 0; font-weight: 600; }
   .working { display: flex; align-items: center; gap: var(--s2); color: var(--muted); font-size: var(--fs-sm); }
-  dialog { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); color: var(--text); padding: var(--s4);
-    width: min(28rem, calc(100% - 2 * var(--s4))); }
-  dialog::backdrop { background: color-mix(in srgb, var(--text) 30%, transparent); }
-  dialog h2 { font-size: var(--fs-lg); margin: 0 0 var(--s3); }
-  dialog label { display: block; font-size: var(--fs-sm); font-weight: 600; margin-bottom: var(--s1); }
-  .dact { display: flex; justify-content: flex-end; gap: var(--s2); margin-top: var(--s3); }
   .btn.danger { background: var(--err); border-color: var(--err); color: var(--panel); }
 
   /* Settings */
@@ -259,7 +241,7 @@
   .gutter:focus-visible { outline: none; }
   .resizing { cursor: col-resize; user-select: none; }
   .csplit > .tlist > header { border-bottom: 1px solid var(--line); }
-  .csplit .bar { margin-bottom: var(--s2); }
+  .csplit .bar { margin-bottom: var(--s2); flex-wrap: wrap; row-gap: var(--s1); }
   #clist { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
   .crow { all: unset; box-sizing: border-box; width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--s2); align-items: center;
     padding: var(--s2) var(--s3) var(--s2) var(--s4); border-bottom: 1px solid var(--line); cursor: pointer; }
@@ -347,16 +329,13 @@
   <a href="#tasks" data-section="tasks" aria-keyshortcuts="Meta+2" title="Tasks (⌘2)">
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5l1.5 1.5L7 4M3 11l1.5 1.5L7 10M10 5.5h7M10 11.5h7M10 16.5h7M3.5 16.5h3"/></svg>
     <span>Tasks</span></a>
-  <a href="#requests" data-section="requests" aria-keyshortcuts="Meta+3" title="AI Requests (⌘3)">
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.5l1.4 3.6 3.6 1.4-3.6 1.4L10 12.5 8.6 8.9 5 7.5l3.6-1.4zM15.5 12.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></svg>
-    <span>Requests</span><span class="count-badge" id="rbadge" hidden></span></a>
-  <a href="#templates" data-section="templates" aria-keyshortcuts="Meta+4" title="Templates (⌘4)">
+  <a href="#templates" data-section="templates" aria-keyshortcuts="Meta+3" title="Templates (⌘3)">
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 2.5h7l3.5 3.5v11.5h-10.5zM12 2.5V6h3.5M7.5 10h6M7.5 13h6"/></svg>
     <span>Templates</span></a>
-  <a href="#playbooks" data-section="playbooks" aria-keyshortcuts="Meta+5" title="Playbooks (⌘5)">
+  <a href="#playbooks" data-section="playbooks" aria-keyshortcuts="Meta+4" title="Playbooks (⌘4)">
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4.5h3v3H4zM4 12.5h3v3H4zM13 8.5h3v3h-3zM7 6h3.5v8H7M10.5 10H13"/></svg>
     <span>Playbooks</span><span class="count-badge bad" id="pbadge" hidden></span></a>
-  <a href="#settings" data-section="settings" aria-keyshortcuts="Meta+6" title="Settings (⌘6)">
+  <a href="#settings" data-section="settings" aria-keyshortcuts="Meta+5" title="Settings (⌘5)">
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h5M12 5h5M3 10h9M16 10h1M3 15h2M9 15h8"/><circle cx="10" cy="5" r="2"/><circle cx="14" cy="10" r="2"/><circle cx="7" cy="15" r="2"/></svg>
     <span>Settings</span></a>
 </nav>
@@ -364,7 +343,11 @@
   <div class="tsplit csplit" id="msplit" data-pane="list">
     <div class="tlist">
       <header>
-        <div class="bar"><h1>Messages</h1></div>
+        <div class="bar"><h1>Messages</h1>
+          <div class="filters" role="group" aria-label="Show" id="mtabs">
+            <button type="button" data-mtab="requests" aria-pressed="false">Requests</button>
+            <button type="button" data-mtab="unanswered" aria-pressed="false">Unanswered</button>
+            <button type="button" data-mtab="all" aria-pressed="true">All</button></div></div>
         <input type="search" id="mq" aria-label="Search chats" placeholder="Search name, stage, message…  ( / )">
         <div class="status" id="mstatus" hidden></div>
       </header>
@@ -391,20 +374,6 @@
     <section class="chat" id="chat" aria-label="Conversation"></section>
   </div>
 </div>
-<div class="view" id="view-requests" hidden>
-<header>
-  <div class="wrap">
-    <div class="bar"><h1>AI Requests</h1>
-      <div class="filters" role="group" aria-label="Show" id="rtabs">
-        <button type="button" data-rtab="drafts" aria-pressed="true">Drafts</button>
-        <button type="button" data-rtab="history" aria-pressed="false">History</button></div></div>
-    <div class="status" id="rstatus"></div>
-  </div>
-</header>
-<main id="rmain">
-  <div class="wrap" id="requests" aria-busy="true"></div>
-</main>
-</div>
 <div class="view" id="view-templates" hidden>
   <div class="tsplit" id="tsplit" data-pane="list">
     <div class="tlist">
@@ -430,15 +399,6 @@
 <div class="view" id="view-settings" hidden>
   <div class="editor settings" id="settings"></div>
 </div>
-<dialog id="ask" aria-labelledby="ask-title">
-  <form method="dialog">
-    <h2 id="ask-title"></h2>
-    <label for="ask-note" id="ask-label"></label>
-    <textarea class="input" id="ask-note" rows="3"></textarea>
-    <p class="info" id="ask-info"></p>
-    <div class="dact"><button type="submit" class="btn" value="keep">Keep</button><button type="submit" class="btn primary" value="ok" id="ask-ok"></button></div>
-  </form>
-</dialog>
 <p class="sr-only" aria-live="polite" id="announce"></p>
 <script type="module">
 import { placeholders, hasGender, resolve, htmlToText } from '/resolve.js';
@@ -667,7 +627,7 @@ async function copy(btn) {
   setTimeout(() => { btn.textContent = shown; btn.style.minWidth = ''; }, 1500);
 }
 
-// ---- message bodies (chat and the AI Requests timeline)
+// ---- message bodies
 // Quoted history in email replies hides behind "Show quoted".
 const QUOTE = /^(>|On .+wrote:|Dne .+napsal|-{2,}\s*(Original|Původní)|From: |Od: )/m;
 let bodySeq = 0;
@@ -691,18 +651,6 @@ function bodyClick(e) {
   return true;
 }
 
-// ---- timeline in AI Requests (what the AI saw / the conversation under a card)
-const renderMeta = (m, who) => `<div class="meta"><span class="tag">${CHANNELS[m.channel]}</span> · ${esc(who)} · ${timeTag(m.at, hhmm(m.at))}</div>`;
-
-const renderEmail = (m, p) => `<article class="msg email" aria-label="Email from ${esc(m.fromMe ? 'you' : m.from)}">
-  ${renderMeta(m, m.fromMe ? 'You' : m.from)}
-  <div class="subject" title="${esc(m.subject)}">${esc(m.subject)}</div>${renderBody(m)}</article>`;
-
-const renderWhatsApp = (m, p) => `<article class="msg whatsapp" aria-label="WhatsApp from ${esc(m.fromMe ? 'you' : p.name)}">
-  ${renderMeta(m, m.fromMe ? 'You' : p.name)}${renderBody(m)}</article>`;
-
-const RENDER = { email: renderEmail, whatsapp: renderWhatsApp };
-
 const renderDay = (at) => `<li><h3 class="day">${esc(dayLabel(at))}</h3></li>`;
 
 function renderErrors(errors = {}) {
@@ -718,41 +666,6 @@ function renderEmpty(p) {
   return `<p class="empty">No messages for ${esc([...p.emails, ...p.phones].join(', '))}.${tips.length ? '<br>' + esc(tips.join(' ')) : ''}</p>`;
 }
 
-// st: { data, filter, all } — the open request's conversation or context.
-function renderTimeline(st) {
-  if (!st.data) return '<p class="info" aria-live="polite">Loading…</p>';
-  const { person: p, messages, errors } = st.data;
-  const used = Object.keys(CHANNELS).filter((k) => messages.some((m) => m.channel === k));
-  const shown = messages.filter((m) => st.filter === 'all' || m.channel === st.filter);
-  const visible = st.all ? shown : shown.slice(-RECENT);
-  const filters = used.length > 1 ? `<div class="filters">${[['all', `All ${messages.length}`], ...used.map((k) => [k, `${CHANNELS[k]} ${p.counts?.[k] ?? ''}`])]
-    .map(([k, l]) => `<button type="button" data-filter="${k}" aria-pressed="${st.filter === k}">${l}</button>`).join('')}</div>` : '';
-  const earlier = shown.length > visible.length ? `<button class="link" data-earlier>Show earlier (${shown.length - visible.length})</button>` : '';
-  let lastDay = '';
-  const items = visible.map((m) => {
-    const day = new Date(m.at).toDateString();
-    const sep = day !== lastDay ? renderDay(m.at) : '';
-    lastDay = day;
-    return sep + `<li class="${m.channel}${m.fromMe ? ' me' : ''}">${RENDER[m.channel](m, p)}</li>`;
-  }).join('');
-  const note = p.task?.note ? `<p class="note"><b>Task note:</b> ${esc(p.task.note)}</p>` : '';
-  const after = st.data.after ? `<p class="day">${esc(st.data.after)}</p>` : '';
-  return note + renderErrors(errors) + (messages.length ? filters + earlier + `<ol class="msgs">${items}</ol>` : renderEmpty(p)) + after;
-}
-
-function rerenderOpen() {
-  const rel = ropen && document.getElementById(`rtl-${ropen.reqId}`);
-  if (rel) rel.innerHTML = renderTimeline(ropen);
-}
-
-// Filters, "Show earlier", "Show more" inside a timeline. True when handled.
-function timelineClick(e, st) {
-  const f = e.target.closest('[data-filter]');
-  if (f) { st.filter = f.dataset.filter; st.all = false; rerenderOpen(); return true; }
-  if (e.target.closest('[data-earlier]')) { st.all = true; rerenderOpen(); return true; }
-  return bodyClick(e);
-}
-
 async function fetchHistory(id) {
   if (!hist.has(id)) {
     try { hist.set(id, await api(`/api/people/${enc(id)}/history`)); }
@@ -762,12 +675,6 @@ async function fetchHistory(id) {
     }
   }
   return hist.get(id);
-}
-
-async function loadHistory(id) {
-  const data = await fetchHistory(id);
-  if (ropen?.id === id && !ropen.ctx) ropen.data = data;
-  rerenderOpen();
 }
 
 // ---- the chat column: the selected person's whole conversation, newest at
@@ -1217,16 +1124,29 @@ function withDrafts(list) {
   const at = (c) => open.get(c.id)?.createdAt;
   return [...extra, ...list].sort((a, b) => (at(b) ?? '').localeCompare(at(a) ?? '')); // stable: the rest keep the server's order
 }
+// Requests = people with an open AI draft, Unanswered = unread chats, All. Remembered per browser;
+// the open chat stays in the list until another is picked.
+const MTABS = {
+  requests: { label: 'Requests', test: (c) => Boolean(activeReq(c.id)), count: () => new Set(requests.filter((r) => REQ_OPEN.includes(r.status)).map((r) => r.personId)).size, empty: 'No drafts. Press ✨ in a chat to draft a follow-up.' },
+  unanswered: { label: 'Unanswered', test: (c) => c.unread > 0, count: () => unreadChats(), empty: 'Nothing unanswered.' },
+  all: { label: 'All', test: () => true },
+};
+let mtab = 'all';
+try { mtab = MTABS[localStorage.getItem('mtab')] ? localStorage.getItem('mtab') : 'all'; } catch {}
 const frozen = () => listHover || $('#clist').contains(document.activeElement);
 function renderChatList() {
   const el = $('#clist');
   if (!chatsLoaded) { el.innerHTML = '<li class="empty">Loading chats…</li>'; return; }
   el.removeAttribute('aria-busy');
   const q = fold($('#mq').value.trim());
-  let list = withDrafts(chats).filter((c) => !q || fold(`${c.name} ${c.stage?.label ?? ''} ${c.last.text}`).includes(q));
+  let list = withDrafts(chats).filter((c) => (MTABS[mtab].test(c) || c.id === sel.messages) && (!q || fold(`${c.name} ${c.stage?.label ?? ''} ${c.last.text}`).includes(q)));
   if (frozen()) { const at = new Map(corder.map((id, i) => [id, i])); list = [...list].sort((a, b) => (at.get(a.id) ?? -1) - (at.get(b.id) ?? -1)); }
   const focusId = document.activeElement?.closest?.('.crow')?.dataset.id;
-  const empty = q ? `No match for “${esc($('#mq').value.trim())}”` : sync.running ? 'Loading contacts and messages…' : 'No messages with CRM contacts yet.';
+  const empty = q ? `No match for “${esc($('#mq').value.trim())}”` : mtab !== 'all' ? MTABS[mtab].empty : sync.running ? 'Loading contacts and messages…' : 'No messages with CRM contacts yet.';
+  for (const b of document.querySelectorAll('[data-mtab]')) {
+    const n = MTABS[b.dataset.mtab].count?.();
+    b.setAttribute('aria-pressed', b.dataset.mtab === mtab); b.textContent = `${MTABS[b.dataset.mtab].label}${n ? ` ${n}` : ''}`;
+  }
   keepAnchor(el, '.crow', () => {
     el.innerHTML = (chatsError ? `<li class="err" role="status">Could not load chats: ${esc(chatsError)}</li>` : '')
       + (list.length ? list.map(renderChatRow).join('') : `<li class="empty">${empty}</li>`);
@@ -1235,10 +1155,13 @@ function renderChatList() {
   if (focusId) document.getElementById(`crow-${focusId}`)?.focus({ preventScroll: true });
 }
 
+// The rail badge and title: drafts waiting for you plus chats with unread messages.
+const draftsWaiting = () => requests.filter((r) => r.status === 'pending').length;
+const unreadChats = () => chats.filter((c) => c.unread).length;
 function renderMessagesBadge() {
-  const n = chats.filter((c) => c.unread).length, b = $('#mbadge');
+  const d = draftsWaiting(), u = unreadChats(), n = d + u, b = $('#mbadge');
   b.hidden = !n; b.textContent = n > 99 ? '99+' : n;
-  b.parentElement.setAttribute('aria-label', `Messages${n ? `, ${n} unread chat${n > 1 ? 's' : ''}` : ''}`);
+  b.parentElement.setAttribute('aria-label', `Messages${d ? `, ${d} draft${d > 1 ? 's' : ''}` : ''}${u ? `, ${u} unread chat${u > 1 ? 's' : ''}` : ''}`);
   document.title = n ? `(${n}) Outreach` : 'Outreach';
 }
 
@@ -1247,8 +1170,6 @@ async function loadPeople() {
   try { people = await api('/api/people'); } catch { return; }
   hist.clear();
   rerenderTasks();
-  if (ropen && !ropen.ctx) { ropen.data = null; rerenderOpen(); loadHistory(ropen.id); }
-  renderRequests();
 }
 
 let syncTimer, manualRefresh = false;
@@ -1336,6 +1257,14 @@ $('#mq').addEventListener('input', () => {
   if ($('#mq').value.trim()) announce(`${document.querySelectorAll('#clist .crow').length} chats`);
 });
 $('#mq').addEventListener('keydown', (e) => { if (e.key === 'ArrowDown') { e.preventDefault(); $('#clist .crow')?.focus(); } });
+$('#mtabs').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-mtab]');
+  if (!b || b.dataset.mtab === mtab) return;
+  mtab = b.dataset.mtab;
+  try { localStorage.setItem('mtab', mtab); } catch {}
+  renderChatList();
+  announce(`${document.querySelectorAll('#clist .crow').length} chats`);
+});
 $('#clist').addEventListener('click', (e) => { const row = e.target.closest('.crow'); if (row) pick(row.dataset.id); });
 $('#clist').addEventListener('keydown', (e) => {
   const rows = [...document.querySelectorAll('#clist .crow')];
@@ -1418,10 +1347,7 @@ const icon = (name) => `<svg viewBox="0 0 20 20" fill="none" stroke="currentColo
 const SPIN = '<svg class="spin" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7" stroke-dasharray="30 14"/></svg>';
 const REQ_OPEN = ['generating', 'pending', 'failed'];
 
-let requests = [], reqError = '', reqLoaded = false;
-let ropen = null;            // the request whose conversation is open: { reqId, id, data, filter, all }
-let recentOpen = false, cancelledShown = 20, rtab = 'drafts', rdefer = false;
-const CANCELLED_PAGE = 20;
+let requests = [];
 const activeReq = (personId) => requests.filter((r) => r.personId === personId && REQ_OPEN.includes(r.status)).at(-1);
 const busy = (p) => ['generating', 'pending'].includes(activeReq(p.id)?.status);
 const reachable = (p) => p.emails.length > 0 || p.phones.length > 0;
@@ -1440,7 +1366,7 @@ async function startDraft(ids, quiet = false) {
     requests.push(...created);
     if (!quiet) announce(created.length === 1 ? `Drafting a follow-up for ${created[0].personName}` : `Drafting ${created.length} follow-ups`);
   } catch (e) { $('#announce').textContent = `Could not start the draft: ${e.message}`; }
-  rerenderTasks(); renderRequests(); renderBadge(); loadRequests();
+  rerenderTasks(); loadRequests();
 }
 
 // More than 10 at once asks for a second click.
@@ -1461,280 +1387,22 @@ let reqSeq = 0;
 async function loadRequests() {
   const seq = ++reqSeq, before = new Map(requests.map((r) => [r.id, r.status]));
   let list;
-  try { list = await api('/api/requests'); reqError = ''; } catch (e) { reqError = e.message; }
+  try { list = await api('/api/requests'); } catch {}
   if (seq !== reqSeq) return;
   if (list) requests = list;
-  reqLoaded = true;
   const done = requests.filter((r) => before.get(r.id) === 'generating' && r.status !== 'generating');
   if (done.length === 1) $('#announce').textContent = done[0].status === 'failed' ? `Draft failed for ${done[0].personName}` : `Draft ready for ${done[0].personName}`;
   else if (done.length) $('#announce').textContent = `${done.filter((r) => r.status !== 'failed').length} drafts ready, ${done.filter((r) => r.status === 'failed').length} failed`;
-  rerenderTasks(); renderRequests(); renderBadge(); if (chatsLoaded) renderChatList();
+  rerenderTasks(); renderMessagesBadge(); if (chatsLoaded) renderChatList();
   if (chat) { renderDraft(); updateComposer(); stick(renderMessages); }
-}
-
-function renderBadge() {
-  const waiting = requests.filter((r) => r.status === 'pending').length, failed = requests.filter((r) => r.status === 'failed').length;
-  const b = $('#rbadge'), n = waiting + failed;
-  b.hidden = !n; b.textContent = n; b.classList.toggle('bad', failed > 0);
-  b.parentElement.setAttribute('aria-label', `AI Requests${n ? `, ${waiting} waiting${failed ? `, ${failed} failed` : ''}` : ''}`);
-}
-
-// ---- AI Requests section
-const personOf = (r) => people.find((p) => p.id === r.personId) || { id: r.personId, name: r.personName, emails: [], phones: [] };
-const STATUS = { sent: 'sent', cancelled: 'cancelled', done: 'offered', regenerated: 'replaced' };
-
-function renderRStatus() {
-  const items = [`<span><span class="dot ${sources.smtp ? 'on' : ''}"></span>${sources.smtp ? 'Email sending' : 'Email sending off'}</span>`,
-    `<span><span class="dot ${sources.whatsapp ? 'on' : ''}"></span>WhatsApp app</span>`];
-  if (reqError) items.unshift(`<span class="bad"><span class="dot bad"></span>Could not load requests: ${esc(reqError)}</span>`);
-  $('#rstatus').innerHTML = items.join('');
-}
-
-function renderRequests() {
-  const el = $('#requests');
-  if (!el) return;
-  // Never re-render under the user's hands; catch up when they leave the field.
-  if (el.contains(document.activeElement) && document.activeElement.matches('textarea, input')) { rdefer = true; return; }
-  rdefer = false;
-  renderRStatus();
-  if (!reqLoaded) { el.innerHTML = '<p class="empty">Loading requests…</p>'; return; }
-  el.removeAttribute('aria-busy');
-  const rank = (r) => personOf(r).stage?.rank ?? 99, due = (r) => personOf(r).task?.dueAt ?? '9';
-  const waiting = requests.filter((r) => r.status === 'pending').sort((a, b) => rank(a) - rank(b) || due(a).localeCompare(due(b)));
-  const working = requests.filter((r) => r.status === 'failed' || r.status === 'generating').sort((a, b) => (a.status === 'failed' ? -1 : 0) - (b.status === 'failed' ? -1 : 0));
-  const week = Date.now() - 7 * 864e5;
-  const recent = requests.filter((r) => ['sent', 'done'].includes(r.status) && new Date(r.updatedAt) > week).slice(-20).reverse();
-  const cancelled = requests.filter((r) => ['cancelled', 'regenerated'].includes(r.status) && r.text).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-  const shown = cancelled.slice(0, cancelledShown), left = cancelled.length - shown.length;
-  const group = (title, list, body) => list.length ? `<section class="group"><h2>${title} <span>· ${list.length}</span></h2>${body}</section>` : '';
-  for (const b of document.querySelectorAll('[data-rtab]')) b.setAttribute('aria-pressed', b.dataset.rtab === rtab);
-  if (rtab === 'history') {
-    el.innerHTML = (cancelled.length || recent.length ? '' : '<p class="empty">No cancelled or replaced drafts yet.</p>')
-      + group('Cancelled and replaced', cancelled, `<ul class="cards" id="cancelled-rows">${shown.map(renderCancelled).join('')
-        + (left ? `<li class="rrow"><button type="button" class="link" data-cmore>Show ${Math.min(left, CANCELLED_PAGE)} more (${left} left)</button></li>` : '')}</ul>`)
-      + (recent.length ? `<section class="group"><h2><button type="button" class="gt" data-recent aria-expanded="${recentOpen}" aria-controls="recent-rows">
-        <span class="chev" aria-hidden="true">▸</span><span class="label">Sent</span> <span>· ${recent.length}</span></button></h2>
-        <ul class="cards" id="recent-rows"${recentOpen ? '' : ' hidden'}>${recentOpen ? recent.map(renderRecent).join('') : ''}</ul></section>` : '');
-    return;
-  }
-  el.innerHTML = (waiting.length || working.length ? '' : `<p class="empty">Nothing waiting. Press ${icon('spark').replace('<svg', '<svg width="14" height="14"')} in a chat to draft a follow-up.</p>`)
-    + (waiting.length ? `<ul class="cards">${waiting.map(renderCard).join('')}</ul>` : '')
-    + group('In progress', working, `<ul class="cards">${working.map(renderCard).join('')}</ul>`);
-}
-
-const renderRecent = (r) => `<li class="rrow"><b>${esc(r.personName)}</b> · ${r.kind === 'meeting' ? 'Meeting' : CHANNELS[r.channel] || 'Draft'} ${STATUS[r.status] || r.status}
-  ${timeTag(r.updatedAt, ago(r.updatedAt))}${r.note ? ` · “${esc(r.note)}”` : ''}${r.text ? ` — ${esc(r.text.slice(0, 140))}` : ''}</li>`;
-
-const renderCardHead = (r, p) => `<h3><span class="name">${esc(p.name)}</span></h3>${renderContact(p)}`;
-
-const renderConv = (r, p, isOpen, label = `Conversation with ${p.name}`) =>
-  `<button type="button" class="ib" data-act="conv" aria-expanded="${isOpen}" aria-controls="rtl-${esc(r.id)}" aria-label="${esc(label)}" title="${esc(label)}">${icon('conv')}</button>`;
-
-const renderReason = (r) => (r.note ? `<p class="note"><b>Reason:</b> ${esc(r.note)}</p>` : '<p class="why">No reason given</p>');
-
-// Recover: a copy goes back to "Waiting for you". The server says why not (r.recover).
-function renderRecover(r) {
-  const copy = requests.find((x) => x.recoveredFrom === r.id);
-  if (copy) return `<span class="why">Recovered${copy.status === 'pending' ? ` · <button type="button" class="link" data-goto="${esc(copy.id)}">open</button>` : ` · ${STATUS[copy.status] || copy.status}`}</span>`;
-  const label = `Recover the draft for ${r.personName}`;
-  return `<button type="button" class="btn sm" data-act="recover" title="${esc(r.recover || 'Make this a waiting draft again')}"
-    aria-label="${esc(r.recover ? `${label}: ${r.recover}` : label)}"${r.recover ? ' aria-disabled="true"' : ''}>${icon('recover')}Recover</button>`;
-}
-
-// A cancelled draft as a record: the reason, the message, and (on demand) what the AI saw.
-function renderCancelled(r) {
-  const p = personOf(r), id = esc(r.id), isOpen = ropen?.reqId === r.id;
-  const what = r.kind === 'meeting' ? 'Offer a meeting' : CHANNELS[r.channel];
-  return `<li class="card past" id="card-${id}" data-req="${id}" tabindex="-1">
-    <h3><span class="name">${esc(r.personName)}</span>${timeTag(r.updatedAt, `${r.status === 'regenerated' ? 'replaced' : 'cancelled'} ${ago(r.updatedAt)}`)}</h3>
-    <p class="task"><b class="${r.kind === 'meeting' ? '' : esc(r.channel)}">${what}</b> · drafted ${timeTag(r.createdAt, ago(r.createdAt))}</p>
-    ${renderReason(r)}${r.subject ? `<p class="rsub">${esc(r.subject)}</p>` : ''}<p class="brief">${esc(r.text)}</p>
-    <div class="ractions">${renderConv(r, p, isOpen, `What the AI saw before drafting for ${r.personName}`)}<span class="cancel">${r.status === 'cancelled' ? renderRecover(r) : ''}</span></div></li>
-    ${isOpen ? `<li><section class="timeline" id="rtl-${id}" role="region" aria-label="What the AI saw before drafting for ${esc(r.personName)}">${renderTimeline(ropen)}</section></li>` : ''}`;
-}
-
-// The saved context as timeline data; the draft was written right after the last message.
-function contextData(r, ctx) {
-  const counts = {};
-  for (const m of ctx.messages) counts[m.channel] = (counts[m.channel] || 0) + 1;
-  return { person: { ...personOf(r), name: r.personName, task: ctx.task, counts }, messages: ctx.messages, errors: {},
-    after: `${ctx.rebuilt ? 'Rebuilt from the current history (older drafts have no saved context). ' : ''}The AI drafted here${ctx.stage ? ` · stage ${ctx.stage}` : ''}.` };
-}
-
-async function openContext(r) {
-  try { const one = await api(`/api/requests/${encodeURIComponent(r.id)}`); if (ropen?.reqId === r.id) ropen.data = contextData(r, one.context); }
-  catch (e) { if (ropen?.reqId === r.id) ropen.data = { person: { ...personOf(r), counts: {} }, messages: [], errors: { load: e.message } }; }
-  rerenderOpen();
-}
-
-async function recoverDraft(card, r, btn) {
-  if (btn.getAttribute('aria-disabled') === 'true') { $('#announce').textContent = r.recover; return; }
-  btn.setAttribute('aria-disabled', 'true'); btn.lastChild.textContent = 'Recovering…';
-  try {
-    const copy = await requestAction(r, 'recover');
-    $('#announce').textContent = `Draft for ${r.personName} recovered, waiting for you`;
-    rerenderTasks(); gotoRequest(copy.id);
-  } catch (e) {
-    await loadRequests();
-    $('#announce').textContent = `Could not recover: ${e.message}`;
-    document.querySelector(`#card-${CSS.escape(r.id)} [data-act=recover]`)?.focus();
-  }
-}
-
-function renderCard(r) {
-  const p = personOf(r), id = esc(r.id), isOpen = ropen?.reqId === r.id;
-  const conv = renderConv(r, p, isOpen);
-  const regen = (label) => `<button type="button" class="ib" data-act="regen" aria-label="${label}" title="${label}">${icon('regen')}</button>`;
-  const cancel = `<button type="button" class="ib cancel" data-act="cancel" aria-label="Cancel" title="Cancel">${icon('cancel')}</button>`;
-  let body;
-  if (r.status === 'generating') body = `<p class="working">${SPIN} Drafting…</p><div class="ractions">${conv}${cancel}</div>`;
-  else if (r.status === 'failed') body = `<p class="err" role="status">Draft failed: ${esc(r.error)}</p>
-    <div class="ractions"><button type="button" class="btn primary" data-act="retry">${icon('regen')}Retry</button>${conv}${cancel}</div>`;
-  else if (r.kind === 'meeting') body = `<p class="brief">${esc(r.text)}</p>
-    <div class="ractions"><button type="button" class="btn primary" data-act="send" aria-keyshortcuts="Meta+Enter" title="I offered the meeting (⌘↩)">${icon('done')}Done</button>
-      ${regen('Draft a message instead')}${conv}${cancel}<span class="tstatus" data-st></span></div>`;
-  else {
-    const rows = Math.min(14, Math.max(3, r.text.split('\n').length + Math.floor(r.text.length / 90)));
-    const primary = r.channel === 'email'
-      ? `<button type="button" class="btn primary" data-act="send" aria-keyshortcuts="Meta+Enter" title="${sources.smtp ? 'Send the email (⌘↩)' : 'Email sending is not set up'}"${sources.smtp ? '' : ' aria-disabled="true"'}>${icon('send')}Send</button>`
-      : `<button type="button" class="btn primary" data-act="send" aria-keyshortcuts="Meta+Enter" title="Open WhatsApp with this message (⌘↩)">${icon('wa')}Open WA</button>`;
-    body = `      ${r.channel === 'email' ? `<input class="input rsubj" data-edit="subject" aria-label="Subject" placeholder="Subject" value="${esc(r.subject)}">` : ''}
-      <textarea class="input" data-edit="text" rows="${rows}" aria-label="Message to ${esc(p.name)}">${esc(r.text)}</textarea>
-      <div class="ractions">${primary}${regen('Regenerate')}${conv}${cancel}<span class="tstatus" data-st></span></div>`;
-  }
-  return `<li class="card" id="card-${id}" data-req="${id}" style="--st: ${stageColor(p.stage?.rank)}">${renderCardHead(r, p)}${body}</li>
-    ${isOpen ? `<li><section class="timeline" id="rtl-${id}" role="region" aria-label="Conversation with ${esc(p.name)}">${renderTimeline(ropen)}</section></li>` : ''}`;
-}
-
-function gotoRequest(id) {
-  showSection('requests');
-  const card = document.getElementById(`card-${id}`);
-  card?.scrollIntoView({ block: 'center' });
-  (card?.querySelector('textarea, [data-act=send]'))?.focus({ preventScroll: true });
-}
-
-const cardStatus = (card, text, bad = false) => {
-  const el = card?.querySelector('[data-st]');
-  if (el) { el.textContent = text; el.classList.toggle('bad', bad); }
-};
-
-// Edits are saved as you type, so a draft survives a reload.
-const editTimers = {};
-function editDraft(card, r) {
-  r.text = card.querySelector('[data-edit=text]')?.value ?? r.text;
-  r.subject = card.querySelector('[data-edit=subject]')?.value ?? r.subject;
-  r.edited = true;
-  cardStatus(card, 'Saving…');
-  clearTimeout(editTimers[r.id]);
-  editTimers[r.id] = setTimeout(async () => {
-    const where = () => (card.isConnected ? card : document.getElementById(`card-${r.id}`));
-    try { await api(`/api/requests/${encodeURIComponent(r.id)}`, { method: 'PUT', headers: JSON_HEADERS, body: JSON.stringify({ text: r.text, subject: r.subject }) }); cardStatus(where(), 'Saved'); }
-    catch (e) { cardStatus(where(), `Not saved: ${e.message}`, true); }
-  }, 600);
 }
 
 async function requestAction(r, action, body = {}) {
   const res = await api(`/api/requests/${encodeURIComponent(r.id)}/${action}`, { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(body) });
-  if (ropen?.reqId === r.id) ropen = null;
   await loadRequests();
   if (['send', 'cancel', 'regenerate'].includes(action)) setTimeout(loadPlaybooks, 500); // a decision collected (the 15th starts learning)
   return res;
 }
-
-async function approve(card, r, btn) {
-  if (btn.getAttribute('aria-disabled') === 'true') return;
-  clearTimeout(editTimers[r.id]);
-  const label = btn.innerHTML;
-  btn.setAttribute('aria-disabled', 'true');
-  btn.lastChild.textContent = r.kind === 'meeting' ? 'Saving…' : r.channel === 'email' ? 'Sending…' : 'Opening…';
-  const text = card.querySelector('[data-edit=text]')?.value, subject = card.querySelector('[data-edit=subject]')?.value;
-  try {
-    await requestAction(r, 'send', { text, subject });
-    rerenderTasks(); // messaged today: drops out of Tasks
-    $('#announce').textContent = r.kind === 'meeting' ? `Meeting offer done for ${r.personName}` : r.channel === 'email' ? `Email sent to ${r.personName}` : `Opened WhatsApp for ${r.personName}`;
-  } catch (e) {
-    btn.innerHTML = label; btn.removeAttribute('aria-disabled');
-    cardStatus(card, `Not sent: ${e.message}`, true);
-  }
-}
-
-// One dialog for Cancel and Regenerate: an optional note, saved with the request.
-function ask(r, mode) {
-  const d = $('#ask'), name = r.personName;
-  const edited = mode === 'regen' && r.edited;
-  $('#ask-title').textContent = mode === 'cancel' ? `Cancel the draft for ${name}?` : `Regenerate the draft for ${name}`;
-  $('#ask-label').textContent = mode === 'cancel' ? 'Reason (optional)' : 'What should change? (optional)';
-  $('#ask-note').placeholder = mode === 'cancel' ? 'e.g. already called her' : 'e.g. shorter, mention the installment option';
-  $('#ask-info').textContent = edited ? 'Your edits will be replaced.' : 'The AI sees this note next time it drafts for this client.';
-  $('#ask-ok').textContent = mode === 'cancel' ? 'Cancel draft' : 'Regenerate';
-  $('#ask-ok').className = `btn ${mode === 'cancel' ? 'danger' : 'primary'}`;
-  $('#ask-note').value = '';
-  d.returnValue = '';
-  d.onclose = async () => {
-    if (d.returnValue !== 'ok') return;
-    const note = $('#ask-note').value.trim();
-    try {
-      await requestAction(r, mode === 'cancel' ? 'cancel' : 'regenerate', { note });
-      $('#announce').textContent = mode === 'cancel' ? `Draft cancelled for ${name}` : `Regenerating the draft for ${name}`;
-      rerenderTasks();
-    } catch (e) { $('#announce').textContent = e.message; }
-  };
-  d.showModal();
-  $('#ask-note').focus();
-}
-$('#ask-note').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && e.metaKey) { e.preventDefault(); $('#ask').close('ok'); }
-});
-
-$('#rtabs').addEventListener('click', (e) => {
-  const b = e.target.closest('[data-rtab]');
-  if (!b || b.dataset.rtab === rtab) return;
-  rtab = b.dataset.rtab; ropen = null; cancelledShown = CANCELLED_PAGE;
-  renderRequests();
-});
-$('#requests').addEventListener('click', (e) => {
-  const cp = e.target.closest('[data-copy]');
-  if (cp) return copy(cp);
-  if (e.target.closest('[data-recent]')) { recentOpen = !recentOpen; renderRequests(); return $('[data-recent]')?.focus(); }
-  if (e.target.closest('[data-cmore]')) {
-    const first = cancelledShown; cancelledShown += CANCELLED_PAGE; renderRequests();
-    return $('#cancelled-rows').querySelectorAll('.card')[first]?.focus();
-  }
-  const go = e.target.closest('[data-goto]');
-  if (go) return gotoRequest(go.dataset.goto);
-  const card = e.target.closest('.card');
-  const r = card && requests.find((x) => x.id === card.dataset.req);
-  if (!r) return ropen && timelineClick(e, ropen);
-  const btn = e.target.closest('[data-act]');
-  if (!btn) return;
-  const act = btn.dataset.act;
-  if (act === 'conv') {
-    const ctx = ['cancelled', 'regenerated'].includes(r.status);
-    ropen = ropen?.reqId === r.id ? null : { reqId: r.id, id: r.personId, data: ctx ? null : hist.get(r.personId), filter: 'all', all: false, ctx };
-    renderRequests();
-    document.querySelector(`#card-${CSS.escape(r.id)} [data-act=conv]`)?.focus({ preventScroll: true });
-    if (ropen?.ctx) openContext(r);
-    else if (ropen && !ropen.data) loadHistory(r.personId);
-    return;
-  }
-  if (act === 'recover') return recoverDraft(card, r, btn);
-  if (act === 'send') return approve(card, r, btn);
-  if (act === 'retry') return requestAction(r, 'regenerate').then(rerenderTasks).catch((er) => cardStatus(card, er.message, true));
-  if (act === 'cancel' && r.status === 'generating') return requestAction(r, 'cancel').then(rerenderTasks);
-  ask(r, act);
-});
-$('#requests').addEventListener('input', (e) => {
-  const card = e.target.closest('.card'), r = card && requests.find((x) => x.id === card.dataset.req);
-  if (r && e.target.dataset.edit) editDraft(card, r);
-});
-$('#requests').addEventListener('keydown', (e) => {
-  if (e.key !== 'Enter' || !e.metaKey) return;
-  const btn = e.target.closest('.card')?.querySelector('[data-act=send]');
-  if (btn) { e.preventDefault(); btn.click(); }
-});
-$('#requests').addEventListener('focusout', () => setTimeout(() => {
-  if (rdefer && !$('#requests').contains(document.activeElement)) renderRequests();
-}));
 
 // ---- Settings: model, style guide (learned, editable) and the prompts
 let settings = null, learnTimer;
@@ -1840,7 +1508,7 @@ $('#settings').addEventListener('click', async (e) => {
 addEventListener('pagehide', () => { for (const t of Object.values(settingTimers)) clearTimeout(t); });
 
 // ---- sections (the last one is remembered per browser)
-const SECTIONS = ['messages', 'tasks', 'requests', 'templates', 'playbooks', 'settings'];
+const SECTIONS = ['messages', 'tasks', 'templates', 'playbooks', 'settings'];
 const SEARCH = { messages: '#mq', tasks: '#q', templates: '#tq' };
 let section = 'messages';
 function showSection(name, focus = false) {
@@ -1853,7 +1521,6 @@ function showSection(name, focus = false) {
   try { localStorage.setItem('section', name); } catch {}
   history.replaceState(null, '', `#${name}`);
   if (name === 'templates') loadTemplates();
-  if (name === 'requests') { loadTemplates(); loadRequests(); loadPlaybooks(); }
   if (name === 'playbooks') { loadTemplates(); loadPlaybooks(); }
   if (name === 'settings') loadSettings();
   // Messages and Tasks share the chat column; each list keeps its own selection.
@@ -2207,9 +1874,8 @@ async function loadPlaybooks() {
     lastChange = newest ?? null;
     if (psel === null) psel = pb.playbooks.length ? LEARNED : null;
   }
-  renderCoachBadge(); renderRStatus();
+  renderCoachBadge();
   if (section === 'playbooks') { renderPList(); renderPEditor(false); }
-  if (section === 'requests') renderRequests();
   clearTimeout(pbTimer);
   if (coachBusy()) pbTimer = setTimeout(loadPlaybooks, 3000);
 }

@@ -172,10 +172,13 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
 - WhatsApp matching is by phone digits → `<digits>@s.whatsapp.net` plus the
   `<lid>@lid` chats mapped to that phone in the bridge's `whatsapp.db`
   (`whatsmeow_lid_map`, read-only). CRM phones must include the country code.
-- **Sections:** a left rail switches views (Messages, Tasks, AI Requests,
-  Templates, Playbooks, Settings; ⌘1–6, Messages is the default). Messages =
-  every CRM contact with messages, newest first (`/api/chats`), unread pill,
-  rail badge and `(n) Outreach` title = people with unread; rows keep their
+- **Sections:** a left rail switches views (Messages, Tasks, Templates,
+  Playbooks, Settings; ⌘1–5, Messages is the default; there is no separate
+  AI Requests view). Messages = every CRM contact with messages, newest
+  first (`/api/chats`), unread pill, with a Requests / Unanswered / All switch
+  on top (people with an open draft / unread chats / everyone; localStorage
+  `mtab`; the open chat stays listed until another is picked). Rail badge and
+  `(n) Outreach` title = waiting drafts + people with unread; rows keep their
   order while the pointer or focus is in the list. A new section
   = a link in `.rail`, a `#view-<name>` block, and its name in `SECTIONS`.
 - **Templates** (`lib/templates.js`, `/api/templates`) live in
@@ -198,9 +201,8 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   drafts sent since the last refresh. Every time it sees is Prague time
   (Europe/Prague), whatever the Mac's timezone. Each draft keeps the context the AI saw
   (stage, task, last 30 messages) and its task id, as training data with the
-  user's decision. Cancelled drafts are listed with reason, message and that
-  context; "Recover" makes a pending copy (`recoveredFrom`) only while the
-  task still exists, nothing was sent since and no other draft is waiting. The CRM stays read-only.
+  user's decision (`POST /api/requests/:id/recover` still exists server-side,
+  no UI since the AI Requests view was dropped). The CRM stays read-only.
   WhatsApp is offered only for numbers the bridge knows (`whatsappKnown`: a
   lid in `whatsmeow_lid_map` or a chat); otherwise email, or WhatsApp flagged
   "not found" when there's no email.
@@ -222,12 +224,10 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   since. Method and data in the PLAYBOOKS update's `research-playbooks.md`.
   Learning is silent except in Playbooks: "N of 15 decisions collected ·
   Learn now", a failure (also rail "!").
-- **AI Requests UI:** Drafts tab = just the waiting cards (name, contact,
-  message, actions; no AI reasoning, task row or due); History tab =
-  cancelled and replaced drafts with reasons and context, plus sent ones.
-  The same requests show in the chat (a draft keeps `channel`, `instruction`
-  and `previousId`, the version it replaced, so the chat shows the notes and
-  earlier versions); both stay in sync through SSE `requests`.
+- **Drafts in the UI** live only in Messages (Requests filter) and the chat
+  (a draft keeps `channel`, `instruction` and `previousId`, the version it
+  replaced, so the chat shows the notes and earlier versions), kept in sync
+  through SSE `requests`.
 - **Style guide** (Settings → Learn my style): `lib/style.js` builds reply
   pairs, follow-ups and measured stats from the snapshot; one Claude run turns
   them into a Markdown guide (method in the AI REQUESTS update's

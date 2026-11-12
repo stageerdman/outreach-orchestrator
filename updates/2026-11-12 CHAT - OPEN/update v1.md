@@ -165,3 +165,15 @@ WhatsApp messages show up within seconds.
   you"; × mid-edit discarded it → lesson with `<edited>`; Playbooks "1 of 15
   decisions collected · Learn now". Send was never pressed.
 
+
+### 6. Requests folded into Messages (user, 2026-11-12) — done
+- [x] The AI Requests section is gone (rail link, view, cards, History,
+      Recover, cancel/regenerate dialog); drafts live in the chat only.
+      ⌘1–5 now.
+- [x] Messages has a Requests / Unanswered / All switch on top (open draft /
+      unread / everyone, with counts; remembered in localStorage `mtab`; the
+      open chat stays listed until another is picked).
+- [x] Rail badge and title = waiting drafts + unread chats.
+- Verified on the running app (headless Chrome over CDP): rail without
+  Requests; badge 37 = 1 draft + 36 unread; Requests → 1 row, Unanswered →
+  36, All → 257; no console errors; `npm test` 101 pass.
