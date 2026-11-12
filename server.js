@@ -5,7 +5,7 @@ import { emailConfigured, smtpConfigured } from './lib/email.js';
 import { whatsappConfigured, whatsappKnown } from './lib/whatsapp.js';
 import { listTemplates, saveTemplate, deleteTemplate } from './lib/templates.js';
 import { refresh, syncState, snapshotPeople, restoreSnapshot, startLive } from './lib/sync.js';
-import { chatList, markRead } from './lib/chats.js';
+import { chatList, markRead, markUnread } from './lib/chats.js';
 import { events } from './lib/events.js';
 import { getSettings, saveSettings, DRAFT_PROMPT, STYLE_PROMPT, COACH_PROMPT, BUILD_PROMPT, MODELS } from './lib/settings.js';
 import { listPlaybooks, listChanges, applyOperations, undoChange } from './lib/playbooks.js';
@@ -148,10 +148,11 @@ createServer(async (req, res) => {
     }
     // Messages: every contact with a conversation, newest first, with unread counts.
     if (url.pathname === '/api/chats') return json(res, 200, chatList(snapshotPeople()));
-    const c = url.pathname.match(/^\/api\/chats\/([^/]+)\/read$/);
+    const c = url.pathname.match(/^\/api\/chats\/([^/]+)\/(read|unread)$/);
     if (c && req.method === 'POST') {
       const person = findPerson(c[1]);
-      return person ? json(res, 200, { id: person.id, readAt: markRead(person) }) : json(res, 404, { error: 'Person not found' });
+      if (!person) return json(res, 404, { error: 'Person not found' });
+      return json(res, 200, c[2] === 'read' ? { id: person.id, readAt: markRead(person) } : { id: person.id, markedAt: markUnread(person) });
     }
     if (url.pathname === '/api/events') return stream(req, res);
     json(res, 404, { error: 'Not found' });

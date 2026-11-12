@@ -6,7 +6,7 @@ import { join } from 'node:path';
 
 const dir = mkdtempSync(join(tmpdir(), 'outreach-chats-'));
 process.env.OUTREACH_DATA_DIR = dir;
-const { unread, chatList, oneLine, markRead, getReads } = await import('../lib/chats.js');
+const { unread, chatList, oneLine, markRead, markUnread, getReads, getMarks } = await import('../lib/chats.js');
 test.after(() => rmSync(dir, { recursive: true, force: true }));
 
 const msg = (at, fromMe, text = 'hi', channel = 'whatsapp') => ({ channel, id: at, at, fromMe, text });
@@ -50,4 +50,20 @@ test('marking read stores the time (or the newest message, if later) and is pers
   assert.equal(at, '2026-03-01T00:00:00.000Z');
   assert.equal(markRead({ id: '8', messages: [msg('2027-01-01T00:00:00.000Z', false)] }, '2026-03-01T00:00:00.000Z'), '2027-01-01T00:00:00.000Z');
   assert.equal(getReads()['7'], at);
+});
+
+test('a chat marked unread counts as unread, goes on top, and is cleared by reading it', () => {
+  const people = [
+    { id: 'a', name: 'A', messages: [msg('2026-01-05', false)] },
+    { id: 'b', name: 'B', messages: [msg('2026-01-01', false), msg('2026-01-02', true)] },
+  ];
+  const [top, next] = chatList(people, { a: '2026-02-01' }, { b: '2026-03-01' });
+  assert.deepEqual([top.id, top.unread, top.marked, next.id, next.unread, next.marked], ['b', 1, true, 'a', 0, undefined]);
+  // A real unread count wins over the mark (no dot, the number shows).
+  assert.equal(chatList([{ id: 'c', name: 'C', messages: [msg('2026-01-01', false), msg('2026-01-02', false)] }], {}, { c: '2026-03-01' })[0].marked, undefined);
+  const p = { id: '9', messages: [msg('2026-01-01T00:00:00.000Z', false)] };
+  markUnread(p, '2026-03-01T00:00:00.000Z');
+  assert.equal(getMarks()['9'], '2026-03-01T00:00:00.000Z');
+  markRead(p);
+  assert.equal(getMarks()['9'], undefined);
 });

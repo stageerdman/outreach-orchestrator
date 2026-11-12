@@ -258,6 +258,13 @@
   .prev .dl { color: var(--accent); font-weight: 600; } .prev .dl.bad { color: var(--err); }
   .unread-n { justify-self: end; min-width: var(--badge); height: var(--badge); padding: 0 var(--s1); border-radius: 99px; background: var(--wa); color: var(--panel);
     font-size: var(--fs-sm); line-height: var(--badge); text-align: center; font-weight: 600; }
+  .unread-n.mark { min-width: 0; width: var(--s3); height: var(--s3); padding: 0; }
+  /* Right-click menu on a Messages row */
+  .cmenu { position: fixed; z-index: 20; min-width: 160px; padding: var(--s1); background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); box-shadow: 0 4px 16px color-mix(in srgb, var(--text) 16%, transparent); }
+  .cmenu[hidden] { display: none; }
+  .cmenu button { all: unset; box-sizing: border-box; display: block; width: 100%; padding: var(--s1) var(--s2); border-radius: var(--radius); cursor: pointer; }
+  .cmenu button:hover, .cmenu button:focus-visible { background: var(--sel); outline: none; }
   .chat { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--bg); }
   .chat > .empty { margin: auto; }
   .chead { background: var(--panel); border-bottom: 1px solid var(--line); padding: var(--s3) var(--s4); }
@@ -400,6 +407,7 @@
   <div class="editor settings" id="settings"></div>
 </div>
 <p class="sr-only" aria-live="polite" id="announce"></p>
+<div class="cmenu" id="cmenu" role="menu" aria-label="Chat" hidden><button type="button" role="menuitem" id="cmark"></button></div>
 <script type="module">
 import { placeholders, hasGender, resolve, htmlToText } from '/resolve.js';
 const $ = (s) => document.querySelector(s);
@@ -975,9 +983,10 @@ async function discard(r) {
 let readTimer;
 const chatVisible = () => Boolean(chat) && ['tasks', 'messages'].includes(section) && $('#chat').offsetParent !== null
   && document.visibilityState === 'visible' && document.hasFocus();
+let keepUnread = null; // marked unread while open: stays unread until picked again
 function markReadSoon() {
   clearTimeout(readTimer);
-  if (!chatVisible() || !chats.find((c) => c.id === chat.id)?.unread) return;
+  if (!chatVisible() || chat.id === keepUnread || !chats.find((c) => c.id === chat.id)?.unread) return;
   const id = chat.id;
   readTimer = setTimeout(async () => {
     const c = chats.find((x) => x.id === id);
@@ -1003,7 +1012,7 @@ function markCurrent() {
 let pickTimer;
 // Selects a person in the current list; the chat follows (after a pause while arrowing).
 function pick(id, { delay = 0, composer = false } = {}) {
-  sel[section] = id; markCurrent();
+  sel[section] = id; markCurrent(); keepUnread = null;
   clearTimeout(pickTimer);
   const go = () => {
     openChat(id);
@@ -1104,13 +1113,13 @@ const renderChatPreview = (l, r) => (r
   : `${l.fromMe ? 'You: ' : ''}<span class="t">${l.text ? esc(l.text) : '<i>Message</i>'}</span>`);
 function renderChatRow(c) {
   const st = c.stage, n = c.unread, l = c.last, id = esc(c.id), r = activeReq(c.id);
-  const label = [c.name, st?.label, n && `${n} unread`, r ? `${DRAFT_LABEL[r.status].replace(':', '')}${r.status === 'pending' ? ` ${r.text}` : ''}`
+  const label = [c.name, st?.label, c.marked ? 'marked unread' : n && `${n} unread`, r ? `${DRAFT_LABEL[r.status].replace(':', '')}${r.status === 'pending' ? ` ${r.text}` : ''}`
     : `${chatTime(l.at)}: ${l.fromMe ? 'You: ' : ''}${l.text || 'Message'}`].filter(Boolean).join(', ');
   return `<li><button type="button" class="crow${n ? ' unread' : ''}${r ? ' draft' : ''}" id="crow-${id}" data-id="${id}"${sel.messages === c.id ? ' aria-current="true"' : ''} aria-controls="chat" aria-label="${esc(label)}">
     <span class="cn"><span class="tn">${esc(c.name)}</span>${st ? `<span class="sd" style="--st: ${stageColor(st.rank)}"></span><span class="stage-l">${esc(st.label)}</span>` : ''}</span>
     <span class="when">${timeTag(l.at, chatTime(l.at))}</span>
     <span class="prev">${renderChatPreview(l, r)}</span>
-    ${n ? `<span class="unread-n">${n > 99 ? '99+' : n}</span>` : ''}</button></li>`;
+    ${c.marked ? '<span class="unread-n mark"></span>' : n ? `<span class="unread-n">${n > 99 ? '99+' : n}</span>` : ''}</button></li>`;
 }
 
 // While the pointer or focus is in the list, rows update in place and keep
@@ -1272,6 +1281,45 @@ $('#clist').addEventListener('keydown', (e) => {
   const rows = [...document.querySelectorAll('#clist .crow')];
   listKeys(e, rows, rows.indexOf(document.activeElement), $('#mq'));
 });
+// Right-click (or the context-menu key / Shift+F10) on a row: Mark as unread / read.
+// A chat marked unread goes on top (once the pointer leaves the list) until you read it.
+const cmenu = $('#cmenu');
+let cmenuId = null;
+function closeMenu(refocus) {
+  if (cmenu.hidden) return;
+  cmenu.hidden = true;
+  if (refocus) document.getElementById(`crow-${cmenuId}`)?.focus();
+}
+$('#clist').addEventListener('contextmenu', (e) => {
+  const row = e.target.closest('.crow'), c = row && chats.find((x) => x.id === row.dataset.id);
+  if (!c) return;
+  e.preventDefault();
+  cmenuId = c.id;
+  $('#cmark').textContent = c.unread ? 'Mark as read' : 'Mark as unread';
+  const r = row.getBoundingClientRect(), keyboard = !e.clientX && !e.clientY;
+  cmenu.hidden = false;
+  const x = keyboard ? r.left + r.width / 2 : e.clientX, y = keyboard ? r.bottom : e.clientY;
+  cmenu.style.left = `${Math.min(x, innerWidth - cmenu.offsetWidth - 8)}px`;
+  cmenu.style.top = `${Math.min(y, innerHeight - cmenu.offsetHeight - 8)}px`;
+  $('#cmark').focus();
+});
+$('#cmark').addEventListener('click', async () => {
+  const id = cmenuId, c = chats.find((x) => x.id === id);
+  closeMenu(true);
+  if (!c) return;
+  const read = Boolean(c.unread);
+  if (read) { c.unread = 0; delete c.marked; if (chat?.id === id) keepUnread = null; }
+  else { c.unread = 1; c.marked = true; if (chat?.id === id) { keepUnread = id; clearTimeout(readTimer); } }
+  prevUnread?.set(id, c.unread);
+  renderChatList(); renderMessagesBadge();
+  announce(read ? 'Marked as read' : 'Marked as unread');
+  try { await api(`/api/chats/${enc(id)}/${read ? 'read' : 'unread'}`, { method: 'POST' }); } catch { /* the reload shows the truth */ }
+  loadChats();
+});
+cmenu.addEventListener('keydown', (e) => { if (e.key === 'Escape' || e.key === 'Tab') { e.preventDefault(); closeMenu(true); } });
+document.addEventListener('pointerdown', (e) => { if (!cmenu.contains(e.target)) closeMenu(); });
+addEventListener('blur', () => closeMenu());
+$('#clist').addEventListener('scroll', () => closeMenu());
 $('#clist').addEventListener('pointerenter', () => { listHover = true; });
 $('#clist').addEventListener('pointerleave', () => { listHover = false; renderChatList(); });
 $('#clist').addEventListener('focusout', () => setTimeout(() => { if (!frozen()) renderChatList(); }));
