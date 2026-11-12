@@ -10,9 +10,11 @@
     --accent: #2f5bd3; --email: #2f5bd3; --wa: #1f7f50; --me: #eef2fd; --sel: #eef2fd; --err: #b3261e;
     --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px;
     --fs-sm: 12px; --fs: 14px; --fs-lg: 16px; --radius: 6px; --width: 860px; --gh: 32px;
-    --rail: 72px; --list-w: 280px; --feed-w: 380px; --icon: 20px; --hit: 28px; --badge: 16px;
+    --rail: 72px; --list-w: 280px; --feed-w: 380px; --feed-min: 240px; --feed-max: 640px; --chat-min: 360px; --icon: 20px; --hit: 28px; --badge: 16px;
     /* Fronta group colours (A, B; C is a hollow dot) and the gray of an AI draft */
     --q-a: var(--st-7); --q-b: var(--st-1); --draft: color-mix(in srgb, var(--muted) 14%, var(--bg));
+    /* Draft buttons: send (green) and discard (red) circles */
+    --ok: var(--wa);
     /* Pipeline stage colours, top stage first (each ≥4.5:1 on bg, panel and sel) */
     --st-1: #1a7a45; --st-2: #0e7480; --st-3: #8a6a00; --st-4: #b8461b; --st-5: #1f6aa5;
     --st-6: #5a52c4; --st-7: #8b47ad; --st-8: #776c60; --st-9: #646c78;
@@ -55,6 +57,8 @@
   .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: var(--s1); border: 1px solid var(--muted); }
   .dot.on { background: var(--wa); border-color: var(--wa); }
   .dot.bad { background: var(--err); border-color: var(--err); }
+  .dot.ready { background: var(--accent); border-color: var(--accent); }
+  .name .dot, .name .spin { margin: 0 0 0 var(--s2); vertical-align: middle; } .name .spin { color: var(--muted); }
 
   /* Task feed: Fronta's groups, one row per person; the selected one is open in the chat */
   main { flex: 1; overflow-y: auto; min-height: 0; }
@@ -82,7 +86,6 @@
   .due { color: var(--muted); font-size: var(--fs-sm); white-space: nowrap; }
   .due.now { color: var(--text); }
   .due svg { width: var(--fs); height: var(--fs); vertical-align: -2px; margin-right: 2px; }
-  .task .over { color: var(--err); font-weight: 600; } .task .ready { color: var(--accent); font-weight: 600; }
   .contact, .task { margin: 2px 0 0; color: var(--muted); font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .task b { color: var(--text); font-weight: 600; }
   .copy { all: unset; position: relative; z-index: 1; color: var(--text); cursor: copy; border-radius: var(--radius); }
@@ -112,7 +115,7 @@
   li.me { align-items: flex-end; } li.me .msg { background: var(--me); }
   .meta { font-size: var(--fs-sm); color: var(--muted); margin-bottom: var(--s1); }
   .tag { font-weight: 600; }
-  .email .tag, .tag.email { color: var(--email); } .whatsapp .tag, .tag.whatsapp { color: var(--wa); }
+  .email .tag { color: var(--email); } .whatsapp .tag { color: var(--wa); }
   .subject { font-weight: 600; margin-bottom: var(--s1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .body { white-space: pre-wrap; overflow-wrap: anywhere; }
   .body.clamp { max-height: 9.5em; overflow: hidden; }
@@ -247,7 +250,13 @@
   .back { display: none; }
 
   /* Messages and Tasks: a list, and the chat column on the right */
-  .csplit { --list-w: var(--feed-w); }
+  .csplit { --list-w: clamp(var(--feed-min), var(--feed-w), min(var(--feed-max), 100vw - var(--rail) - var(--chat-min))); }
+  .csplit > .tlist { position: relative; }
+  .gutter { position: absolute; top: 0; bottom: 0; right: calc(-1 * var(--s1)); width: var(--s2); z-index: 3; cursor: col-resize; touch-action: none; }
+  .gutter::after { content: ""; position: absolute; top: 0; bottom: 0; left: calc(var(--s1) - 1px); width: 2px; }
+  .gutter:hover::after, .gutter:focus-visible::after, .resizing .gutter::after { background: var(--accent); }
+  .gutter:focus-visible { outline: none; }
+  .resizing { cursor: col-resize; user-select: none; }
   .csplit > .tlist > header { border-bottom: 1px solid var(--line); }
   .csplit .bar { margin-bottom: var(--s2); }
   #clist { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
@@ -258,8 +267,9 @@
   .crow .tn { font-weight: 600; }
   .when { color: var(--muted); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
   .crow.unread .when { color: var(--wa); font-weight: 600; }
+  .cn { display: flex; align-items: center; gap: var(--s1); min-width: 0; }
+  .cn > * { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; } .cn .sd { margin-left: var(--s1); }
   .prev { color: var(--muted); font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .prev .sd { display: inline-block; margin-right: var(--s1); }
   .crow.unread .prev .t { color: var(--text); font-weight: 600; }
   .unread-n { justify-self: end; min-width: var(--badge); height: var(--badge); padding: 0 var(--s1); border-radius: 99px; background: var(--wa); color: var(--panel);
     font-size: var(--fs-sm); line-height: var(--badge); text-align: center; font-weight: 600; }
@@ -269,8 +279,6 @@
   .ctitle { display: flex; align-items: center; gap: var(--s2); }
   .ctitle h2 { margin: 0; font-size: var(--fs-lg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .stage-l { color: var(--muted); font-size: var(--fs-sm); white-space: nowrap; }
-  .chead .task { white-space: normal; }
-  .tnote summary { color: var(--accent); font-size: var(--fs-sm); cursor: pointer; margin-top: var(--s1); }
   .thread { flex: 1; min-height: 0; overflow-y: auto; padding: var(--s4); display: flex; flex-direction: column; gap: var(--s2); }
   .thread > * { width: 100%; max-width: var(--width); margin-inline: auto; }
   .thread:focus-visible { outline-offset: -2px; }
@@ -287,16 +295,16 @@
   .early summary { cursor: pointer; text-align: right; }
   .msg.draft { width: min(85%, 40em); background: var(--draft); border-style: dashed; border-color: var(--muted); }
   .msg.draft.whatsapp { border-left-color: var(--wa); } .msg.draft.email { border-left-color: var(--email); }
-  .dtext, .dsubj { all: unset; box-sizing: border-box; display: block; width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; }
-  .dsubj { font-weight: 600; margin-bottom: var(--s1); }
-  .dtext:focus-visible, .dsubj:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
   .dmeta { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); font-size: var(--fs-sm); color: var(--muted); margin-top: var(--s1); }
+  .dbtns { display: flex; align-items: center; gap: var(--s1); }
+  .rb { border-radius: 50%; }
+  .rc { display: grid; place-items: center; border-radius: 50%; color: var(--panel); width: var(--hit); height: var(--hit); background: var(--ok); }
+  .rc.no { width: var(--icon); height: var(--icon); background: var(--err); }
+  .rc svg { width: var(--fs); height: var(--fs); stroke-width: 2.4; } .rc.no svg { width: var(--fs-sm); height: var(--fs-sm); }
   .newpill { align-self: center; margin: var(--s1) 0; padding: 2px var(--s3); background: var(--panel); }
   .composer { background: var(--panel); border-top: 1px solid var(--line); padding: var(--s2) var(--s4) var(--s3); display: grid; gap: var(--s2); }
   .cline { display: flex; align-items: flex-end; gap: var(--s1); }
-  .ctog { display: flex; }
   textarea.ctext { flex: 1; width: auto; resize: none; max-height: 40vh; overflow-y: auto; }
-  .composer .btn { padding: var(--s2) var(--s3); }
   .composer .ib { height: calc(1.45em + 2 * var(--s2) + 2px); }
   #chint { margin: 0; }
 
@@ -304,6 +312,7 @@
     .csplit { grid-template-columns: minmax(0, 1fr); }
     .csplit[data-pane=chat] > .tlist, .csplit[data-pane=list] > .chat { display: none; }
     .csplit .back { display: inline-block; margin-bottom: var(--s1); }
+    .gutter { display: none; }
   }
   @media (max-width: 700px) {
     .msg { max-width: 100%; } .rows { border-left: 0; border-right: 0; }
@@ -349,6 +358,7 @@
         <div class="status" id="mstatus" hidden></div>
       </header>
       <ul id="clist" aria-label="Chats" aria-busy="true"></ul>
+      <div class="gutter" role="separator" aria-orientation="vertical" aria-label="List width" tabindex="0" title="Drag to resize, double-click to reset"></div>
     </div>
   </div>
 </div>
@@ -365,6 +375,7 @@
         <div class="status" id="status" hidden></div>
       </header>
       <main id="main"><div id="people" aria-busy="true"></div></main>
+      <div class="gutter" role="separator" aria-orientation="vertical" aria-label="List width" tabindex="0" title="Drag to resize, double-click to reset"></div>
     </div>
     <section class="chat" id="chat" aria-label="Conversation"></section>
   </div>
@@ -545,34 +556,26 @@ function renderWhen(p) {
 const renderCopy = (value, shown, what) =>
   `<button type="button" class="copy" data-copy="${esc(value)}" data-what="${what}" aria-label="Copy ${what} ${esc(shown)}">${esc(shown)}</button>`;
 
-function renderContact(p, withStage = true) {
+function renderContact(p, withStage = true, id = '') {
   const parts = [withStage && p.stage && `<span class="stage" style="--st: ${stageColor(p.stage.rank)}">${esc(p.stage.label)}</span>`,
     p.phones[0] && renderCopy(p.phones[0].replace(/[^\d+]/g, ''), showPhone(p.phones[0]), 'phone'),
     p.emails[0] && renderCopy(p.emails[0], p.emails[0], 'email')].filter(Boolean);
-  return parts.length ? `<p class="contact">${parts.join(' · ')}</p>` : '';
+  return parts.length ? `<p class="contact"${id ? ` id="${esc(id)}"` : ''}>${parts.join(' · ')}</p>` : '';
 }
 
-function renderTask(p) {
+// A draft on the way for this person: a spinner, a dot when it waits, red when it failed.
+function renderAiMark(p) {
   const r = activeReq(p.id);
-  const ai = r?.status === 'generating' ? `<span>${SPIN} drafting</span>`
-    : r?.status === 'pending' ? `<span class="ready">${r.kind === 'meeting' ? 'meeting to offer' : 'draft ready'}</span>`
-    : r?.status === 'failed' ? `<span class="err" title="${esc(r.error)}">AI failed</span>` : '';
-  const failed = Object.keys(p.errors || {}).map((k) => `<span class="err">${CHANNELS[k] || k} failed</span>`);
-  const replied = p.lastClientAt && (!p.lastSentAt || p.lastClientAt > p.lastSentAt);
-  const last = replied ? `<b>replied ${timeTag(p.lastClientAt, ago(p.lastClientAt))}</b>` : p.lastAt ? `last ${timeTag(p.lastAt, ago(p.lastAt))}` : 'never contacted';
-  const kind = p.task && (p.queue?.qualify
-    ? `<b title="A call task with no attempts was merged in: qualify them on this call">${esc(KIND[p.task.kind] || p.task.kind)} + qualify</b>`
-    : `<b>${esc(KIND[p.task.kind] || p.task.kind)}</b>`);
-  const parts = p.task
-    ? [kind, p.task.unassigned && '<span title="No one owns this task in the CRM">unassigned</span>', p.task.rule && `<span title="${esc(p.task.rule)}">${esc(p.task.rule)}</span>`, last, ai, ...failed]
-    : [esc(p.company), last, ai, ...failed];
-  return `<p class="task" id="task-${esc(p.id)}">${parts.filter(Boolean).join(' · ')}</p>`;
+  if (r?.status === 'generating') return `<span role="img" aria-label="AI drafting">${SPIN}</span>`;
+  if (r?.status === 'pending') return `<span class="dot ready" role="img" aria-label="${r.kind === 'meeting' ? 'Meeting to offer' : 'Draft waiting'}"></span>`;
+  if (r?.status === 'failed') return `<span class="dot bad" role="img" aria-label="AI draft failed" title="${esc(r.error)}"></span>`;
+  return '';
 }
 
 const renderRow = (p) => `<li class="person"><div class="head">
-    <button type="button" class="row" id="row-${esc(p.id)}" data-id="${esc(p.id)}"${sel.tasks === p.id ? ' aria-current="true"' : ''} aria-controls="chat" aria-describedby="task-${esc(p.id)}">
-      <span class="name">${esc(p.name)}</span>${renderWhen(p)}</button>
-    ${renderContact(p)}${renderTask(p)}</div></li>`;
+    <button type="button" class="row" id="row-${esc(p.id)}" data-id="${esc(p.id)}"${sel.tasks === p.id ? ' aria-current="true"' : ''} aria-controls="chat" aria-describedby="contact-${esc(p.id)}">
+      <span class="name">${esc(p.name)}${renderAiMark(p)}</span>${renderWhen(p)}</button>
+    ${renderContact(p, true, `contact-${p.id}`)}</div></li>`;
 
 // Fronta's groups in the order the server sends the rows (Fronta's order).
 // Open unless the user closed them (or matching a search).
@@ -758,8 +761,8 @@ async function loadHistory(id) {
 
 // ---- the chat column: the selected person's whole conversation, newest at
 // the bottom, the AI draft as a gray bubble, and the composer.
-let chat = null;                  // { id, data, all, unseen, channel, picked, subject, error, sending }
-const composerText = new Map();   // unsent composer text per person
+let chat = null;                  // { id, data, all, unseen, error, sending }
+const composerText = new Map();   // unsent text for the AI per person
 const atBottom = (el) => el.scrollHeight - el.scrollTop - el.clientHeight < 48;
 const LIST_NAME = { tasks: 'Tasks', messages: 'Messages' };
 const chatPerson = () => chat.data?.person || people.find((p) => p.id === chat.id)
@@ -774,11 +777,8 @@ function renderChat() {
     <div class="thread" id="thread" tabindex="0" role="region"><div id="msgs"></div><div id="draftbox"></div></div>
     <button type="button" class="pill newpill" id="newpill" hidden></button>
     <div class="composer">
-      <input class="input" id="csubj" aria-label="Subject" placeholder="Subject" hidden>
-      <div class="cline"><span class="ctog" role="group" aria-label="Channel" id="ctog"></span>
-        <textarea class="input ctext" id="ctext" rows="1"></textarea>
-        <button type="button" class="ib" id="cspark" aria-keyshortcuts="Meta+J">${icon('spark')}</button>
-        <button type="button" class="btn primary" id="csend" aria-keyshortcuts="Meta+Enter"></button></div>
+      <div class="cline"><textarea class="input ctext" id="ctext" rows="1" aria-keyshortcuts="Enter"></textarea>
+        <button type="button" class="ib" id="cspark" aria-keyshortcuts="Enter Meta+J">${icon('spark')}</button></div>
       <p class="info" id="chint" hidden></p>
     </div>`;
   $('#ctext').value = composerText.get(chat.id) || '';
@@ -787,23 +787,19 @@ function renderChat() {
 }
 
 function renderChatHeader() {
-  const p = chatPerson(), t = p.task, due = t?.dueAt && dueLabel(t.dueAt);
-  const noteOpen = $('#chead .tnote')?.open;
-  const task = t ? `<p class="task">${[`<b>${esc(KIND[t.kind] || t.kind)}</b>`, t.rule && esc(t.rule), due && `<span class="${due.over ? 'over' : ''}">${esc(due.text)}</span>`].filter(Boolean).join(' · ')}</p>
-    ${t.note ? `<details class="tnote"${noteOpen ? ' open' : ''}><summary>Task note</summary><p class="note">${esc(t.note)}</p></details>` : ''}` : '';
+  const p = chatPerson();
   $('#chead').innerHTML = `<button type="button" class="link back" data-act="back">‹ ${LIST_NAME[section] || 'Back'}</button>
     <div class="ctitle"><h2>${esc(p.name)}</h2>${p.stage ? `<span class="sd" style="--st: ${stageColor(p.stage.rank)}" aria-hidden="true"></span><span class="stage-l">${esc(p.stage.label)}</span>` : ''}</div>
-    ${renderContact(p, false)}${task}`;
+    ${renderContact(p, false)}`;
   $('#thread').setAttribute('aria-label', `Conversation with ${p.name}`);
 }
 
-// One message bubble: the channel tag where the channel changes, the subject
-// where an email thread changes, the time inside.
+// One message bubble: the subject where an email thread changes, the time inside.
 const subjectKey = (s) => (s || '').replace(/^((re|fwd?|fw|aw|odp):\s*)+/i, '').trim().toLowerCase();
-function renderBubble(m, p, { tag, subject }) {
+function renderBubble(m, p, { subject }) {
   const who = m.fromMe ? 'you' : m.channel === 'email' ? m.from || p.name : p.name;
   return `<li class="${m.channel}${m.fromMe ? ' me' : ''}"><article class="msg ${m.channel}" aria-label="${CHANNELS[m.channel]} from ${esc(who)}"${m.channel === 'email' && m.from ? ` title="${esc(m.from)}"` : ''}>
-    ${tag ? `<div class="meta"><span class="tag">${CHANNELS[m.channel]}</span></div>` : ''}${subject ? `<div class="subject" title="${esc(m.subject)}">${esc(m.subject)}</div>` : ''}
+    ${subject ? `<div class="subject" title="${esc(m.subject)}">${esc(m.subject)}</div>` : ''}
     ${renderBody(m)}<span class="mt">${m.local ? `${esc(m.local)} · ` : ''}${timeTag(m.at, hhmm(m.at))}</span></article></li>`;
 }
 
@@ -821,17 +817,17 @@ function renderMessages() {
   const items = [...visible, ...sent].map((m) => {
     const subject = m.channel === 'email' && Boolean(m.subject) && subjectKey(m.subject) !== lastSubject;
     if (m.channel === 'email') lastSubject = subjectKey(m.subject);
-    const html = (!prev || !sameDay(prev.at, m.at) ? renderDay(m.at) : '') + renderBubble(m, p, { tag: prev?.channel !== m.channel, subject });
+    const html = (!prev || !sameDay(prev.at, m.at) ? renderDay(m.at) : '') + renderBubble(m, p, { subject });
     prev = m;
     return html;
   }).join('');
   const earlier = messages.length > visible.length ? `<button type="button" class="link earlier" data-earlier>Show earlier (${messages.length - visible.length})</button>` : '';
   el.innerHTML = renderErrors(errors) + (items ? earlier + `<ol class="msgs">${items}</ol>`
-    : renderEmpty(p) + `<p class="info center">Write the first message or press ${icon('spark')} to draft one.</p>`);
+    : renderEmpty(p) + `<p class="info center">Ask the AI below to draft the first message.</p>`);
 }
 
 // The draft for the open person, after the conversation: the user's notes,
-// earlier versions folded, the current version last (editable).
+// earlier versions folded, the current version last. Changed only by talking to the AI.
 function chainOf(r) {
   const out = [r];
   for (let x = r; x.previousId && (x = requests.find((y) => y.id === x.previousId));) out.unshift(x);
@@ -840,34 +836,45 @@ function chainOf(r) {
 const renderAiNote = (v) => (v.instruction ? `<p class="anote">${icon('spark')} you: ${esc(v.instruction)}</p>`
   : v.previousId ? `<p class="anote">${icon('spark')} another version</p>` : '');
 
+// Two round buttons: × discards (stops drafting, dismisses a failure), ↑ sends
+// (email over SMTP, WhatsApp opens prefilled, a meeting offer is marked done).
+function renderDraftButtons(r, p) {
+  const xl = r.status === 'generating' ? 'Stop drafting' : r.status === 'failed' ? 'Dismiss' : 'Discard draft';
+  const x = `<button type="button" class="ib rb" data-dact="discard" data-label="${xl}" aria-label="${xl}" title="${xl}"><span class="rc no">${icon('cancel')}</span></button>`;
+  if (r.status !== 'pending') return `<span class="dbtns">${x}</span>`;
+  const email = r.kind === 'message' && r.channel === 'email';
+  const label = r.kind === 'meeting' ? 'Mark the meeting offer as done' : email ? `Send email to ${p.name.split(' ')[0] || p.name}` : 'Open in WhatsApp to send';
+  const off = email && !sources.smtp ? 'Email sending is not set up (SMTP in .env)' : '';
+  return `<span class="dbtns">${x}<button type="button" class="ib rb" data-dact="send" data-label="${esc(label)}" data-off="${esc(off)}" aria-label="${esc(label)}" title="${esc(off || label)}">
+    <span class="rc">${chat.sending ? SPIN : icon('up')}</span></button></span>`;
+}
+
 function renderDraftBubble(r, p) {
-  const id = esc(r.id), x = `<button type="button" class="ib" data-dact="discard" aria-label="Discard draft" title="Discard draft">${icon('cancel')}</button>`;
-  if (r.status === 'generating') return `<article class="msg draft" data-req="${id}"><p class="working">${SPIN} Drafting… <span data-elapsed="${esc(r.createdAt)}"></span></p><div class="dmeta"><span></span>${x}</div></article>`;
-  if (r.status === 'failed') return `<article class="msg draft" data-req="${id}"><p class="err">Draft failed: ${esc(r.error)}</p><div class="dmeta"><span>Press ${icon('spark')} to try again</span>${x}</div></article>`;
+  const id = esc(r.id), btns = renderDraftButtons(r, p);
+  if (r.status === 'generating') return `<article class="msg draft" data-req="${id}"><p class="working">${SPIN} Drafting… <span data-elapsed="${esc(r.createdAt)}"></span></p><div class="dmeta"><span></span>${btns}</div></article>`;
+  if (r.status === 'failed') return `<article class="msg draft" data-req="${id}"><p class="err">Draft failed: ${esc(r.error)}</p><div class="dmeta"><span>Press ${icon('spark')} to try again</span>${btns}</div></article>`;
   const stale = (chat.data?.messages || []).some((m) => !m.fromMe && m.at > r.createdAt)
     ? `<p class="why">${esc(p.name.split(' ')[0])} wrote after this draft · ${icon('spark')} to redo</p>` : '';
   if (r.kind === 'meeting') return `<article class="msg draft" data-req="${id}"><p class="body"><b>Offer a meeting:</b> ${esc(r.text)}</p>${stale}
-    <div class="dmeta"><span>AI request · Done when you've offered it</span>${x}</div></article>`;
-  return `<article class="msg draft ${esc(r.channel)}" data-req="${id}">
-    ${r.channel === 'email' ? `<input class="dsubj" data-edit="subject" aria-label="Draft subject" placeholder="Subject" value="${esc(r.subject)}">` : ''}
-    <textarea class="dtext" data-edit="text" rows="1" aria-label="AI draft to ${esc(p.name)}">${esc(r.text)}</textarea>${stale}
-    <div class="dmeta"><span>AI draft · <span class="tag">${CHANNELS[r.channel]}</span>${r.aiText != null && r.text !== r.aiText ? ' · edited' : ''} <span class="tstatus" data-st></span></span>${x}</div></article>`;
+    <div class="dmeta"><span></span>${btns}</div></article>`;
+  const lastSubject = subjectKey((chat.data?.messages || []).findLast((m) => m.channel === 'email')?.subject);
+  const subject = r.channel === 'email' && r.subject && subjectKey(r.subject) !== lastSubject;
+  return `<article class="msg draft ${esc(r.channel)}" data-req="${id}" aria-label="AI draft to ${esc(p.name)}">
+    ${subject ? `<div class="subject" title="${esc(r.subject)}">${esc(r.subject)}</div>` : ''}<div class="body">${esc(r.text)}</div>${stale}
+    <div class="dmeta"><span></span>${btns}</div></article>`;
 }
 
-let draftDefer = false;
 function renderDraft() {
   const el = $('#draftbox');
   if (!el) return;
-  // Never re-render under the user's hands; catch up when they leave the field.
-  if (el.contains(document.activeElement) && document.activeElement.matches('textarea, input')) { draftDefer = true; return; }
-  draftDefer = false;
+  const focused = el.contains(document.activeElement) ? document.activeElement.dataset.dact : null;
   const r = activeReq(chat.id);
   if (!r) { el.innerHTML = ''; return; }
   const chain = chainOf(r), p = chatPerson();
   const early = chain.slice(0, -1).map((v) => renderAiNote(v)
     + (v.text ? `<details class="early"><summary>Earlier draft</summary><p class="brief">${esc(v.text)}</p></details>` : '')).join('');
   el.innerHTML = `<div class="dchain">${early}${renderAiNote(r)}${renderDraftBubble(r, p)}</div>`;
-  for (const t of el.querySelectorAll('textarea')) grow(t);
+  if (focused) el.querySelector(`[data-dact="${focused}"]`)?.focus({ preventScroll: true });
   tickElapsed();
 }
 const tickElapsed = () => {
@@ -878,58 +885,30 @@ const tickElapsed = () => {
 };
 setInterval(tickElapsed, 1000);
 
-function defaultChannel(d) {
-  const can = Object.keys(d?.reach || {});
-  const last = d?.messages.findLast((m) => !m.fromMe)?.channel ?? d?.messages.at(-1)?.channel;
-  return can.includes(last) ? last : can[0] ?? null;
-}
-
-// Two modes. Message (no draft): Send sends what's typed. Note (a draft is on
-// the way, waiting or failed): the text is a note for ✨, Send sends the draft.
+// The box only talks to the AI: no draft, ✨ drafts (the text is the
+// instruction); a draft on the way, ✨ redoes it with the text as the note.
 function updateComposer() {
   const ta = $('#ctext');
   if (!ta || !chat) return;
-  const p = chatPerson(), r = activeReq(chat.id), d = chat.data, reach = d?.reach || {}, can = Object.keys(reach);
-  if (!can.includes(chat.channel)) chat.channel = defaultChannel(d);
-  const draftMsg = r?.status === 'pending' && r.kind === 'message';
-  const ch = draftMsg ? r.channel : chat.channel, typed = ta.value.trim(), first = p.name.split(' ')[0] || 'them';
-  $('#ctog').innerHTML = d && p.phones.length && p.emails.length && (!r || draftMsg) ? ['whatsapp', 'email'].map((k) => {
-    const off = !(k in reach);
-    return `<button type="button" class="ib" data-ch="${k}" aria-pressed="${ch === k}" aria-label="${CHANNELS[k]}" title="${off ? 'Not found on WhatsApp' : `Write on ${CHANNELS[k]}`}"${off ? ' aria-disabled="true"' : ''}>${icon(k === 'email' ? 'mail' : 'wa')}</button>`;
-  }).join('') : '';
-  const subj = $('#csubj');
-  subj.hidden = Boolean(r) || ch !== 'email';
-  if (!subj.hidden && chat.subject == null) chat.subject = replySubject(d?.messages);
-  if (!subj.hidden && subj.value !== chat.subject) subj.value = chat.subject;
-  ta.placeholder = r ? 'Tell the AI what to change… (⌘J)' : `Message ${first}… (⌘J to draft, ⌘↩ to send)`;
-  ta.setAttribute('aria-label', r ? `Note to the AI about the draft for ${p.name}` : `Message to ${p.name}`);
-  const spark = $('#cspark'), sparkLabel = r?.status === 'generating' ? 'Drafting…' : r ? 'Regenerate the draft with your note (⌘J)' : 'Draft with AI (⌘J)';
+  const p = chatPerson(), r = activeReq(chat.id), d = chat.data, typed = ta.value.trim();
+  const none = d && !Object.keys(d.reach || {}).length;
+  ta.placeholder = r ? 'Tell the AI what to change…' : 'Ask AI to draft a message…';
+  ta.setAttribute('aria-label', r ? `Note to the AI about the draft for ${p.name}` : `Ask the AI to draft a message to ${p.name}`);
+  const spark = $('#cspark'), off = !d ? 'Loading…' : none ? 'No email or phone in the CRM' : r?.status === 'generating' ? 'The draft is on its way' : '';
+  const sparkLabel = off || (r ? 'Redo the draft with your note (Enter)' : 'Draft with AI (Enter)');
   spark.setAttribute('aria-label', sparkLabel); spark.title = sparkLabel;
-  spark.setAttribute('aria-disabled', r?.status === 'generating' || !chat.data);
-  const discard = $('#draftbox [data-dact=discard]');
-  if (discard) { const l = `Discard draft${typed ? ` (reason: “${typed}”)` : ''}`; discard.setAttribute('aria-label', l); discard.title = l; }
-  // The send button: what it does, and why not when it can't.
-  const email = ch === 'email', smtpOff = email && !sources.smtp ? 'Email sending is not set up' : '';
-  let label = email ? 'Send' : 'Open WA', why;
-  if (!r) why = !d ? 'Loading…' : !can.length ? 'No email or phone in the CRM' : !typed ? 'Type a message, or press ✨ for a draft' : smtpOff || (email && !chat.subject?.trim() ? 'Add a subject' : '');
-  else if (r.status === 'pending') {
-    if (r.kind === 'meeting') label = 'Done';
-    else if (email) label = 'Send draft';
-    why = typed ? 'Press ✨ to apply your note, or clear it' : r.kind === 'meeting' ? '' : smtpOff;
-  } else why = r.status === 'generating' ? 'The draft is on its way' : 'The draft failed: press ✨ to try again';
-  if (chat.sending) { why = 'Sending…'; label = email ? 'Sending…' : 'Opening…'; }
-  const send = $('#csend');
-  send.innerHTML = `${icon(r?.kind === 'meeting' ? 'done' : email ? 'send' : 'wa')}${label}`;
-  send.setAttribute('aria-disabled', Boolean(why));
-  send.title = why || (r?.kind === 'meeting' ? 'I offered the meeting (⌘↩)' : email ? 'Send the email (⌘↩)' : 'Open WhatsApp with this message (⌘↩)');
-  const hint = chat.error || (!d ? '' : !can.length ? 'No email or phone in the CRM.' : ch === 'whatsapp' && !d.waKnown ? 'WhatsApp: number not found — may not arrive.' : smtpOff ? `${smtpOff} (SMTP in .env).` : '');
+  spark.setAttribute('aria-disabled', Boolean(off));
+  // The draft's buttons follow the box: × takes the text as the reason; ↑ waits until it's applied or cleared.
+  const x = $('#draftbox [data-dact=discard]');
+  if (x) { const l = `${x.dataset.label}${typed ? ` (reason: “${typed}”)` : ''}`; x.setAttribute('aria-label', l); x.title = l; }
+  const go = $('#draftbox [data-dact=send]');
+  if (go) {
+    const why = chat.sending ? 'Sending…' : go.dataset.off || (typed ? 'Press Enter to apply your note, or clear it' : '');
+    go.setAttribute('aria-disabled', Boolean(why)); go.title = why || go.dataset.label;
+  }
+  const hint = chat.error || (none ? 'No email or phone in the CRM.' : '');
   $('#chint').textContent = hint; $('#chint').hidden = !hint; $('#chint').classList.toggle('err', Boolean(chat.error));
 }
-
-const replySubject = (messages = []) => {
-  const last = messages.filter((m) => m.channel === 'email').at(-1);
-  return last ? `Re: ${(last.subject || '').replace(/^(re:\s*)+/i, '')}` : '';
-};
 
 const renderNewPill = () => {
   const b = $('#newpill');
@@ -948,7 +927,7 @@ function stick(render) {
 function openChat(id) {
   if (chat?.id === id) return;
   saveComposer();
-  chat = { id, data: hist.get(id) || null, all: false, unseen: 0, channel: null, picked: false, subject: null, error: '', sending: false };
+  chat = { id, data: hist.get(id) || null, all: false, unseen: 0, error: '', sending: false };
   renderChat();
   if (!chat.data) loadChat();
   markReadSoon();
@@ -971,55 +950,29 @@ async function loadChat(fresh = false) {
   renderNewPill();
 }
 
-async function sendOwn() {
-  const ta = $('#ctext'), id = chat.id, channel = chat.channel;
-  chat.sending = true; chat.error = ''; updateComposer();
-  try {
-    const r = await api(`/api/people/${enc(id)}/send`, { method: 'POST', headers: JSON_HEADERS,
-      body: JSON.stringify({ channel, text: ta.value, subject: channel === 'email' ? chat.subject : '' }) });
-    requests.push(r);
-    composerText.delete(id);
-    if (chat?.id === id) { ta.value = ''; grow(ta); chat.subject = null; }
-    announce(channel === 'email' ? `Email sent to ${r.personName}` : `Opened WhatsApp for ${r.personName}`);
-    rerenderTasks(); // messaged today: drops out of Tasks
-  } catch (e) { if (chat?.id === id) chat.error = `Not sent: ${e.message}`; announce(`Not sent: ${e.message}`); }
-  if (chat?.id !== id) return;
-  chat.sending = false;
-  stick(renderMessages); updateComposer(); ta.focus();
-}
-
 async function sendDraft(r) {
-  const box = $(`#draftbox [data-req="${CSS.escape(r.id)}"]`), id = chat.id;
-  clearTimeout(editTimers[r.id]);
-  const text = box?.querySelector('[data-edit=text]')?.value, subject = box?.querySelector('[data-edit=subject]')?.value;
-  chat.sending = true; chat.error = ''; updateComposer();
+  const id = chat.id;
+  chat.sending = true; chat.error = ''; renderDraft(); updateComposer();
   try {
-    await requestAction(r, 'send', { text, subject });
+    await requestAction(r, 'send');
     announce(r.kind === 'meeting' ? `Meeting offer done for ${r.personName}` : r.channel === 'email' ? `Email sent to ${r.personName}` : `Opened WhatsApp for ${r.personName}`);
-    rerenderTasks();
+    rerenderTasks(); // messaged today: drops out of Tasks
   } catch (e) { if (chat?.id === id) chat.error = `Not sent: ${e.message}`; announce(`Not sent: ${e.message}`); }
   if (chat?.id !== id) return;
   chat.sending = false;
   renderDraft(); stick(renderMessages); updateComposer(); $('#ctext').focus();
 }
 
-function send() {
-  if (!chat) return;
-  const b = $('#csend');
-  if (b.getAttribute('aria-disabled') === 'true') return announce(b.title);
-  const r = activeReq(chat.id);
-  return r ? sendDraft(r) : sendOwn();
-}
-
 // ✨: a first draft (the typed text is the instruction), or a new version of
 // the current one (the typed text is the note about it).
 async function spark() {
-  if (!chat || $('#cspark').getAttribute('aria-disabled') === 'true') return;
-  const id = chat.id, r = activeReq(id), ta = $('#ctext'), note = ta.value.trim(), channel = chat.picked ? chat.channel : null;
+  if (!chat) return;
+  if ($('#cspark').getAttribute('aria-disabled') === 'true') return announce($('#cspark').title);
+  const id = chat.id, r = activeReq(id), ta = $('#ctext'), note = ta.value.trim();
   chat.error = '';
   try {
-    const out = r ? await requestAction(r, 'regenerate', { note, channel })
-      : (await api('/api/requests', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ personIds: [id], instruction: note, channel }) }))[0];
+    const out = r ? await requestAction(r, 'regenerate', { note })
+      : (await api('/api/requests', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ personIds: [id], instruction: note }) }))[0];
     if (!out) throw new Error('There is no email or WhatsApp to write to, or a draft is already waiting');
     composerText.delete(id);
     if (chat?.id === id) { ta.value = ''; grow(ta); }
@@ -1039,18 +992,6 @@ async function discard(r) {
   } catch (e) { if (chat?.id === id) chat.error = e.message; }
   if (chat?.id !== id) return;
   renderDraft(); updateComposer(); rerenderTasks(); ta.focus();
-}
-
-// The toggle picks the channel; on a waiting draft it switches the draft (no AI run).
-async function pickChannel(k) {
-  const r = activeReq(chat.id);
-  chat.channel = k; chat.picked = true; chat.error = '';
-  if (r?.status === 'pending' && r.kind === 'message' && r.channel !== k) {
-    try { Object.assign(r, await api(`/api/requests/${enc(r.id)}`, { method: 'PUT', headers: JSON_HEADERS, body: JSON.stringify({ channel: k }) })); renderDraft(); }
-    catch (e) { chat.error = e.message; }
-  }
-  updateComposer();
-  $(`#ctog [data-ch="${k}"]`)?.focus();
 }
 
 // A chat is read once it has been open and on screen for a second (so arrowing
@@ -1117,6 +1058,45 @@ function listKeys(e, rows, i, search) {
   if (!narrow()) pick(row.dataset.id, { delay: 150 });
 }
 
+// ---- list width: a divider in Tasks and Messages, one shared width (--feed-w),
+// remembered per browser. Drag, ←/→ (Shift: more), Home/End; double-click resets.
+const rootCss = (name) => parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
+const FEED = { def: rootCss('--feed-w'), min: rootCss('--feed-min'), max: rootCss('--feed-max'), step: 16 };
+let feedW = FEED.def;
+const feedMax = () => Math.max(FEED.min, Math.min(FEED.max, innerWidth - rootCss('--rail') - rootCss('--chat-min')));
+function setFeed(w, save) {
+  feedW = Math.round(Math.min(FEED.max, Math.max(FEED.min, w)));
+  document.documentElement.style.setProperty('--feed-w', `${feedW}px`);
+  renderGutters();
+  try { if (save === 'reset') localStorage.removeItem('feedW'); else if (save) localStorage.setItem('feedW', feedW); } catch {}
+}
+function renderGutters() {
+  const max = feedMax(), now = Math.min(feedW, max);
+  for (const g of document.querySelectorAll('.gutter')) {
+    g.setAttribute('aria-valuemin', FEED.min); g.setAttribute('aria-valuemax', max);
+    g.setAttribute('aria-valuenow', now); g.setAttribute('aria-valuetext', `${now} pixels`);
+  }
+}
+try { setFeed(Number(localStorage.getItem('feedW')) || FEED.def, false); } catch { setFeed(FEED.def, false); }
+addEventListener('resize', renderGutters);
+for (const g of document.querySelectorAll('.gutter')) {
+  g.addEventListener('pointerdown', (e) => {
+    if (e.button) return;
+    e.preventDefault(); g.setPointerCapture(e.pointerId); document.body.classList.add('resizing');
+  });
+  g.addEventListener('pointermove', (e) => {
+    if (g.hasPointerCapture(e.pointerId)) setFeed(Math.min(feedMax(), e.clientX - g.parentElement.getBoundingClientRect().left), false);
+  });
+  g.addEventListener('lostpointercapture', () => { document.body.classList.remove('resizing'); setFeed(feedW, true); });
+  g.addEventListener('dblclick', () => { setFeed(FEED.def, 'reset'); announce('List width reset'); });
+  g.addEventListener('keydown', (e) => {
+    const step = e.shiftKey ? FEED.step * 4 : FEED.step, now = Math.min(feedW, feedMax());
+    const next = { ArrowLeft: now - step, ArrowRight: now + step, Home: FEED.min, End: feedMax() }[e.key];
+    if (next == null) return;
+    e.preventDefault(); setFeed(Math.min(feedMax(), next), true);
+  });
+}
+
 // ---- Messages: every CRM contact with a conversation, newest first
 let prevUnread = null, listHover = false, corder = [], incoming = [], incomingTimer;
 async function loadChats() {
@@ -1143,11 +1123,11 @@ function announceIncoming(list) {
 
 function renderChatRow(c) {
   const st = c.stage, n = c.unread, l = c.last, id = esc(c.id);
-  const tag = c.channels.length > 1 ? `<span class="tag ${l.channel}">${l.channel === 'email' ? 'Email' : 'WA'}</span> ` : '';
-  const label = [c.name, st?.label, n && `${n} unread`, `${CHANNELS[l.channel]} ${chatTime(l.at)}: ${l.fromMe ? 'You: ' : ''}${l.text || 'Message'}`].filter(Boolean).join(', ');
+  const label = [c.name, st?.label, n && `${n} unread`, `${chatTime(l.at)}: ${l.fromMe ? 'You: ' : ''}${l.text || 'Message'}`].filter(Boolean).join(', ');
   return `<li><button type="button" class="crow${n ? ' unread' : ''}" id="crow-${id}" data-id="${id}"${sel.messages === c.id ? ' aria-current="true"' : ''} aria-controls="chat" aria-label="${esc(label)}">
-    <span class="tn">${esc(c.name)}</span><span class="when">${timeTag(l.at, chatTime(l.at))}</span>
-    <span class="prev">${st ? `<span class="sd" style="--st: ${stageColor(st.rank)}"></span>${esc(st.label)} · ` : ''}${tag}${l.fromMe ? 'You: ' : ''}<span class="t">${l.text ? esc(l.text) : '<i>Message</i>'}</span></span>
+    <span class="cn"><span class="tn">${esc(c.name)}</span>${st ? `<span class="sd" style="--st: ${stageColor(st.rank)}"></span><span class="stage-l">${esc(st.label)}</span>` : ''}</span>
+    <span class="when">${timeTag(l.at, chatTime(l.at))}</span>
+    <span class="prev">${l.fromMe ? 'You: ' : ''}<span class="t">${l.text ? esc(l.text) : '<i>Message</i>'}</span></span>
     ${n ? `<span class="unread-n">${n > 99 ? '99+' : n}</span>` : ''}</button></li>`;
 }
 
@@ -1294,22 +1274,17 @@ chatEl.addEventListener('click', (e) => {
     return th.focus({ preventScroll: true });
   }
   if (bodyClick(e)) return;
-  const ch = t.closest('[data-ch]');
-  if (ch) return ch.getAttribute('aria-disabled') === 'true' ? announce(ch.title) : pickChannel(ch.dataset.ch);
   if (t.closest('#cspark')) return spark();
-  if (t.closest('#csend')) return send();
-  if (t.closest('[data-dact=discard]')) { const r = activeReq(chat.id); if (r) discard(r); }
+  const act = t.closest('[data-dact]'), r = act && activeReq(chat.id);
+  if (!r) return;
+  if (act.getAttribute('aria-disabled') === 'true') return announce(act.title);
+  return act.dataset.dact === 'send' ? sendDraft(r) : discard(r);
 });
-chatEl.addEventListener('input', (e) => {
-  const t = e.target;
-  if (t.id === 'ctext') { grow(t); return updateComposer(); }
-  if (t.id === 'csubj') { chat.subject = t.value; return updateComposer(); }
-  const box = t.closest('[data-req]'), r = box && requests.find((x) => x.id === box.dataset.req);
-  if (r && t.dataset.edit) { grow(t); editDraft(box, r); }
-});
+chatEl.addEventListener('input', (e) => { if (e.target.id === 'ctext') { grow(e.target); updateComposer(); } });
+// The box never goes to a client: Enter asks the AI, Shift+Enter is a new line.
 chatEl.addEventListener('keydown', (e) => {
-  if (e.metaKey && e.key === 'Enter') { e.preventDefault(); return send(); }
-  if ((e.metaKey && e.key === 'j') || (e.altKey && e.key === 'Enter')) { e.preventDefault(); return spark(); }
+  const enter = e.key === 'Enter' && !e.isComposing && e.target.id === 'ctext' && !e.shiftKey;
+  if (enter || (e.metaKey && e.key === 'j') || (e.altKey && e.key === 'Enter')) { e.preventDefault(); return spark(); }
   if (e.key !== 'Escape') return;
   e.preventDefault();
   if (e.target.closest('#draftbox')) return $('#ctext').focus();
@@ -1318,9 +1293,6 @@ chatEl.addEventListener('keydown', (e) => {
 chatEl.addEventListener('scroll', (e) => {
   if (e.target.id === 'thread' && chat?.unseen && atBottom(e.target)) { chat.unseen = 0; renderNewPill(); }
 }, true);
-chatEl.addEventListener('focusout', () => setTimeout(() => {
-  if (draftDefer && chat && !$('#draftbox')?.contains(document.activeElement)) renderDraft();
-}));
 
 document.addEventListener('keydown', (e) => {
   const a = document.activeElement, typing = a?.matches('input, textarea, [contenteditable=true]');
@@ -1334,6 +1306,7 @@ setInterval(() => { renderHeader(); rerenderTasks(); renderChatList(); }, 30_000
 // ---- AI: drafts are requests waiting for the user (see /api/requests)
 const ICONS = {
   draft: 'M4 10h11M11 6l4 4-4 4',
+  up: 'M10 16V4M5 9l5-5 5 5',
   spark: 'M10 2.5l1.4 3.6 3.6 1.4-3.6 1.4L10 12.5 8.6 8.9 5 7.5l3.6-1.4zM15.5 12.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z',
   mail: 'M3 5h14v10H3zM3 5.5l7 5.5 7-5.5',
   cal: 'M4 5h12v11H4zM4 8.5h12M7.5 3v3.5M12.5 3v3.5',
@@ -1558,8 +1531,7 @@ function editDraft(card, r) {
   cardStatus(card, 'Saving…');
   clearTimeout(editTimers[r.id]);
   editTimers[r.id] = setTimeout(async () => {
-    // The card or the chat's draft bubble, whichever is on screen now.
-    const where = () => (card.isConnected ? card : document.getElementById(`card-${r.id}`) || $(`#draftbox [data-req="${CSS.escape(r.id)}"]`));
+    const where = () => (card.isConnected ? card : document.getElementById(`card-${r.id}`));
     try { await api(`/api/requests/${encodeURIComponent(r.id)}`, { method: 'PUT', headers: JSON_HEADERS, body: JSON.stringify({ text: r.text, subject: r.subject }) }); cardStatus(where(), 'Saved'); }
     catch (e) { cardStatus(where(), `Not saved: ${e.message}`, true); }
   }, 600);
