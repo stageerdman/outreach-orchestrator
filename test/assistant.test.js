@@ -217,3 +217,19 @@ test('a draft keeps its channel and instruction; regenerate links the new versio
   assert.deepEqual([next.previousId, next.instruction, next.channel], [first.id, 'hezčí', null]);
   assert.equal((await settle(next.id)).channel, 'whatsapp');
 });
+
+test('a regenerate sees every earlier version: each instruction, the AI text and the user\'s edit', () => {
+  const v1 = { id: 'v1', status: 'regenerated', kind: 'message', channel: 'email', createdAt: '2026-11-09T08:00:00Z', instruction: 'mention the discount',
+    aiText: 'Hi Jana, 10% off.', aiSubject: 'Offer', text: 'Dear Jana, 10% off.', subject: 'Offer', note: 'shorter' };
+  const v2 = { id: 'v2', status: 'regenerated', kind: 'message', channel: 'email', createdAt: '2026-11-09T09:00:00Z', instruction: 'shorter', previousId: 'v1',
+    aiText: '10% off.', aiSubject: 'Offer', text: '10% off.', subject: 'Offer', note: 'keep the greeting' };
+  const all = { v1, v2 }, revisions = ai.revisionsOf({ id: 'v3', previousId: 'v2' }, (id) => all[id]);
+  assert.deepEqual(revisions.map((r) => r.id), ['v1', 'v2']);
+  const s = ai.contextPrompt({ person, drafts: [v1, v2], revisions, instruction: 'keep the greeting', onWa });
+  for (const part of ['you are writing version 3', '## Version 1', 'The user asked: "mention the discount"', 'You wrote (Email):\nSubject: Offer\nHi Jana, 10% off.',
+    'The user edited it to:\nSubject: Offer\nDear Jana, 10% off.', '## Version 2', 'The user asked: "shorter"', '## Version 3 (now)\nThe user asked: "keep the greeting"'])
+    assert.ok(s.includes(part), part);
+  assert.ok(!s.includes('Your earlier drafts'), 'the chain is not repeated in the drafts list');
+  assert.ok(!s.slice(s.indexOf('## Version 2')).includes('edited it to'), 'an unedited version has no edit');
+  assert.ok(!s.includes('instruction for this draft'));
+});
