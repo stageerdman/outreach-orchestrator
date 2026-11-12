@@ -2,7 +2,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { crmSource } from './lib/crm.js';
 import { emailConfigured, smtpConfigured } from './lib/email.js';
-import { whatsappConfigured } from './lib/whatsapp.js';
+import { whatsappConfigured, whatsappKnown } from './lib/whatsapp.js';
 import { listTemplates, saveTemplate, deleteTemplate } from './lib/templates.js';
 import { refresh, syncState, snapshotPeople, restoreSnapshot, startLive } from './lib/sync.js';
 import { chatList, markRead } from './lib/chats.js';
@@ -91,8 +91,8 @@ createServer(async (req, res) => {
     // AI requests: drafts waiting for the user (and their history).
     if (url.pathname === '/api/requests') {
       if (req.method === 'POST') {
-        const { personIds = [], instruction = '' } = await readBody(req);
-        return json(res, 202, ai.draft(personIds, instruction));
+        const { personIds = [], instruction = '', channel = null } = await readBody(req);
+        return json(res, 202, ai.draft(personIds, instruction, { channel }));
       }
       return json(res, 200, ai.listForUi());
     }
@@ -105,7 +105,7 @@ createServer(async (req, res) => {
       const [, id, action] = r, body = await readBody(req);
       try {
         const out = action === 'send' ? await ai.approve(id, body)
-          : action === 'regenerate' ? ai.regenerate(id, body.note)
+          : action === 'regenerate' ? ai.regenerate(id, body.note, body.channel)
           : action === 'cancel' ? ai.cancel(id, body.note)
           : action === 'recover' ? ai.recover(id)
           : ai.editRequest(id, body);
@@ -157,8 +157,9 @@ createServer(async (req, res) => {
       if (m[2] === 'send' && req.method === 'POST') {
         try { return json(res, 200, await sendOwn(person, await readBody(req))); } catch (e) { return json(res, e.status || 502, { error: e.message }); }
       }
+      // reach: where the composer can write (ai.channelsOf); waKnown: the number is on WhatsApp.
       const { messages, errors, ...rest } = person;
-      return json(res, 200, { person: rest, messages, errors });
+      return json(res, 200, { person: rest, messages, errors, reach: ai.channelsOf(person), waKnown: person.phones.some(whatsappKnown) });
     }
     // Messages: every contact with a conversation, newest first, with unread counts.
     if (url.pathname === '/api/chats') return json(res, 200, chatList(snapshotPeople()));

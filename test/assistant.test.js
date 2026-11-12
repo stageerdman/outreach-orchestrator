@@ -1,11 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const dir = mkdtempSync(join(tmpdir(), 'outreach-ai-'));
 process.env.OUTREACH_DATA_DIR = dir;
+process.env.WHATSAPP_DB = join(dir, 'none.db'); // no bridge: every number counts as on WhatsApp
+// A fake `claude -p` that always answers with a WhatsApp message.
+process.env.CLAUDE_BIN = join(dir, 'claude');
+writeFileSync(process.env.CLAUDE_BIN, `#!/bin/sh\ncat >/dev/null\necho '${JSON.stringify({ structured_output: {
+  action: 'message', channel: 'whatsapp', subject: 'S', text: 'Ahoj', templateId: null, playbookId: null, stepId: null, reasoning: '' } })}'\n`, { mode: 0o755 });
 const ai = await import('../lib/assistant.js');
 const store = await import('../lib/requests.js');
 const { claudeArgs } = await import('../lib/claude.js');
@@ -167,4 +172,42 @@ test('a draft names the playbook step it followed, only if that step exists', ()
   const sys = ai.systemPrompt({ draftPrompt: 'P', stylePrompt: '', styleGuide: '' }, [], [{ id: 'na', name: 'NA', stages: [], situation: 'no-reply', goal: '', steps: [], responses: [], lessons: [] }]);
   assert.ok(sys.includes('# Playbooks\nOur follow-up strategy') && sys.includes('## na · NA'));
   assert.ok(!ai.systemPrompt({ draftPrompt: 'P', stylePrompt: '', styleGuide: '' }, [], []).includes('# Playbooks'));
+});
+
+test('a draft can be held to one channel; an unknown one leaves the choice to the AI', () => {
+  assert.deepEqual(ai.draftChannels(person, 'email', onWa), ['email']);
+  assert.deepEqual(ai.draftChannels(person, null, onWa), ['whatsapp', 'email']);
+  assert.deepEqual(ai.draftChannels(person, 'whatsapp', noWa), ['email']);
+});
+
+test('reply subject: Re: the last email, once', () => {
+  assert.equal(ai.replySubject(person.messages), 'Re: Cena');
+  assert.equal(ai.replySubject([{ channel: 'email', subject: 'Re: RE: Cena' }]), 'Re: Cena');
+  assert.equal(ai.replySubject([]), '');
+});
+
+test('switching a waiting draft\'s channel fills or clears the subject, only to channels the person has', () => {
+  const r = store.createRequest(person, null, { status: 'pending', channel: 'whatsapp', text: 'Ahoj' });
+  assert.deepEqual([ai.editRequest(r.id, { channel: 'email' }, [person], onWa)].map((x) => [x.channel, x.subject, x.text]), [['email', 'Re: Cena', 'Ahoj']]);
+  assert.equal(ai.editRequest(r.id, { channel: 'whatsapp' }, [person], onWa).subject, '');
+  assert.throws(() => ai.editRequest(r.id, { channel: 'email' }, [{ ...person, emails: [] }], onWa), /Email isn't available/);
+  store.updateRequest(r.id, { status: 'cancelled' });
+});
+
+test('a draft keeps its channel and instruction; regenerate links the new version to the old', async () => {
+  const { setJSON } = await import('../lib/cache.js');
+  const { restoreSnapshot } = await import('../lib/sync.js');
+  setJSON('snapshot', { at: null, people: [{ ...person, id: 'c9' }] });
+  restoreSnapshot();
+  const settle = async (id) => { for (let i = 0; i < 100 && store.getRequest(id).status === 'generating'; i++) await new Promise((ok) => setTimeout(ok, 20)); return store.getRequest(id); };
+  const [first] = ai.draft(['c9'], 'kratší', { channel: 'email' });
+  assert.deepEqual([first.channel, first.instruction, first.previousId], ['email', 'kratší', null]);
+  const done = await settle(first.id);
+  assert.equal(done.status, 'pending', done.error);
+  assert.equal(done.channel, 'email', 'the AI answered WhatsApp, held to email');
+  store.updateRequest(first.id, { status: 'failed' }); // a failed one: regenerate skips playbook learning
+  const next = ai.regenerate(first.id, 'hezčí');
+  assert.equal(store.getRequest(first.id).note, 'hezčí');
+  assert.deepEqual([next.previousId, next.instruction, next.channel], [first.id, 'hezčí', null]);
+  assert.equal((await settle(next.id)).channel, 'whatsapp');
 });
