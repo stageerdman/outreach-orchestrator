@@ -4,7 +4,10 @@ import { crmSource } from './lib/crm.js';
 import { emailConfigured, smtpConfigured } from './lib/email.js';
 import { whatsappConfigured } from './lib/whatsapp.js';
 import { listTemplates, saveTemplate, deleteTemplate } from './lib/templates.js';
-import { refresh, syncState, snapshotPeople, restoreSnapshot } from './lib/sync.js';
+import { refresh, syncState, snapshotPeople, restoreSnapshot, startLive } from './lib/sync.js';
+import { chatList, markRead } from './lib/chats.js';
+import { events } from './lib/events.js';
+import { createRequest, updateRequest } from './lib/requests.js';
 import { getSettings, saveSettings, DRAFT_PROMPT, STYLE_PROMPT, COACH_PROMPT, BUILD_PROMPT, MODELS } from './lib/settings.js';
 import { listPlaybooks, listChanges, applyOperations, undoChange } from './lib/playbooks.js';
 import { buildPlaybooks, coachState } from './lib/coach.js';
@@ -12,6 +15,42 @@ import * as ai from './lib/assistant.js';
 
 const PORT = Number(process.env.PORT || 3000);
 restoreSnapshot();
+
+// The Tasks feed: people in Fronta's list (queue set; a CRM without queues
+// puts everyone in), in Fronta order when there is one.
+const inFeed = (p) => p.queue !== null;
+const feed = (people) => {
+  const out = people.filter(inFeed);
+  return out.some((p) => p.queue?.order != null) ? out.sort((a, b) => (a.queue?.order ?? Infinity) - (b.queue?.order ?? Infinity)) : out;
+};
+const findPerson = (id) => snapshotPeople().find((p) => p.id === decodeURIComponent(id));
+
+// Server-Sent Events: the UI's live stream (see lib/events.js for the events).
+const STREAM = ['snapshot', 'messages', 'requests'];
+function stream(req, res) {
+  res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
+  res.write('retry: 3000\n\n');
+  const on = Object.fromEntries(STREAM.map((name) => [name, (data) => res.write(`event: ${name}\ndata: ${JSON.stringify(data)}\n\n`)]));
+  for (const name of STREAM) events.on(name, on[name]);
+  const ping = setInterval(() => res.write(': ping\n\n'), 25_000);
+  req.on('close', () => {
+    clearInterval(ping);
+    for (const name of STREAM) events.off(name, on[name]);
+  });
+}
+
+// The user's own message from the composer: recorded as a request and sent
+// exactly like an approved draft (email over SMTP as a reply, WhatsApp opens
+// prefilled and counts as sent).
+async function sendOwn(person, { channel, text, subject }) {
+  if (!['email', 'whatsapp'].includes(channel)) throw Object.assign(new Error('channel must be email or whatsapp'), { status: 400 });
+  if (!text?.trim()) throw Object.assign(new Error('Nothing to send'), { status: 400 });
+  const r = createRequest(person, ai.contextOf(person), { kind: 'message', channel, text, subject: subject ?? '', status: 'pending', own: true });
+  try { return await ai.approve(r.id, { text, subject }); } catch (e) {
+    updateRequest(r.id, { status: 'failed', error: e.message });
+    throw e;
+  }
+}
 
 const readBody = async (req) => {
   let s = '';
@@ -105,22 +144,37 @@ createServer(async (req, res) => {
       if (req.method === 'POST') refresh();
       return json(res, req.method === 'POST' ? 202 : 200, syncState());
     }
-    // The list without message bodies; history is fetched per person on expand.
+    // The feed without message bodies; history is fetched per person.
     if (url.pathname === '/api/people') {
       // lastSentAt / lastClientAt: the UI hides people already messaged today.
-      return json(res, 200, snapshotPeople().map(({ messages = [], ...p }) => ({ ...p,
+      return json(res, 200, feed(snapshotPeople()).map(({ messages = [], ...p }) => ({ ...p,
         lastSentAt: messages.findLast((m) => m.fromMe)?.at ?? null, lastClientAt: messages.findLast((m) => !m.fromMe)?.at ?? null })));
     }
-    const m = url.pathname.match(/^\/api\/people\/([^/]+)\/history$/);
+    const m = url.pathname.match(/^\/api\/people\/([^/]+)\/(history|send)$/);
     if (m) {
-      const person = snapshotPeople().find((p) => p.id === decodeURIComponent(m[1]));
+      const person = findPerson(m[1]);
       if (!person) return json(res, 404, { error: 'Person not found' });
+      if (m[2] === 'send' && req.method === 'POST') {
+        try { return json(res, 200, await sendOwn(person, await readBody(req))); } catch (e) { return json(res, e.status || 502, { error: e.message }); }
+      }
       const { messages, errors, ...rest } = person;
       return json(res, 200, { person: rest, messages, errors });
     }
+    // Messages: every contact with a conversation, newest first, with unread counts.
+    if (url.pathname === '/api/chats') return json(res, 200, chatList(snapshotPeople()));
+    const c = url.pathname.match(/^\/api\/chats\/([^/]+)\/read$/);
+    if (c && req.method === 'POST') {
+      const person = findPerson(c[1]);
+      return person ? json(res, 200, { id: person.id, readAt: markRead(person) }) : json(res, 404, { error: 'Person not found' });
+    }
+    if (url.pathname === '/api/events') return stream(req, res);
     json(res, 404, { error: 'Not found' });
   } catch (e) {
     console.error(e);
     json(res, 500, { error: e.message });
   }
-}).listen(PORT, () => console.log(`Outreach running at http://localhost:${PORT}`));
+}).listen(PORT, () => {
+  console.log(`Outreach running at http://localhost:${PORT}`);
+  refresh(); // the restored snapshot keeps serving meanwhile
+  startLive();
+});
