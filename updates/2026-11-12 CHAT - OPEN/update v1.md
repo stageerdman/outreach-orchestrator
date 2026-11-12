@@ -201,3 +201,10 @@ WhatsApp messages show up within seconds.
       "To be booked" (id `answered`), Waiting for Payment into "Thinking about
       it" (`thinking`); the rest kept. 6 playbooks; "No Show" / "Installment"
       names renamed by hand to the category names (user edits, undoable).
+
+## Status (2026-11-12, paused)
+- Done through phase 7; app running the new code (Outreach.app restarted).
+- Next, when we resume: confirm the two category exceptions with the user,
+  decide on Tasks group names (NOVÝ LEAD / NO SHOW) vs. the categories, and
+  whether cancelled drafts / Recover should come back in the chat (all in
+  issues.txt). Learning has 11 of 15 lessons collected.

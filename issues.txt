@@ -30,3 +30,12 @@ Running list. Resolved items move to the relevant update's wiki.md.
       timezone, while "messaged today" and the AI use Prague time. Align if
       the user works from another timezone often.
 
+- [ ] 2026-11-12 Dropping the AI Requests view removed the UI for cancelled
+      drafts (History) and "Recover"; `POST /api/requests/:id/recover` still
+      exists. Bring back in the chat if the user misses it.
+- [ ] 2026-11-12 Category exceptions to "Fronta group wins" (NOVÝ LEAD doesn't
+      override the history; Installments always stays) were my call, pending
+      the user's OK. See `categoryOf` in lib/resultson.js.
+- [ ] 2026-11-12 Tasks group headers still show Fronta's Czech names
+      (NOVÝ LEAD, NO SHOW) next to the English categories; rename if the user
+      wants one vocabulary.
