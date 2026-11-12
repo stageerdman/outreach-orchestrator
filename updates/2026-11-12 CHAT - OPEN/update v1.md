@@ -61,15 +61,36 @@ WhatsApp messages show up within seconds.
   SPLÁTKY 1, NEDOVOLANÉ 26, LEADY KOLEGŮ 25 (no live meetings today, so no
   TRIÁŽ / POTVRZENÍ / NOVÝ LEAD rows). CRM 1.6 s cold (login ~0.7 s),
   0.8–0.9 s with the token reused (was 3.1 s).
-### 2. Fast refresh + live — next
-- [ ] Refresh on server start; CRM + WhatsApp publish first, email merges in.
-- [ ] One long-lived IMAP connection (IDLE on INBOX) instead of a new one
-      per refresh; new mail merges in.
-- [ ] WhatsApp watcher on the bridge DB (read-only, ~1 s) → SSE.
-- [ ] Backfill in the background, never blocking; chats that time out or
-      return nothing aren't re-asked every refresh.
-- [ ] `/api/chats`, read state (app data folder), `/api/events`, `send`.
-- Ends with: tests; refresh timed before/after on real data.
+### 2. Fast refresh + live — done (2026-11-12)
+- [x] Refresh on server start; WhatsApp (local) publishes first, email merges
+      in; `running` ends when data is complete, backfill is `state.backfill`.
+- [x] One long-lived IMAP connection resting on INBOX (IDLE → `exists`),
+      every folder checked every 2 min by STATUS, reconnect with backoff;
+      new mail re-collects only the people involved.
+- [x] WhatsApp watcher: `MAX(rowid)` on the bridge DB every second
+      (read-only) → re-collect those people → SSE `messages`.
+- [x] Backfill in the background; counts only older rows; short page =
+      complete; timeouts wait 12 h; ≤5 pages per chat per run.
+- [x] `/api/chats`, `/api/chats/:id/read` (`reads.json`), `/api/events`,
+      `/api/people/:id/send` (request with `own: true` + `ai.approve`).
+- [x] Tests: unread/chat list, staged merge, jid→person, watcher and
+      backfill skip on temp SQLite + a fake bridge. 91/91 pass.
+- Measured (real data, isolated copy of the app data):
+  - Before: data after 8.7 s, "refreshing" until 58.9 s (backfill of 14
+    chats + full republish); no refresh on start.
+  - After, on start: CRM + WhatsApp published at 2.2 s, email at 4.5 s
+    (`running` false); a second refresh 1.3 s. Bridge write → SSE event
+    median 0.6 s, max 0.9 s.
+  - First run with all 545 contacts downloads their email bodies once
+    (~50 s at this server's latency), then cached. The first backfill asks
+    about every CRM chat once (182), in the background.
+- API shapes: `/api/people` = feed people (`queue !== null`), sorted by
+  `queue.order`, `{ ...person, counts, lastAt, errors, lastSentAt,
+  lastClientAt }`. `/api/chats` = `[{ id, name, stage, channels (with
+  messages), last: { channel, at, fromMe, text ≤140 chars, one line },
+  unread }]`. `POST /api/chats/:id/read` → `{ id, readAt }`. SSE events:
+  `snapshot { at, stage }` (per published channel), `messages { ids }`,
+  `requests { id, personId, status }`, `: ping` every 25 s.
 ### 3. UI — after 1–2
 - [ ] UX specs from parallel UX agents (feed, chat column, Messages list).
 - [ ] Tasks: Fronta groups; click → chat column. Composer + ✨ draft flow.
