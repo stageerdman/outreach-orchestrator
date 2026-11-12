@@ -196,4 +196,8 @@ WhatsApp messages show up within seconds.
 - Verified (isolated data copy, port 3102): 257 chats → To be booked 112,
   Thinking 53, Not answered 44, No show 29, Installments 17, New lead 2;
   the 9 playbooks map onto the categories; `npm test` 103 pass.
-- [ ] Rebuild the playbooks from the existing ones (coach build run).
+- [x] Rebuilt from the existing playbooks (coach build run, ~4 min, no
+      error): Answered + Meeting Booked + Meeting Confirmed merged into
+      "To be booked" (id `answered`), Waiting for Payment into "Thinking about
+      it" (`thinking`); the rest kept. 6 playbooks; "No Show" / "Installment"
+      names renamed by hand to the category names (user edits, undoable).
