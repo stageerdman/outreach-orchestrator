@@ -7,7 +7,6 @@ import { listTemplates, saveTemplate, deleteTemplate } from './lib/templates.js'
 import { refresh, syncState, snapshotPeople, restoreSnapshot, startLive } from './lib/sync.js';
 import { chatList, markRead } from './lib/chats.js';
 import { events } from './lib/events.js';
-import { createRequest, updateRequest } from './lib/requests.js';
 import { getSettings, saveSettings, DRAFT_PROMPT, STYLE_PROMPT, COACH_PROMPT, BUILD_PROMPT, MODELS } from './lib/settings.js';
 import { listPlaybooks, listChanges, applyOperations, undoChange } from './lib/playbooks.js';
 import { buildPlaybooks, coachState } from './lib/coach.js';
@@ -37,19 +36,6 @@ function stream(req, res) {
     clearInterval(ping);
     for (const name of STREAM) events.off(name, on[name]);
   });
-}
-
-// The user's own message from the composer: recorded as a request and sent
-// exactly like an approved draft (email over SMTP as a reply, WhatsApp opens
-// prefilled and counts as sent).
-async function sendOwn(person, { channel, text, subject }) {
-  if (!['email', 'whatsapp'].includes(channel)) throw Object.assign(new Error('channel must be email or whatsapp'), { status: 400 });
-  if (!text?.trim()) throw Object.assign(new Error('Nothing to send'), { status: 400 });
-  const r = createRequest(person, ai.contextOf(person), { kind: 'message', channel, text, subject: subject ?? '', status: 'pending', own: true });
-  try { return await ai.approve(r.id, { text, subject }); } catch (e) {
-    updateRequest(r.id, { status: 'failed', error: e.message });
-    throw e;
-  }
 }
 
 const readBody = async (req) => {
@@ -150,13 +136,10 @@ createServer(async (req, res) => {
       return json(res, 200, feed(snapshotPeople()).map(({ messages = [], ...p }) => ({ ...p,
         lastSentAt: messages.findLast((m) => m.fromMe)?.at ?? null, lastClientAt: messages.findLast((m) => !m.fromMe)?.at ?? null })));
     }
-    const m = url.pathname.match(/^\/api\/people\/([^/]+)\/(history|send)$/);
+    const m = url.pathname.match(/^\/api\/people\/([^/]+)\/history$/);
     if (m) {
       const person = findPerson(m[1]);
       if (!person) return json(res, 404, { error: 'Person not found' });
-      if (m[2] === 'send' && req.method === 'POST') {
-        try { return json(res, 200, await sendOwn(person, await readBody(req))); } catch (e) { return json(res, e.status || 502, { error: e.message }); }
-      }
       // reach: where the composer can write (ai.channelsOf); waKnown: the number is on WhatsApp.
       const { messages, errors, ...rest } = person;
       return json(res, 200, { person: rest, messages, errors, reach: ai.channelsOf(person), waKnown: person.phones.some(whatsappKnown) });
