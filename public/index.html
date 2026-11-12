@@ -277,6 +277,7 @@
   .chat > .empty { margin: auto; }
   .chead { background: var(--panel); border-bottom: 1px solid var(--line); padding: var(--s3) var(--s4); }
   .ctitle { display: flex; align-items: center; gap: var(--s2); }
+  .walink { color: var(--wa); }
   .ctitle h2 { margin: 0; font-size: var(--fs-lg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .stage-l { color: var(--muted); font-size: var(--fs-sm); white-space: nowrap; }
   .thread { flex: 1; min-height: 0; overflow-y: auto; padding: var(--s4); display: flex; flex-direction: column; gap: var(--s2); }
@@ -793,10 +794,15 @@ function renderChat() {
   $('#thread').scrollTop = $('#thread').scrollHeight;
 }
 
+// Opens this person's chat in the WhatsApp app (the Mac app hands whatsapp:// links to macOS).
+function renderWaLink(p) {
+  const d = String(p.phones?.[0] || '').replace(/\D/g, '');
+  return d && chat.data?.waKnown ? `<a class="ib walink" href="whatsapp://send?phone=${d}" title="Open the chat in WhatsApp" aria-label="Open the chat with ${esc(p.name)} in WhatsApp">${icon('wa')}</a>` : '';
+}
 function renderChatHeader() {
   const p = chatPerson();
   $('#chead').innerHTML = `<button type="button" class="link back" data-act="back">‹ ${LIST_NAME[section] || 'Back'}</button>
-    <div class="ctitle"><h2>${esc(p.name)}</h2>${p.stage ? `<span class="sd" style="--st: ${stageColor(p.stage.rank)}" aria-hidden="true"></span><span class="stage-l">${esc(p.stage.label)}</span>` : ''}</div>
+    <div class="ctitle"><h2>${esc(p.name)}</h2>${renderWaLink(p)}${p.stage ? `<span class="sd" style="--st: ${stageColor(p.stage.rank)}" aria-hidden="true"></span><span class="stage-l">${esc(p.stage.label)}</span>` : ''}</div>
     ${renderContact(p, false)}`;
   $('#thread').setAttribute('aria-label', `Conversation with ${p.name}`);
 }
