@@ -86,3 +86,20 @@ test('the user\'s autosaves to one playbook fold into one change; undo goes back
   pb.applyOperations([{ op: 'setPlaybook', playbook: { ...p0 } }], { merge: true });
   assert.equal(pb.listChanges().length, n + 1, 'edited back to the start: no change left');
 });
+
+test('setStyle replaces the style guide as a logged change; undo only while nothing changed it since', async () => {
+  const { saveSettings, getSettings } = await import('../lib/settings.js');
+  saveSettings({ styleGuide: '# Styl\nPozdrav: Dobrý den.' });
+  const c = pb.applyOperations([{ op: 'setStyle', reason: 'shorter', styleGuide: '# Styl\nPozdrav: Dobrý den.\nBez emoji.' }], { trigger: { kind: 'batch', count: 15 } });
+  assert.deepEqual([c.ops[0].op, c.ops[0].before, c.ops[0].after], ['setStyle', '# Styl\nPozdrav: Dobrý den.', '# Styl\nPozdrav: Dobrý den.\nBez emoji.']);
+  assert.equal(getSettings().styleGuide, '# Styl\nPozdrav: Dobrý den.\nBez emoji.');
+  assert.equal(pb.applyOperations([{ op: 'setStyle', styleGuide: '# Styl\nPozdrav: Dobrý den.\nBez emoji.' }]), null, 'unchanged: not logged');
+  assert.equal(pb.applyOperations([{ op: 'setStyle', styleGuide: 'x' }]), null, 'a guide cut to under half is refused');
+  assert.ok(pb.undoChange(c.id).change);
+  assert.equal(getSettings().styleGuide, '# Styl\nPozdrav: Dobrý den.');
+  const c2 = pb.applyOperations([{ op: 'setStyle', styleGuide: '# Styl\nPozdrav: Zdravím.' }]);
+  pb.applyOperations([{ op: 'setStyle', styleGuide: '# Styl\nPozdrav: Zdravím Vás.' }]);
+  assert.match(pb.undoChange(c2.id).error, /undo the later change first/);
+  saveSettings({ styleGuide: 'edited by the user in Settings' });
+  assert.match(pb.undoChange(pb.listChanges().at(-1).id).error, /undo the later change first/);
+});

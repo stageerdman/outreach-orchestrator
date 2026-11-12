@@ -9,7 +9,7 @@ import { chatList, markRead } from './lib/chats.js';
 import { events } from './lib/events.js';
 import { getSettings, saveSettings, DRAFT_PROMPT, STYLE_PROMPT, COACH_PROMPT, BUILD_PROMPT, MODELS } from './lib/settings.js';
 import { listPlaybooks, listChanges, applyOperations, undoChange } from './lib/playbooks.js';
-import { buildPlaybooks, coachState } from './lib/coach.js';
+import { buildPlaybooks, coachState, learnNow } from './lib/coach.js';
 import * as ai from './lib/assistant.js';
 
 const PORT = Number(process.env.PORT || 3000);
@@ -105,6 +105,8 @@ createServer(async (req, res) => {
     if (url.pathname === '/api/playbooks/build' && req.method === 'POST') {
       return json(res, 202, buildPlaybooks(snapshotPeople(), getSettings().styleGuide));
     }
+    // Learn now from the decisions collected so far (otherwise every BATCH).
+    if (url.pathname === '/api/playbooks/learn' && req.method === 'POST') return json(res, 202, learnNow());
     const u = url.pathname.match(/^\/api\/playbooks\/changes\/([^/]+)\/undo$/);
     if (u && req.method === 'POST') {
       const out = undoChange(decodeURIComponent(u[1]));
