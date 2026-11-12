@@ -135,7 +135,8 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   per contact in memory only, group/score, who sees what (teammates' rows
   too, LEADY KOLEGŮ last), sort; Prague time throughout. `queue` = `{ group,
   score, color, order, meetingAt, due, qualify }` for rows in that list, else
-  null. Never lock, close merged tasks or self-heal.
+  null. Shown with the user's names (`relabel`): To be booked, Thinking
+  about it, Not answered, Installments; VRÁCÍ SE joins NOVÝ LEAD. Never lock, close merged tasks or self-heal.
 - **UI feed (Tasks):** only people with a `queue` (Fronta's call-now list),
   in its order, grouped by `queue.group` with the Czech Fronta names (dot
   colour A/B/C: `--q-a`, `--q-b`, hollow); groups open except LEADY KOLEGŮ

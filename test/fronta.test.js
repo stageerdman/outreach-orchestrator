@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseMeeting, activeBookings, facts, needsConfirm, hidden, merge, classify, callNow, colorOf, pragueDay } from '../lib/fronta.js';
+import { parseMeeting, activeBookings, facts, needsConfirm, hidden, merge, classify, callNow, colorOf, pragueDay, relabel } from '../lib/fronta.js';
 
 // 11:00 Prague (CET) on 12 Nov 2026.
 const NOW = Date.parse('2026-11-12T10:00:00Z');
@@ -186,4 +186,13 @@ test('sort: same score sorts by group name, Czech collation', () => {
   const sorted = merge(rows).map((r) => classify(r, me.id, NOW)[1]).sort((x, y) => x.localeCompare(y, 'cs'));
   assert.deepEqual(sorted, ['KAMPAŇ · Čas', 'KAMPAŇ · Dno']);
   assert.equal(callNow(rows, me, NOW).length, 0); // kampan rows are not in the main view
+});
+
+test('relabel: the user\'s group names, VRÁCÍ SE joins new leads after them', () => {
+  const x = (group, score, id) => ({ group, score, color: colorOf(group), row: { contact_id: id } });
+  const out = relabel([x('DOMLUVENÝ FOLLOW-UP', 960, 1), x('NOVÝ LEAD', 800, 2), x('NO SHOW', 790, 3),
+    x('FOLLOWUP PO KONZULTACI', 780, 4), x('VRÁCÍ SE', 760, 5), x('SPLÁTKY', 750, 6), x('NEDOVOLANÉ', 700, 7)]);
+  assert.deepEqual(out.map((o) => [o.row.contact_id, o.group]), [[1, 'To be booked'], [2, 'NOVÝ LEAD'], [5, 'NOVÝ LEAD'],
+    [3, 'NO SHOW'], [4, 'Thinking about it'], [6, 'Installments'], [7, 'Not answered']]);
+  assert.deepEqual([out[0].color, out[2].color], ['A', 'B']);
 });
