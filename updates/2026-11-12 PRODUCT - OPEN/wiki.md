@@ -21,27 +21,33 @@ before acting on them.
 - If sales take off, the $99/year buys notarization and removes all of this;
   worth it once there are paying users.
 
-## AI: whose Claude account? (open, blocking decision)
-- Today `lib/claude.js` runs the user's own `claude` CLI with their own login
-  (subscription). For a product that's simple (no keys, no billing on our
-  side) but Anthropic's docs for the Agent SDK said third-party developers
-  may not offer claude.ai login / subscription limits in their products
-  without approval. **verify** the current wording before shipping this path.
-- Clean path: the user pastes an Anthropic API key in Setup; the app calls
-  the Messages API directly with `fetch` (structured output via tool use /
-  JSON schema), which also removes the Claude Code install requirement and
-  works the same on Windows. `askClaude()` is the only seam to change.
-- Keep the CLI path as an option if allowed (power users with Claude Code).
+## AI: the user's own CLI (decided 2026-11-12)
+- The user connects whatever AI they already pay for through its CLI;
+  nothing is billed by us and no API keys are handled. One adapter per CLI
+  in `lib/ai.js` (today's `lib/claude.js` is the Claude Code adapter):
+  - Claude Code: `claude -p --output-format json --json-schema …` (works).
+  - Codex: `codex exec` with a JSON output schema option. **verify** flags
+    and how it reports "not logged in".
+  - Gemini CLI: `gemini -p` with JSON output. **verify**.
+- Each adapter: detect (on PATH / known install dirs, since apps from
+  Finder get a minimal PATH), check login, run a prompt → JSON matching the
+  schema (validate it; retry once if a CLI ignores the schema).
+- Prompts were tuned on Claude; check draft quality per CLI in the beta.
+- Open point to **verify**: Anthropic's (and OpenAI's) terms on third-party
+  apps driving a subscription CLI. The app only runs the user's own
+  installed CLI under their own login, locally, which is the least risky
+  shape; re-check before launch.
 
 ## WhatsApp risk
 - The bridge is whatsapp-mcp (MIT) on whatsmeow (MPL-2.0; we ship it
   unmodified, only bumped, so MPL obligations are light: credit and point to
   its source). Licences are fine for a paid app.
 - whatsmeow is an unofficial client: it is against WhatsApp's terms and
-  accounts can be banned, more likely with high volume. The app only reads
-  and opens WhatsApp prefilled (the user sends by hand), which keeps the
-  footprint low, but buyers must be told plainly. Selling it raises the
-  stakes compared to personal use.
+  accounts can be banned. Decided (2026-11-12): say so in the README only,
+  not in the app. Mitigation: the app only reads chats and opens WhatsApp
+  prefilled, so the user sends every message themselves.
+- Opt-in "send from the app" (through the bridge's send endpoint) for users
+  who ask for it; the README says the ban risk is higher then.
 - The official alternative (WhatsApp Business Platform / Cloud API) can't
   read a personal number's history and needs approved templates outside the
   24 h window, so it doesn't fit this app's "your existing chats" idea.
@@ -51,9 +57,17 @@ before acting on them.
 
 ## Email providers
 - Gmail and iCloud: IMAP + app password, needs 2-step verification.
-- Microsoft (Outlook.com / Microsoft 365) has been turning off password
-  (basic) auth for IMAP/SMTP in favour of OAuth. **verify**; supporting them
-  may need an OAuth flow, so start with Gmail / iCloud / custom IMAP.
+- Microsoft (Outlook.com / Microsoft 365): password (basic) auth for
+  IMAP/SMTP is being turned off, so "Sign in with Microsoft" (decided
+  2026-11-12) through the user's Azure app registration: multi-tenant +
+  personal accounts, public client (desktop) with PKCE and a localhost
+  redirect, scopes `IMAP.AccessAsUser.All`, `SMTP.Send`, `offline_access`.
+  imapflow and nodemailer take the access token (XOAUTH2). Microsoft 365
+  tenants may need an admin to allow the app or SMTP AUTH. **verify**
+  current scope names.
+- Gmail OAuth is a different story: mail scopes are "restricted" and need
+  Google's verification plus a paid security assessment, so Gmail stays on
+  app passwords.
 
 ## Bug reports into GitHub
 - The repo is private, so buyers can't open issues there, and a GitHub
@@ -64,11 +78,23 @@ before acting on them.
   versions, source status and redacted logs only; the user previews the
   report before sending. Never attach `messages.db`, snapshots or chats.
 
-## Payments
-- A merchant of record (Lemon Squeezy, Paddle, Polar) sells, handles EU VAT
-  and invoices, and issues licence keys with a validation API. Subscription
-  or one-time are both supported; the app side (enter key, validate, cache,
-  grace period) is the same either way.
+## Payments and licence (decided 2026-11-12)
+- 7-day free trial, then 3 000 CZK one-time or 200 CZK/month. 15 months of
+  subscription = the one-time price.
+- A merchant of record (Lemon Squeezy, Paddle, Polar) sells, handles EU VAT,
+  invoices, the subscription and the customer portal (cancel, change card).
+  Check per vendor: CZK pricing, licence keys built in, webhooks for
+  cancelled / failed / refunded, fees.
+- "Kill the licence" = our licence server (a small Worker) marks it
+  inactive from the vendor's webhook; the app sees it at the next daily
+  check, or when the 7-day offline cache runs out. Nothing on the user's
+  Mac is deleted; the app just shows "Buy or renew". An unsigned app can be
+  patched by a determined user; acceptable at this price.
+
+## Time-saved marketing
+- Use real numbers from the user's own data before claiming anything; label
+  typing time as an estimate. The in-app card and the landing calculator
+  share one formula.
 
 ## Making it generic: what's specific to the user today
 - `lib/resultson.js`: the six categories and their Czech note phrases,
