@@ -54,6 +54,12 @@ test('context has the task, history, unsent drafts with reasons, and the instruc
   assert.ok(s.indexOf('Dobrý den') < s.indexOf('Kolik'), 'oldest first');
 });
 
+test('a draft the user edited reaches the next draft as the user\'s version', () => {
+  const drafts = [{ status: 'regenerated', kind: 'message', channel: 'whatsapp', createdAt: '2026-11-09T08:00:00Z', aiText: 'Ahoj, jak to jde?', text: 'Dobrý den, jak to vypadá?', note: 'more formal' }];
+  const s = ai.contextPrompt({ person, drafts, onWa });
+  assert.ok(s.includes('the user asked for a new version · the user edited it: this is their version · reason: "more formal"]\nDobrý den, jak to vypadá?'), s);
+});
+
 test('times in the context are Prague time, whatever the local timezone', () => {
   const s = ai.contextPrompt({ person, now: new Date('2026-11-11T23:30:00Z'), onWa });
   assert.ok(s.startsWith('Now: 2026-11-12 00:30 (Thursday). All times here are Prague time'), s.split('\n')[0]);

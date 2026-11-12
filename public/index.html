@@ -295,6 +295,13 @@
   .early summary { cursor: pointer; text-align: right; }
   .msg.draft { width: min(85%, 40em); background: var(--draft); border-style: dashed; border-color: var(--muted); }
   .msg.draft.whatsapp { border-left-color: var(--wa); } .msg.draft.email { border-left-color: var(--email); }
+  /* The draft's own text: click (or Enter) to edit it in place, same look */
+  .dedit { cursor: text; border-radius: var(--radius); }
+  .dedit:hover { box-shadow: 0 0 0 var(--s1) color-mix(in srgb, var(--muted) 12%, transparent); }
+  .dedit:focus-visible, .dfield:focus { outline: 2px solid var(--accent); outline-offset: var(--s1); }
+  .dfield { display: block; width: 100%; border: 0; padding: 0; margin: 0; background: transparent; color: inherit; font: inherit; resize: none; overflow: hidden; border-radius: var(--radius); }
+  input.dfield { font-weight: 600; margin-bottom: var(--s1); }
+  .dst.bad { color: var(--err); }
   .dmeta { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); font-size: var(--fs-sm); color: var(--muted); margin-top: var(--s1); }
   .dbtns { display: flex; align-items: center; gap: var(--s1); }
   .rb { border-radius: 50%; }
@@ -761,7 +768,7 @@ async function loadHistory(id) {
 
 // ---- the chat column: the selected person's whole conversation, newest at
 // the bottom, the AI draft as a gray bubble, and the composer.
-let chat = null;                  // { id, data, all, unseen, error, sending }
+let chat = null;                  // { id, data, all, unseen, error, sending, edit: { id, text, subject, open, dirty } }
 const composerText = new Map();   // unsent text for the AI per person
 const atBottom = (el) => el.scrollHeight - el.scrollTop - el.clientHeight < 48;
 const LIST_NAME = { tasks: 'Tasks', messages: 'Messages' };
@@ -857,11 +864,19 @@ function renderDraftBubble(r, p) {
     ? `<p class="why">${esc(p.name.split(' ')[0])} wrote after this draft · ${icon('spark')} to redo</p>` : '';
   if (r.kind === 'meeting') return `<article class="msg draft" data-req="${id}"><p class="body"><b>Offer a meeting:</b> ${esc(r.text)}</p>${stale}
     <div class="dmeta"><span></span>${btns}</div></article>`;
-  const lastSubject = subjectKey((chat.data?.messages || []).findLast((m) => m.channel === 'email')?.subject);
-  const subject = r.channel === 'email' && r.subject && subjectKey(r.subject) !== lastSubject;
+  const e = chat.edit?.id === r.id ? chat.edit : null;
+  const edited = r.aiText != null && ((e?.text ?? r.text).trim() !== r.aiText.trim() || ((e?.subject ?? r.subject) || '') !== (r.aiSubject || ''));
   return `<article class="msg draft ${esc(r.channel)}" data-req="${id}" aria-label="AI draft to ${esc(p.name)}">
-    ${subject ? `<div class="subject" title="${esc(r.subject)}">${esc(r.subject)}</div>` : ''}<div class="body">${esc(r.text)}</div>${stale}
-    <div class="dmeta"><span></span>${btns}</div></article>`;
+    ${renderDraftText(r)}${stale}<div class="dmeta"><span class="dst" data-dst>${edited ? 'edited by you' : ''}</span>${btns}</div></article>`;
+}
+// The draft's text, or while editing its fields (only this part is swapped, so the buttons keep working).
+function renderDraftText(r) {
+  const e = chat.edit?.id === r.id ? chat.edit : null, text = e ? e.text : r.text, subj = e ? e.subject : r.subject;
+  if (e?.open) return `<div class="dtext">${r.channel === 'email' ? `<input class="dfield" data-dfield="subject" value="${esc(subj)}" aria-label="Subject" placeholder="Subject">` : ''}
+    <textarea class="dfield body" data-dfield="text" rows="1" aria-label="Draft text">${esc(text)}</textarea></div>`;
+  const lastSubject = subjectKey((chat.data?.messages || []).findLast((m) => m.channel === 'email')?.subject);
+  const subject = r.channel === 'email' && subj && subjectKey(subj) !== lastSubject;
+  return `<div class="dtext dedit" data-dedit tabindex="0" role="button" aria-label="Edit draft" title="Click to edit">${subject ? `<div class="subject">${esc(subj)}</div>` : ''}<div class="body">${esc(text)}</div></div>`;
 }
 
 function renderDraft() {
@@ -869,6 +884,8 @@ function renderDraft() {
   if (!el) return;
   const focused = el.contains(document.activeElement) ? document.activeElement.dataset.dact : null;
   const r = activeReq(chat.id);
+  if (chat.edit && (chat.edit.id !== r?.id || r.status !== 'pending')) chat.edit = null;
+  if (chat.edit?.open && el.querySelector('[data-dfield]')) return; // never re-render under the user's hands
   if (!r) { el.innerHTML = ''; return; }
   const chain = chainOf(r), p = chatPerson();
   const early = chain.slice(0, -1).map((v) => renderAiNote(v)
@@ -926,13 +943,13 @@ function stick(render) {
 
 function openChat(id) {
   if (chat?.id === id) return;
-  saveComposer();
+  saveComposer(); saveDraftText(true);
   chat = { id, data: hist.get(id) || null, all: false, unseen: 0, error: '', sending: false };
   renderChat();
   if (!chat.data) loadChat();
   markReadSoon();
 }
-function closeChat() { saveComposer(); chat = null; renderChat(); }
+function closeChat() { saveComposer(); saveDraftText(true); chat = null; renderChat(); }
 
 // (Re)loads the open person's history; new client messages while the user
 // reads further up show as "↓ N new".
@@ -950,11 +967,50 @@ async function loadChat(fresh = false) {
   renderNewPill();
 }
 
+// Editing the draft by hand: the text turns into fields in the same bubble,
+// autosaved (PUT /api/requests/:id); Esc or leaving it ends editing. The AI's
+// own version stays in aiText/aiSubject, so the coach sees what changed.
+function editDraftText(r) {
+  if (r.status !== 'pending' || r.kind !== 'message') return;
+  if (chat.edit?.id !== r.id) chat.edit = { id: r.id, text: r.text, subject: r.subject || '', dirty: false };
+  chat.edit.open = true;
+  swapDraftText(r);
+  const ta = $('#draftbox [data-dfield=text]');
+  grow(ta); ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+}
+let draftSaveTimer, draftSaving = Promise.resolve();
+const draftStatus = (t, bad = false) => { const s = $('#draftbox [data-dst]'); if (s) { s.textContent = t; s.classList.toggle('bad', bad); } };
+// Resolves once what was typed is on the server (now: without the debounce).
+function saveDraftText(now = false) {
+  const e = chat?.edit;
+  clearTimeout(draftSaveTimer);
+  if (!e?.dirty) return draftSaving;
+  draftStatus('Saving…');
+  const run = () => (draftSaving = (async () => {
+    e.dirty = false;
+    try { await api(`/api/requests/${enc(e.id)}`, { method: 'PUT', headers: JSON_HEADERS, body: JSON.stringify({ text: e.text, subject: e.subject }) }); if (chat?.edit === e && !e.dirty) draftStatus('Saved'); }
+    catch (er) { e.dirty = true; draftStatus(`Not saved: ${er.message}`, true); }
+  })());
+  if (now) return run();
+  draftSaveTimer = setTimeout(run, 600);
+  return draftSaving;
+}
+const swapDraftText = (r) => { const el = $('#draftbox .dtext'); if (el) el.outerHTML = renderDraftText(r); };
+function endDraftEdit(refocus = false) {
+  const r = chat?.edit?.open && activeReq(chat.id);
+  if (!r) return;
+  chat.edit.open = false;
+  saveDraftText(true);
+  swapDraftText(r);
+  if (refocus) $('#draftbox [data-dedit]')?.focus();
+}
+
 async function sendDraft(r) {
-  const id = chat.id;
+  const id = chat.id, e = chat.edit?.id === r.id ? chat.edit : null;
+  if (e) { clearTimeout(draftSaveTimer); e.open = false; }
   chat.sending = true; chat.error = ''; renderDraft(); updateComposer();
   try {
-    await requestAction(r, 'send');
+    await requestAction(r, 'send', e ? { text: e.text, subject: e.subject } : {});
     announce(r.kind === 'meeting' ? `Meeting offer done for ${r.personName}` : r.channel === 'email' ? `Email sent to ${r.personName}` : `Opened WhatsApp for ${r.personName}`);
     rerenderTasks(); // messaged today: drops out of Tasks
   } catch (e) { if (chat?.id === id) chat.error = `Not sent: ${e.message}`; announce(`Not sent: ${e.message}`); }
@@ -970,6 +1026,7 @@ async function spark() {
   if ($('#cspark').getAttribute('aria-disabled') === 'true') return announce($('#cspark').title);
   const id = chat.id, r = activeReq(id), ta = $('#ctext'), note = ta.value.trim();
   chat.error = '';
+  await saveDraftText(true); // the AI gets the edited text as the previous draft
   try {
     const out = r ? await requestAction(r, 'regenerate', { note })
       : (await api('/api/requests', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ personIds: [id], instruction: note }) }))[0];
@@ -985,6 +1042,7 @@ async function spark() {
 
 async function discard(r) {
   const ta = $('#ctext'), note = ta.value.trim(), id = chat.id;
+  await saveDraftText(true); // the lesson keeps the user's version
   try {
     await requestAction(r, 'cancel', { note });
     if (chat?.id === id && note) { ta.value = ''; grow(ta); composerText.delete(id); }
@@ -1275,14 +1333,26 @@ chatEl.addEventListener('click', (e) => {
   }
   if (bodyClick(e)) return;
   if (t.closest('#cspark')) return spark();
+  if (t.closest('[data-dedit]')) { const r = activeReq(chat.id); return r && editDraftText(r); }
   const act = t.closest('[data-dact]'), r = act && activeReq(chat.id);
   if (!r) return;
   if (act.getAttribute('aria-disabled') === 'true') return announce(act.title);
   return act.dataset.dact === 'send' ? sendDraft(r) : discard(r);
 });
-chatEl.addEventListener('input', (e) => { if (e.target.id === 'ctext') { grow(e.target); updateComposer(); } });
+chatEl.addEventListener('input', (e) => {
+  if (e.target.id === 'ctext') { grow(e.target); updateComposer(); }
+  const f = e.target.dataset.dfield;
+  if (f && chat.edit) { chat.edit[f] = e.target.value; chat.edit.dirty = true; if (f === 'text') grow(e.target); saveDraftText(); }
+});
+// Leaving the draft's fields (not to the other field) ends editing.
+chatEl.addEventListener('focusout', (e) => {
+  if (e.target.dataset?.dfield && !e.relatedTarget?.dataset?.dfield) endDraftEdit();
+});
 // The box never goes to a client: Enter asks the AI, Shift+Enter is a new line.
 chatEl.addEventListener('keydown', (e) => {
+  if (e.target.dataset?.dedit != null && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); const r = activeReq(chat.id); return r && editDraftText(r); }
+  // In the draft's own fields Enter is a new line; Esc stops editing.
+  if (e.target.dataset?.dfield) { if (e.key === 'Escape') { e.preventDefault(); endDraftEdit(true); } return; }
   const enter = e.key === 'Enter' && !e.isComposing && e.target.id === 'ctext' && !e.shiftKey;
   if (enter || (e.metaKey && e.key === 'j') || (e.altKey && e.key === 'Enter')) { e.preventDefault(); return spark(); }
   if (e.key !== 'Escape') return;
@@ -1541,7 +1611,7 @@ async function requestAction(r, action, body = {}) {
   const res = await api(`/api/requests/${encodeURIComponent(r.id)}/${action}`, { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(body) });
   if (ropen?.reqId === r.id) ropen = null;
   await loadRequests();
-  if (['send', 'cancel', 'regenerate'].includes(action)) setTimeout(loadPlaybooks, 500); // the AI learns from it
+  if (['send', 'cancel', 'regenerate'].includes(action)) setTimeout(loadPlaybooks, 500); // a decision collected (the 15th starts learning)
   return res;
 }
 
@@ -1643,10 +1713,10 @@ $('#requests').addEventListener('focusout', () => setTimeout(() => {
 // ---- Settings: model, style guide (learned, editable) and the prompts
 let settings = null, learnTimer;
 const SETTING_TEXTS = [
-  ['styleGuide', 'Style guide', 'Learned from your sent WhatsApp messages and emails. Edit freely: every draft follows this text.', 18],
+  ['styleGuide', 'Style guide', 'Learned from your sent WhatsApp messages and emails; the playbook learning may refine it (undo in Playbooks). Edit freely: every draft follows this text.', 18],
   ['draftPrompt', 'Follow-up prompt', 'Instructions for every draft. The client, task, conversation, earlier drafts, style guide and templates are added after it.', 14],
   ['stylePrompt', 'Style-learning prompt', 'Used by Learn my style. Your reply pairs, follow-ups and measured stats are added before it.', 14],
-  ['coachPrompt', 'Playbook-learning prompt', 'Runs after you send, regenerate or cancel a draft. The decision, the draft, the conversation, the playbooks and templates are added before it.', 14],
+  ['coachPrompt', 'Playbook-learning prompt', 'Your decisions on drafts (sent, edited, regenerated, cancelled) are collected; every 15 (or Learn now in Playbooks) one run reviews them. The playbooks, templates, style guide and the decisions with their conversations are added before it.', 14],
   ['buildPrompt', 'Playbook-building prompt', 'Used by Build playbooks. Your templates, measured reply rates, style guide and current playbooks are added before it.', 14],
 ];
 
@@ -2118,11 +2188,16 @@ async function loadPlaybooks() {
   if (coachBusy()) pbTimer = setTimeout(loadPlaybooks, 3000);
 }
 
-// Learning runs quietly in the background; only a failure is shown (here and as "!" on the rail).
+// Learning runs quietly in the background: decisions are collected and every
+// c.batch of them one run learns. Only here: the count, Learn now, a failure (also "!" on the rail).
 function renderCoachLine() {
   const c = pb?.coach;
   if (!c) return pbError ? `<span class="bad">Could not load playbooks: ${esc(pbError)}</span>` : '';
-  return c.error ? `<span class="bad"><span class="dot bad"></span>Learning failed: ${esc(c.error)}. Playbooks weren't changed.</span>` : '';
+  const err = c.error ? `<span class="bad"><span class="dot bad"></span>Learning failed: ${esc(c.error)}. Nothing was changed; it retries at the next decision.</span>` : '';
+  const count = c.learning ? `<span>${SPIN} Learning from ${c.lessons} decision${c.lessons === 1 ? '' : 's'}…</span>`
+    : c.lessons ? `<span>${c.lessons} of ${c.batch} decisions collected</span> · <button type="button" class="quiet" data-pact="learn">Learn now</button>`
+    : c.last && !c.last.changed ? `<span title="${esc(c.last.summary)}">Reviewed ${c.last.count} decision${c.last.count === 1 ? '' : 's'}: nothing to change.</span>` : '';
+  return err + count;
 }
 function renderCoachBadge() {
   const b = $('#pbadge'), bad = Boolean(pb?.coach.error);
@@ -2253,6 +2328,7 @@ function savePlaybook(p, now = false) {
 // ---- the learning log
 const TRIGGER = {
   build: () => 'Built from your templates, reply rates and style',
+  batch: (t) => `From your last ${t.count} decision${t.count === 1 ? '' : 's'} on drafts${t.notes ? ` (${t.notes} with a note)` : ''}`,
   approve: (t) => `After you sent the draft for ${t.personName}`,
   regenerate: (t) => `After you asked for a new draft for ${t.personName}`,
   cancel: (t) => `After you cancelled the draft for ${t.personName}`,
@@ -2289,6 +2365,10 @@ function stepDiff(before, after) {
 }
 
 function renderOp(o) {
+  if (o.op === 'setStyle') {
+    return `<li>Style guide changed${o.reason ? `<p class="why">${esc(o.reason)}</p>` : ''}
+      <details><summary>Show what changed</summary>${styleDiff(o.before, o.after)}</details></li>`;
+  }
   if (o.op === 'setTemplate') {
     const name = o.after?.name || o.before?.name || 'Untitled';
     const text = (t) => (t ? htmlToText(t.bodyHtml) : '');
@@ -2302,6 +2382,15 @@ function renderOp(o) {
   return `<li>${o.op === 'deletePlaybook' ? 'Removed playbook' : o.before ? 'Playbook' : 'New playbook'}: <button type="button" class="link" data-pid="${esc(o.id)}">${esc(p.name)}</button>
     ${o.reason ? `<p class="why">${esc(o.reason)}</p>` : ''}
     ${o.before && o.after ? `<details><summary>${lines.length} change${lines.length === 1 ? '' : 's'}</summary><ul class="ops">${lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></details>` : ''}</li>`;
+}
+
+// The changed lines of the style guide (lines removed, then added), or the whole text when it's new.
+function styleDiff(before, after) {
+  const a = (before || '').split('\n'), b = after.split('\n'), had = new Set(a), has = new Set(b);
+  const gone = a.filter((l) => l.trim() && !has.has(l)), added = b.filter((l) => l.trim() && !had.has(l));
+  if (!before?.trim()) return `<p class="brief">${esc(after)}</p>`;
+  return (gone.length ? `<p class="why">Before</p><p class="brief">${esc(gone.join('\n'))}</p>` : '')
+    + (added.length ? `<p class="why">After</p><p class="brief">${esc(added.join('\n'))}</p>` : '');
 }
 
 function renderChange(c) {
@@ -2318,7 +2407,7 @@ function renderChange(c) {
 function renderLearned() {
   const shown = pb.changes.slice(0, changesShown), left = pb.changes.length - shown.length;
   return `<h1>What the AI learned</h1>
-    <p class="info">Every time you send, regenerate or cancel a draft, the AI may adjust the playbooks and templates. Each change says why, and can be undone.</p>
+    <p class="info">Your decisions on drafts (sent, edited, regenerated, cancelled) are collected; every ${pb.coach.batch} the AI reviews them together and may adjust the playbooks, templates and style guide. Each change says why, and can be undone.</p>
     <ul class="changes">${shown.map(renderChange).join('')}</ul>
     ${left ? `<button type="button" class="link" data-pact="more-changes">Show ${Math.min(left, 20)} more (${left} left)</button>` : ''}`;
 }
@@ -2376,6 +2465,12 @@ $('#view-playbooks').addEventListener('click', async (e) => {
     return;
   }
   if (act === 'more-changes') { changesShown += 20; return renderPEditor(); }
+  if (act === 'learn') {
+    try { pb.coach = await api('/api/playbooks/learn', { method: 'POST' }); announce(`Learning from ${pb.coach.lessons} decisions`); }
+    catch (er) { announce(`Could not start: ${er.message}`); }
+    renderPList(); clearTimeout(pbTimer); pbTimer = setTimeout(loadPlaybooks, 3000);
+    return;
+  }
   if (!p) return;
   const sit = e.target.closest('[data-situation]'), st = e.target.closest('[data-stage]');
   if (sit) { p.situation = sit.dataset.situation; renderPEditor(); savePlaybook(p, true); return document.querySelector(`[data-situation="${p.situation}"]`)?.focus(); }
