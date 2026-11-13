@@ -259,7 +259,12 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   / fact ids they relied on). Facts about the offer stay in `rules.json`
   (kind `fact`, edited in the tab). The v1 rules and questions are retired
   (they tested worse than nothing); the coach batch keeps playbooks,
-  templates, style and facts only.
+  templates, style and facts only. The tab (after a 4-expert UX review):
+  one reading column (`--measure`), the identity as hero, "Correct it" as
+  the one action, one line per item (portrait `headline`s) that opens to the
+  reasoning and ≤2 quotes, plain lines for values / never, the conversation
+  lenses folded away, "Does it help?" (the gap in words, two bars, blind
+  spots), facts; live via SSE only, open rows and focus survive updates.
 - **Drafts in the UI** live only in Messages (Requests filter) and the chat
   (a draft keeps `channel`, `instruction` and `previousId`, the version it
   replaced, so the chat shows the notes and earlier versions), kept in sync
