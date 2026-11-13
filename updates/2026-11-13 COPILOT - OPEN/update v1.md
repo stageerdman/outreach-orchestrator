@@ -54,7 +54,7 @@ playbook; "learn this about how I think" → it saves it.
    `claude`.
 3. [x] UI: the third column, scenario line, learning log (UX agents in
    parallel, synthesized).
-4. [ ] Verify on the real thing, docs (CLAUDE.md, wiki), close.
+4. [x] Verify on the real thing, docs (CLAUDE.md, wiki).
 
 ## Status
 - 2026-11-13: diagnosis done, roadmap written.
@@ -67,6 +67,18 @@ playbook; "learn this about how I think" → it saves it.
   (`DELETE /api/mind/notes/:at`). Verified on a copy of the app data (PORT
   3100): a real turn streams, a draft action replaces the draft (Show), ×
   draws the divider, a quiet coach run lands in What I learned.
+- 2026-11-13: fixes after verifying: the Copilot answered English in Czech
+  (the draft prompt is all Czech) → each turn now says which language to
+  reply in; a rewrite of a template draft lost its template → it keeps it
+  unless the AI names another. Re-checked on a copy: English reply, knows the
+  step and the templates.
+
+## Next
+- The user tries it for a few days; then check the learning log: share of
+  "situational" outcomes (>40% = the coach is still dodging, fix the prompt)
+  and whether drafts now use templates (was 45 of 89).
+- Unverified: Copilot Undo on a playbook change / remembered note, and a
+  real "Make it the rule" click (both have route-level tests only).
 
 ## UI spec (3 UX agents, synthesized 2026-11-13)
 **Copilot column** (`#copilot`, moves with `#chat`, rendered only when a person
