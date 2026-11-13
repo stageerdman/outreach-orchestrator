@@ -74,3 +74,16 @@ tensions.
   priority-test / choice-in-his-hands, a test note changing the
   quiet-after-booking heuristic, auto re-test after it. Open: per-item
   feedback if wanted later; outcomes (booked / paid) as evidence.
+
+## Questions from the AI (user, 2026-11-13)
+"After a while" — not after every improvement — the AI looks at what
+gathered (new corrections, notes) and asks about the thinking behind the
+patterns it can't explain; one question at a time in the You tab, answer
+(a suggested answer and/or own words) or skip; the count on the rail.
+8. [ ] `lib/mind.js`: questions in mind.json; asked when none are open and
+   (never asked, or ≥15 new corrections/notes and ≥2 days since the last
+   set); ≤5 per set, grounded in a real case, about why — never wording.
+   An answer = the user's own words (a note, source `answer`); once the set
+   is done the portrait rebuilds with them. Tests.
+9. [ ] API + You tab: a quiz card (n of N, why it asks, the case, suggested
+   answers, own words, Answer / Skip), rail count. UX review on screenshots.

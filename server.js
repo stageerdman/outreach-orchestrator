@@ -9,7 +9,7 @@ import { chatList, markRead, markUnread } from './lib/chats.js';
 import { events } from './lib/events.js';
 import { getSettings, saveSettings, DRAFT_PROMPT, STYLE_PROMPT, COACH_PROMPT, BUILD_PROMPT, MODELS } from './lib/settings.js';
 import { listPlaybooks, listChanges, applyOperations, undoChange } from './lib/playbooks.js';
-import { getMind, addNote, refreshMind, maybeRefresh, staleness } from './lib/mind.js';
+import { getMind, addNote, refreshMind, maybeRefresh, maybeAsk, askQuestions, closeQuestion, staleness } from './lib/mind.js';
 import { buildPlaybooks, coachState, learnNow, fidelity, migrateLessons } from './lib/coach.js';
 import { listRules, getRule } from './lib/rules.js';
 import * as ai from './lib/assistant.js';
@@ -136,6 +136,17 @@ createServer(async (req, res) => {
       refreshMind(snapshotPeople());
       return json(res, 202, mindForUi());
     }
+    // The AI's questions about your thinking: answer (a suggested answer and/or
+    // your words) or skip; the last one of a set with answers rebuilds the portrait.
+    const qm = url.pathname.match(/^\/api\/mind\/questions\/([^/]+)\/(answer|skip)$/);
+    if (qm && req.method === 'POST') {
+      const body = qm[2] === 'answer' ? await readBody(req) : {};
+      const out = closeQuestion(decodeURIComponent(qm[1]), { ...body, skip: qm[2] === 'skip' });
+      if (!out) return json(res, 409, { error: qm[2] === 'answer' ? 'Pick an answer or write one' : 'This question is no longer open' });
+      if (out.done) refreshMind(snapshotPeople());
+      return json(res, 200, mindForUi());
+    }
+    if (url.pathname === '/api/mind/questions' && req.method === 'POST') { askQuestions(snapshotPeople()); return json(res, 202, mindForUi()); }
     // Facts about the offer (rules.json, kind "fact"): add, edit, delete; logged and undoable.
     const rm = url.pathname.match(/^\/api\/rules(?:\/([^/]+))?$/);
     if (rm && ['POST', 'PUT', 'DELETE'].includes(req.method)) {
@@ -194,7 +205,7 @@ createServer(async (req, res) => {
   startLive();
   // The portrait keeps itself current: built when missing, rebuilt and re-tested
   // when enough new material came in (checked after the first refresh, then hourly).
-  const mind = () => maybeRefresh(snapshotPeople()).catch((e) => console.error('mind:', e.message));
+  const mind = () => maybeRefresh(snapshotPeople()).then(() => maybeAsk(snapshotPeople())).catch((e) => console.error('mind:', e.message));
   setTimeout(mind, 3 * 60_000);
   setInterval(mind, 60 * 60_000);
 });

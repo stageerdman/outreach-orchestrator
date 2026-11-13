@@ -133,3 +133,37 @@ test('test cases come only from the held-out newest moments and carry the situat
   assert.doesNotMatch(cases[0].situation, /\(9\)/, 'never what I did');
   assert.match(cases[0].actual, /ME\] Co Vám brání\? \(9\)/);
 });
+
+test('it asks after a while: first time once there is a portrait, then after 15 new corrections and 2 days, never with questions open', () => {
+  const corr = (at) => ({ status: 'cancelled', note: 'not like this', text: 'a', aiText: 'a', updatedAt: at });
+  const base = { portrait: {}, askedAt: '2026-11-10T00:00:00Z', questions: [], notes: [] };
+  const now = new Date('2026-11-13T00:00:00Z'), many = [...Array(15)].map(() => corr('2026-11-11T00:00:00Z'));
+  assert.equal(mind.shouldAsk({ portrait: null }), '');
+  assert.equal(mind.shouldAsk({ portrait: {}, questions: [] }, [], now), 'first');
+  assert.equal(mind.shouldAsk(base, many, now), 'gathered');
+  assert.equal(mind.shouldAsk(base, many.slice(1), now), '', '14 is not enough');
+  assert.equal(mind.shouldAsk(base, many, new Date('2026-11-11T12:00:00Z')), '', 'not within 2 days');
+  assert.equal(mind.shouldAsk({ ...base, questions: [{ status: 'open' }] }, many, now), '', 'one set at a time');
+  const answers = [...Array(15)].map(() => ({ at: '2026-11-11T00:00:00Z', text: 'x', source: 'answer' }));
+  assert.equal(mind.shouldAsk({ ...base, notes: answers }, [], now), '', 'its own answers do not count');
+});
+
+test('a question is answered (a suggested answer and/or own words) or skipped; answers become your words, the rebuild waits for the set', () => {
+  const d = mind.getMind();
+  d.portrait = { identity: 'x' }; d.builtAt = '2026-01-01T00:00:00Z'; d.notesUsed = d.notes.length;
+  d.questions = [
+    { id: 'a', at: 'set1', ask: 'What tips it?', why: '', case: '', options: ['His tone', 'The stage'], status: 'open' },
+    { id: 'b', at: 'set1', ask: 'Why wait?', why: '', case: '', options: [], status: 'open' },
+  ];
+  assert.equal(mind.closeQuestion('a', {}), null, 'an empty answer is refused');
+  const r = mind.closeQuestion('a', { option: 'His tone', text: ' and how long he waited ' });
+  assert.deepEqual([r.question.status, r.question.answer.option, r.question.answer.text, r.done], ['answered', 'His tone', 'and how long he waited', false]);
+  assert.match(d.notes.at(-1).text, /Asked "What tips it\?", I answered: His tone — and how long he waited/);
+  assert.equal(d.notes.at(-1).source, 'answer');
+  assert.equal(mind.staleness(d, [], new Date()), '', 'no rebuild while questions are open');
+  const s = mind.closeQuestion('b', { skip: true });
+  assert.deepEqual([s.question.status, s.done], ['skipped', true], 'the set is done and had an answer');
+  assert.equal(mind.staleness(d, [], new Date()), 'notes');
+  assert.equal(mind.closeQuestion('b', { skip: true }), null, 'already closed');
+  assert.equal(mind.closeQuestion('zz', { text: 'x' }), null);
+});
