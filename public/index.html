@@ -308,26 +308,22 @@
   .composer .ib { height: calc(1.45em + 2 * var(--s2) + 2px); }
   #chint { margin: 0; }
 
-  /* Personalization: questions, rules and facts, the learning log */
+  /* Personalization: the portrait of how you think, what you told it, facts */
   .psh { font-size: var(--fs); margin: var(--s4) 0 var(--s1); flex: 1; }
-  #personal .pgh { padding: var(--s2) 0 var(--s1); }
   #personal .changes { margin-bottom: var(--s2); }
-  .rule.testing, .rule.rejected { background: var(--draft); }
-  .rule.rejected .rtext { color: var(--muted); text-decoration: line-through; }
+  .lead { font-size: var(--fs-lg); line-height: 1.5; margin: var(--s2) 0 var(--s3); }
+  .mcard h3 { display: block; }
+  .mcard p { margin: var(--s1) 0 0; }
+  .mcard .lbl, .lens { color: var(--muted); font-size: var(--fs-sm); }
+  .lens { display: block; font-weight: 600; }
+  .mcard details { margin-top: var(--s1); }
+  .quotes { margin: var(--s1) 0 0; padding: 0; list-style: none; display: grid; gap: var(--s1); }
+  .quotes li { padding: var(--s1) var(--s3); background: var(--bg); border-radius: var(--radius); overflow-wrap: anywhere; }
+  .score { font-size: var(--fs-lg); font-weight: 600; }
   .rule.edit { box-shadow: inset 3px 0 var(--accent); }
   .rule.edit .pt { border-color: var(--line); background: var(--panel); }
   .rtext { cursor: text; border-radius: var(--radius); overflow-wrap: anywhere; }
   .rtext:hover { box-shadow: 0 0 0 var(--s1) color-mix(in srgb, var(--muted) 12%, transparent); }
-  .rtext .why { margin-top: var(--s1); }
-  .rule .ex { font-size: var(--fs-sm); color: var(--muted); }
-  .opts { display: grid; gap: var(--s2); grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
-  .opt { all: unset; box-sizing: border-box; padding: var(--s2) var(--s3); background: var(--draft); border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer; overflow-wrap: anywhere; }
-  .opt .body { display: block; margin-top: var(--s1); max-height: 12em; overflow-y: auto; }
-  .opt:hover { border-color: var(--accent); } .opt:focus-visible { outline: 2px solid var(--accent); }
-  .opt:disabled, .q .btn:disabled { opacity: .45; cursor: default; }
-  .k { display: inline-grid; place-items: center; min-width: var(--badge); height: var(--badge); border: 1px solid var(--line); border-radius: var(--radius); font-size: var(--fs-sm); color: var(--muted); }
-  .qtext { flex: 1; }
-  .count-badge.ping { min-width: 0; width: var(--s2); height: var(--s2); padding: 0; top: var(--s2); right: 22px; }
 
   @media (max-width: 900px) {
     .csplit { grid-template-columns: minmax(0, 1fr); }
@@ -365,7 +361,7 @@
     <span>Playbooks</span><span class="count-badge bad" id="pbadge" hidden></span></a>
   <a href="#personal" data-section="personal" aria-keyshortcuts="Meta+5" title="Personalization (⌘5)">
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="6.5" r="3"/><path d="M4 17c.6-3.2 3-5 6-5s5.4 1.8 6 5"/></svg>
-    <span>You</span><span class="count-badge ping" id="qbadge" aria-hidden="true" hidden></span></a>
+    <span>You</span></a>
   <a href="#settings" data-section="settings" aria-keyshortcuts="Meta+6" title="Settings (⌘6)">
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h5M12 5h5M3 10h9M16 10h1M3 15h2M9 15h8"/><circle cx="10" cy="5" r="2"/><circle cx="14" cy="10" r="2"/><circle cx="7" cy="15" r="2"/></svg>
     <span>Settings</span></a>
@@ -1401,7 +1397,7 @@ document.addEventListener('keydown', (e) => {
   const a = document.activeElement, typing = a?.matches('input, textarea, [contenteditable=true]');
   if (e.metaKey && SECTIONS.includes(SECTIONS[e.key - 1])) { e.preventDefault(); return showSection(SECTIONS[e.key - 1], true); }
   if (e.metaKey && e.key === 'n' && section === 'templates') { e.preventDefault(); return newTemplate(); }
-  if (e.metaKey && e.key === 'n' && section === 'personal') { e.preventDefault(); return editRule('new-rule'); }
+  if (e.metaKey && e.key === 'n' && section === 'personal') { e.preventDefault(); return editRule('new-fact'); }
   const search = SEARCH[section];
   if (e.key === '/' && !typing && search) { e.preventDefault(); $(search).focus(); }
 });
@@ -1586,264 +1582,154 @@ $('#settings').addEventListener('click', async (e) => {
 });
 addEventListener('pagehide', () => { for (const t of Object.values(settingTimers)) clearTimeout(t); });
 
-// ---- Personalization: how you decide (rules), what's true about your offer
-// (facts), what the AI is asking you and its learning log. Rules change only
-// through the server (logged, undoable); questions are answered here.
-const SOURCE = { inferred: 'AI noticed', confirmed: 'You confirmed', stated: 'You said' };
-const ACTIVE_SUPPORT = 4; // = lib/rules.js
-let pers = null, persError = '', persTimer, redit = null, persShown = 3;
-const answered = []; // this session's answered questions: { id, text }, shown collapsed
-const persBusy = () => pers && (pers.coach.distilling || pers.coach.replaying || pers.coach.learning || pers.coach.running || pers.coach.queued > 0);
+// ---- Personalization: the portrait of how you think (lib/mind.js), built
+// from your own conversations and corrections and kept current on its own;
+// what you told it; how well it predicts you; facts about your offer.
+let pers = null, persError = '', persTimer, redit = null;
+const ruleLine = (r) => `${r.when ? `When ${r.when}: ` : ''}${r.text}`; // also the Playbooks log
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+// "5m ago", "just now", "on 3 Nov": for sentences.
+const since = (at) => { const a = ago(at); return timeTag(at, a === 'now' ? 'just now' : /^\d+[mhd]$/.test(a) ? `${a} ago` : `on ${a}`); };
+const LENS = { probing: 'What you ask', 'challenge-support': 'Challenge vs. support', specifics: 'Pinning things down', resistance: 'When he resists',
+  reframing: 'Turning it around', arc: 'How a conversation goes', closing: 'How you close', signals: 'What you read in him' };
+const LABEL_EV = { said: 'you said', observed: 'you did', inferred: 'the AI reads' };
 
 async function loadPersonal() {
   try { pers = await api('/api/personal'); persError = ''; } catch (e) { persError = e.message; }
-  renderQBadge();
   if (section === 'personal') renderPersonal(false);
   clearTimeout(persTimer);
-  if (persBusy()) persTimer = setTimeout(loadPersonal, 3000);
+  if (pers?.mind.building) persTimer = setTimeout(loadPersonal, 3000);
 }
-// Only a dot: a question waits.
-function renderQBadge() {
-  const b = $('#qbadge'), n = pers?.questions.length || 0;
-  b.hidden = !n;
-  b.parentElement.setAttribute('aria-label', `Personalization${n ? ', a question waits' : ''}`);
-}
-
-const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
-const ruleLine = (r) => `${r.when ? `When ${r.when}: ` : ''}${r.text}`;
-const ruleRank = (r) => Math.min(...r.stages.map(stageRank).filter((x) => x > 0), 99);
-const tally = (r) => ({ for: r.evidence.filter((e) => e.for).length, against: r.evidence.filter((e) => !e.for).length });
-const distilled = () => pers.changes.some((c) => c.trigger.kind === 'distill');
 
 // force = false for background refreshes: never re-render under the user's hands.
 function renderPersonal(force = true) {
   const el = $('#personal');
   if (!force && el.contains(document.activeElement) && document.activeElement.matches('textarea, input')) return;
   if (!pers) { el.innerHTML = persError ? `<p class="empty err">Could not load: ${esc(persError)}</p>` : ''; return; }
-  const of = (kind, f) => pers.rules.filter((r) => r.kind === kind && f(r));
-  const decide = of('rule', (r) => r.status === 'active'), testing = of('rule', (r) => r.status === 'testing');
-  const facts = of('fact', (r) => r.status !== 'rejected'), rejected = pers.rules.filter((r) => r.status === 'rejected');
-  const editNew = (kind) => (redit === `new-${kind}` ? renderRuleEdit({ id: '', kind, when: '', text: '', because: '', stages: [] }) : '');
-  el.innerHTML = `<h1>Personalization</h1>
-    ${renderAsk()}
-    <section aria-labelledby="ph-decide"><div class="lrow"><h2 class="psh" id="ph-decide">How you think${decide.length ? ` · ${decide.length}` : ''}</h2>
-      <button type="button" class="btn sm" data-pp="new-rule" title="Add a rule (⌘N)">+ Add a rule</button></div>
-      ${editNew('rule') ? `<ul class="changes">${editNew('rule')}</ul>` : ''}
-      ${decide.length ? renderRuleGroups(decide) : emptyDecide(testing.length)}</section>
-    <section aria-labelledby="ph-facts"><div class="lrow"><h2 class="psh" id="ph-facts">About your offer${facts.length ? ` · ${facts.length}` : ''}</h2>
-      <button type="button" class="btn sm" data-pp="new-fact">+ Add a fact</button></div>
-      <ul class="changes">${editNew('fact')}${facts.map(renderRule).join('')}</ul>
-      ${facts.length || editNew('fact') ? '' : `<p class="info">Tell the AI what's true about your offer, e.g. “The free consultation is free only for a limited time, not forever.” Every draft respects it.</p>`}</section>
-    ${testing.length ? `<section aria-labelledby="ph-test"><h2 class="psh" id="ph-test">Still testing · ${testing.length}</h2>
-      <p class="info">Rules the AI noticed but isn't sure of. Drafts already try them; confirm the ones that are yours.</p>
-      <ul class="changes">${testing.map(renderRule).join('')}</ul></section>` : ''}
-    ${rejected.length ? `<details><summary class="link">Rejected (${rejected.length})</summary><ul class="changes">${rejected.map(renderRule).join('')}</ul></details>` : ''}
-    ${renderPLearning()}`;
+  const m = pers.mind, p = m.portrait;
+  el.innerHTML = `<h1>How you think</h1>
+    <p class="info" role="status">${renderMindStatus(m)}</p>
+    ${p ? `<p class="lead">${esc(p.identity)}</p>` : ''}
+    ${renderTell(m)}
+    ${p ? renderPortrait(p) : ''}
+    ${renderFit()}
+    ${renderFacts()}`;
 }
 
-function emptyDecide(testing) {
-  if (pers.coach.distilling) return `<p class="empty">${SPIN} Reading your past decisions… (a minute or two)</p>`;
-  if (pers.past && !distilled()) return `<div class="empty"><p>The AI hasn't learned how you decide yet.</p>
-    <button type="button" class="btn primary" data-pp="distill">${icon('regen')} Learn from my past decisions</button>
-    <p class="info">Reads your ${plural(pers.past, 'past decision')} with a note or an edit and proposes rules about how you think, to test.</p></div>`;
-  return `<p class="info">${testing ? 'Nothing confirmed yet. Confirm a rule under Still testing, or add your own.'
-    : 'The AI learns how you decide from what you send, edit and cancel, and from your answers here.'}</p>`;
+function renderMindStatus(m) {
+  if (m.building) return `${SPIN} ${esc(m.step || 'Working')}… (a few minutes; the app keeps working meanwhile)`;
+  const err = m.error ? `<span class="err">The last update failed: ${esc(m.error)}. The portrait below is still in use.</span> ` : '';
+  if (!m.portrait) return `${err}No portrait yet. It's built from your conversations a few minutes after the app starts. <button type="button" class="quiet" data-pp="build">Build it now</button>`;
+  const b = m.basis || {}, n = (k) => b[k]?.used ?? 0;
+  return `${err}Learned ${since(m.builtAt)} from ${plural(n('hard') + n('replies') + n('quiet'), 'moment')} in your conversations and ${plural(n('decisions'), 'correction')} of drafts. `
+    + `It updates itself as you work. <button type="button" class="quiet" data-pp="build">Update now</button>`;
 }
 
-function renderRuleGroups(rules) {
-  const groups = [['Any stage', 99, rules.filter((r) => !r.stages.length)],
-    ...PB_STAGES.map((s, i) => [s, i + 1, rules.filter((r) => r.stages.length && ruleRank(r) === i + 1)])];
-  return groups.filter(([, , rs]) => rs.length).map(([label, rank, rs]) => `<h3 class="pgh">${rank < 99 ? `<span class="sd" style="--st: ${stageColor(rank)}"></span>` : ''}${esc(label)}</h3>
-    <ul class="changes">${rs.map(renderRule).join('')}</ul>`).join('');
+// One box: correct it or add something, in your own words. It outranks everything it read.
+function renderTell(m) {
+  const notes = m.notes || [];
+  return `<section aria-labelledby="ph-tell"><h2 class="psh" id="ph-tell">Tell it something</h2>
+    <p class="info">Wrong or missing? Say it the way you'd tell a new colleague: how you see a situation and what you do. It rebuilds the portrait with your words on top.</p>
+    <textarea class="input pt" id="tell" rows="2" aria-label="Tell it how you think" placeholder="e.g. When someone…, I…, because…"></textarea>
+    <div class="ractions"><button type="button" class="btn sm primary" data-pp="tell" title="Tell it (⌘Enter)">Tell it</button><span class="err" data-err></span></div>
+    ${notes.length ? `<details><summary class="link">What you told it (${notes.length})</summary><ul class="quotes">${notes.slice().reverse()
+      .map((n) => `<li>${esc(n.text)} <span class="why">· ${timeTag(n.at, ago(n.at))}${n.at > (m.builtAt || '') ? ' · not in the portrait yet' : ''}</span></li>`).join('')}</ul></details>` : ''}</section>`;
 }
 
-function renderRule(r) {
-  if (redit === r.id) return renderRuleEdit(r);
-  const c = tally(r), ex = r.evidence.filter((e) => e.for).at(-1);
-  const meta = [SOURCE[r.source],
-    c.for || c.against ? `from ${plural(c.for, 'decision')}${c.against ? ` (${c.against} against)` : ''}` : '',
-    r.status === 'testing' && r.source === 'inferred' && !c.against && c.for < ACTIVE_SUPPORT ? `${ACTIVE_SUPPORT - c.for} more to use it without asking` : '',
-    replayed(r), r.stages.length > 1 ? r.stages.join(', ') : ''].filter(Boolean).join(' · ');
-  const acts = r.status === 'testing' ? `<button type="button" class="btn sm primary" data-pp="confirm">Confirm</button><button type="button" class="quiet" data-pp="reject">Reject</button>`
-    : r.status === 'rejected' ? `<button type="button" class="quiet" data-pp="restore">Restore</button><button type="button" class="quiet danger" data-pp="delete">Delete</button>`
-    : `<button type="button" class="quiet" data-pp="reject">Reject</button>`;
-  return `<li class="card rule ${r.status}" style="--st: ${r.stages.length ? stageColor(ruleRank(r)) : 'var(--line)'}" data-rule="${esc(r.id)}" id="rule-${esc(r.id)}">
-    <div class="rtext" tabindex="0" role="button" data-pp="edit" aria-label="Edit: ${esc(ruleLine(r))}">${r.when ? `<b>When ${esc(r.when)}</b><br>` : ''}${esc(r.text)}${r.because ? `<p class="why">because ${esc(r.because)}</p>` : ''}</div>
-    ${ex ? `<p class="brief ex">${esc(ex.text)}</p>` : ''}
-    <div class="ractions"><span class="why">${esc(meta)}</span><span class="cancel">${acts}</span></div>
-    ${r.evidence.length > 1 ? `<details><summary class="link">Evidence (${r.evidence.length})</summary><ul class="ops">${r.evidence.slice().reverse()
-      .map((e) => `<li>${e.for ? 'For' : 'Against'}: ${esc(e.text)} · ${timeTag(e.at, ago(e.at))}</li>`).join('')}</ul></details>` : ''}</li>`;
+// One card per item, evidence folded away.
+const evidence = (ev) => (ev?.length ? `<details><summary class="link">Why it thinks so (${ev.length})</summary><ul class="quotes">${ev
+  .map((e) => `<li lang="cs">${esc(e.quote)} <span class="why">· ${LABEL_EV[e.label] || e.label}</span></li>`).join('')}</ul></details>` : '');
+const mcard = (title, body, ev) => `<li class="card mcard"><h3>${title}</h3>${body}${evidence(ev)}</li>`;
+const block = (id, title, items, f, intro = '') => (items?.length ? `<section aria-labelledby="ph-${id}"><h2 class="psh" id="ph-${id}">${title}</h2>${intro}
+  <ul class="changes">${items.map(f).join('')}</ul></section>` : '');
+
+function renderPortrait(p) {
+  return [
+    block('models', 'How you see clients', p.models, (x) => mcard(esc(x.name), `<p>${esc(x.line)}</p><p><span class="lbl">When:</span> ${esc(x.apply)}</p><p><span class="lbl">Not when:</span> ${esc(x.limits)}</p>`, x.evidence)),
+    block('heur', 'Your rules of thumb', p.heuristics, (x) => mcard(`When ${esc(x.when.replace(/\.$/, ''))}`, `<p>${esc(x.then)}</p>${x.case ? `<p class="why">For example: ${esc(x.case)}</p>` : ''}`, x.evidence)),
+    block('conv', 'How you lead a conversation', p.conversation, (x) => mcard(`<span class="lens">${esc(LENS[x.lens] || x.lens)}${x.thin ? ' · little evidence' : ''}</span>`, `<p>${esc(x.text)}</p>`, x.evidence)),
+    block('values', 'What matters to you', p.values, (x, i) => mcard(`${i + 1}. ${esc(x.text)}`, '', x.evidence)),
+    block('never', 'What you never do', p.never, (x) => mcard(esc(x.text), '', x.evidence)),
+    block('tensions', 'Where you pull both ways', p.tensions, (x) => mcard(esc(x.between), `<p>${esc(x.text)}</p>`, x.evidence),
+      '<p class="info">Both sides are real; drafts follow whichever wins in the situation.</p>'),
+    p.limits?.length ? `<section aria-labelledby="ph-limits"><h2 class="psh" id="ph-limits">What it doesn't know yet</h2><ul class="info">${p.limits.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></section>` : '',
+  ].join('');
 }
 
-const renderRuleEdit = (r) => `<li class="card rule edit" data-rule="${esc(r.id)}" data-kind="${r.kind}">
-  ${r.kind === 'rule' ? `<label class="why" for="re-when">When (the situation; empty = always)</label>
-    <textarea class="input pt" id="re-when" data-rf="when" rows="1" placeholder="e.g. the client went quiet after hearing the price">${esc(r.when)}</textarea>
-    <label class="why" for="re-text">Then (what you do)</label>` : '<label class="why" for="re-text">A fact about your offer</label>'}
-  <textarea class="input pt" id="re-text" data-rf="text" rows="2" placeholder="${r.kind === 'fact' ? 'e.g. The free consultation is free only for a limited time, not forever' : 'e.g. wait 3 days, then ask one yes/no question'}">${esc(r.text)}</textarea>
-  ${r.kind === 'rule' ? `<label class="why" for="re-because">Because (optional)</label>
-    <textarea class="input pt" id="re-because" data-rf="because" rows="1">${esc(r.because)}</textarea>
-    <div class="filters" role="group" aria-label="Stages (none = any stage)" style="flex-wrap: wrap">${PB_STAGES.map((s, i) => `<button type="button" data-rstage="${esc(s)}" aria-pressed="${r.stages.includes(s)}"><span class="sd" style="--st: ${stageColor(i + 1)}; display: inline-block"></span> ${esc(s)}</button>`).join('')}</div>` : ''}
+// How well it knows you: blind test on moments it never saw, and drafts sent as written.
+const pctOf = (a, n) => (n ? `${Math.round((100 * a) / n)}%` : '–');
+function renderFit() {
+  const v = pers.mind.validation, f = pers.fidelity || [], scores = pers.mind.scores || [];
+  const wk = (d) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en', { day: 'numeric', month: 'short' });
+  const test = v ? `<p><span class="score">${v.with} / 100</span> <span class="why">with the portrait · ${v.without} without it</span></p>
+    <p class="info">Tested ${since(v.at)} on ${plural(v.n, 'recent moment')} it never saw: it predicts what you did and why, and a separate AI grades it blind against what you really did. One test moves by about ±5.${scores.length > 1 ? ` Earlier: ${scores.slice(-6, -1).reverse().map((s) => `${s.with} vs. ${s.without}`).join(', ')}.` : ''}</p>` : '';
+  const sent = f.length ? `<p class="info">Drafts you sent as the AI wrote them: ${f.slice(0, 3).map((w) => `${pctOf(w.asIs, w.decided)} in the week of ${wk(w.week)} (${w.asIs} of ${w.decided})`).join(' · ')}</p>` : '';
+  return test || sent ? `<section aria-labelledby="ph-fit"><h2 class="psh" id="ph-fit">How well it knows you</h2>${test}${sent}</section>` : '';
+}
+
+// ---- facts about your offer: added and edited by hand, every draft respects them
+function renderFacts() {
+  const facts = pers.facts.filter((r) => r.status !== 'rejected');
+  const edit = redit === 'new-fact' ? renderFactEdit({ id: '', text: '' }) : '';
+  return `<section aria-labelledby="ph-facts"><div class="lrow"><h2 class="psh" id="ph-facts">About your offer${facts.length ? ` · ${facts.length}` : ''}</h2>
+    <button type="button" class="btn sm" data-pp="new-fact" title="Add a fact (⌘N)">+ Add a fact</button></div>
+    <ul class="changes">${edit}${facts.map((r) => (redit === r.id ? renderFactEdit(r) : `<li class="card rule" data-rule="${esc(r.id)}" id="rule-${esc(r.id)}">
+      <div class="rtext" tabindex="0" role="button" data-pp="edit" aria-label="Edit: ${esc(r.text)}">${esc(r.text)}</div></li>`)).join('')}</ul>
+    ${facts.length || edit ? '' : `<p class="info">What's true about your offer, e.g. “The free consultation is free only for a limited time.” Every draft respects it.</p>`}</section>`;
+}
+const renderFactEdit = (r) => `<li class="card rule edit" data-rule="${esc(r.id)}">
+  <label class="why" for="re-text">A fact about your offer</label>
+  <textarea class="input pt" id="re-text" data-rf="text" rows="2">${esc(r.text)}</textarea>
   <div class="ractions"><button type="button" class="btn sm primary" data-pp="save" title="Save (⌘Enter)">Save</button><button type="button" class="quiet" data-pp="cancel-edit">Cancel</button>
     <span class="err" data-err></span>${r.id ? '<span class="cancel"><button type="button" class="quiet danger" data-pp="delete">Delete</button></span>' : ''}</div></li>`;
-
-// ---- questions
-function renderAsk() {
-  const qs = pers.questions, done = answered.filter((a) => !qs.some((q) => q.id === a.id));
-  if (!qs.length && !done.length) return '';
-  return `<section aria-labelledby="ph-ask"><h2 class="psh" id="ph-ask">Asking you</h2><ul class="changes">
-    ${done.map((a) => `<li class="card past"><p class="info" tabindex="-1" id="qa-${esc(a.id)}">${esc(a.text)}</p></li>`).join('')}${qs.map(renderQuestion).join('')}</ul></section>`;
+function editRule(id) {
+  redit = id === 'new-rule' ? 'new-fact' : id; renderPersonal();
+  document.querySelector('#personal .rule.edit textarea')?.focus();
 }
-function renderQuestion(q) {
-  const r = q.ruleId && pers.rules.find((x) => x.id === q.ruleId);
-  const stacked = q.kind === 'ab' || q.options.some((o) => o.text);
-  const opt = (o, i) => (stacked
-    ? `<button type="button" class="opt" data-opt="${o.id}" aria-keyshortcuts="${i + 1}"><span class="k" aria-hidden="true">${i + 1}</span> <b>${esc(o.label)}</b>${o.text ? `<span class="body" lang="cs">${esc(o.text)}</span>` : ''}</button>`
-    : `<button type="button" class="btn sm" data-opt="${o.id}" aria-keyshortcuts="${i + 1}"><span class="k" aria-hidden="true">${i + 1}</span> ${esc(o.label)}</button>`);
-  return `<li class="card q" role="group" aria-labelledby="qh-${esc(q.id)}" data-q="${esc(q.id)}">
-    <h3><span class="name" id="qh-${esc(q.id)}">${esc(q.prompt)}</span>${timeTag(q.createdAt, ago(q.createdAt))}</h3>
-    ${r ? `<p class="why">${r.status === 'testing' ? 'Testing' : 'Your rule'}: ${esc(ruleLine(r))}</p>` : q.kind === 'scenario' ? '<p class="why">No rule yet: this keeps coming up.</p>' : ''}
-    ${q.case ? `<p class="brief" lang="cs">${esc(q.case)}</p>` : ''}
-    <div class="${stacked ? 'opts' : 'chips'}">${q.options.map(opt).join('')}</div>
-    <div class="lrow"><input class="input qtext" aria-label="Or answer in your own words" placeholder="Depends on…, or say it your way (Enter)">
-      <button type="button" class="quiet" data-qskip>Skip</button></div><p class="err" data-err></p></li>`;
-}
-
-const ANSWERED = { confirm: 'Rule confirmed: it is one of yours now.', reject: 'Rule dropped.', against: 'Noted as one case against the rule.' };
-async function answerQ(card, optionId) {
-  const id = card.dataset.q, input = card.querySelector('.qtext'), text = input.value.trim();
-  const o = pers.questions.find((q) => q.id === id)?.options.find((x) => x.id === optionId);
-  if (optionId !== 'skip' && ((o?.effect === 'depends' && !text) || (!o && !text))) return input.focus();
-  const next = card.nextElementSibling?.dataset.q;
-  card.querySelectorAll('button, input').forEach((b) => { b.disabled = true; });
-  try {
-    const out = optionId === 'skip' ? await api(`/api/questions/${encodeURIComponent(id)}/skip`, { method: 'POST' })
-      : await api(`/api/questions/${encodeURIComponent(id)}/answer`, { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ optionId: o?.id ?? null, text }) });
-    const msg = optionId === 'skip' ? 'Skipped. It will ask less about this.' : `✓ ${ANSWERED[out.effect] || 'Noted: it refines your rules at the next learning run.'}`;
-    answered.push({ id, text: msg });
-    announce(msg);
-    await loadPersonal(); renderPersonal();
-    (next && document.querySelector(`[data-q="${CSS.escape(next)}"] [data-opt]`) || document.getElementById(`qa-${id}`))?.focus();
-  } catch (e) {
-    card.querySelectorAll('button, input').forEach((b) => { b.disabled = false; });
-    card.querySelector('[data-err]').textContent = e.message;
-  }
-}
-
-// ---- learning: progress, the last run, the log of rule changes
-function renderPLearning() {
-  const c = pers.coach;
-  const line = c.error ? `<span class="err">Learning failed: ${esc(c.error)}. Nothing was changed; it retries at the next decision.</span>`
-    : c.learning ? `${SPIN} Learning from ${plural(c.lessons, 'decision')}…`
-    : `${c.lessons} of ${c.batch} decisions collected${c.lessons ? ' · <button type="button" class="quiet" data-pp="learn">Learn now</button>' : ''}`;
-  const busy = c.distilling ? `${SPIN} Re-reading your past decisions…` : '';
-  const reread = pers.past && !c.distilling && (distilled() || pers.rules.some((r) => r.status === 'active'))
-    ? ` · <button type="button" class="quiet" data-pp="distill">${distilled() ? 'Re-read my past decisions' : 'Learn from my past decisions'}</button>` : '';
-  const last = c.last ? `<p class="info">Last run ${timeTag(c.last.at, ago(c.last.at))}, ${plural(c.last.count, 'decision')}: ${esc(c.last.summary)}</p>` : '';
-  const shown = pers.changes.slice(0, persShown), left = pers.changes.length - shown.length;
-  return `<section aria-labelledby="ph-learn"><h2 class="psh" id="ph-learn">Recent learning</h2>
-    <p class="info" role="status">${line}${reread}${busy ? ` · ${busy}` : ''}</p>${last}${renderFit()}
-    ${shown.length ? `<ul class="changes">${shown.map(renderChange).join('')}</ul>` : '<p class="info">No changes to your rules yet.</p>'}
-    ${left ? `<button type="button" class="link" data-pp="more">Show ${Math.min(left, 20)} more (${left} left)</button>` : ''}</section>`;
-}
-
-// How well the AI knows the user: drafts sent as written (per week) and the
-// replay check (does it predict your past notes, with vs. without your rules).
-const pct = (a, n) => (n ? `${Math.round((100 * a) / n)}%` : '–');
-function replayed(r) {
-  const x = pers.replay?.rules?.[r.id];
-  return x ? `right in ${Math.round(x.right)} of ${plural(x.cited, 'past case')}` : '';
-}
-function renderFit() {
-  const f = pers.fidelity, rp = pers.replay, c = pers.coach;
-  const wk = (d) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en', { day: 'numeric', month: 'short' });
-  const weeks = f.slice(0, 3).map((w) => `${pct(w.asIs, w.decided)} in the week of ${wk(w.week)} (${w.asIs} of ${w.decided})`);
-  const sent = f.length ? `<p class="info">Sent as the AI wrote it: ${weeks.join(' · ')}</p>` : '';
-  const score = (t) => `${pct(t.with, t.n)} with your rules, ${pct(t.without, t.n)} without`;
-  const res = rp ? `<p class="info">Checked ${timeTag(rp.at, ago(rp.at))} on ${plural(rp.all.n, 'past note')}: the AI read your thinking right ${score(rp.all)}.`
-    + (rp.fresh.n ? ` On ${plural(rp.fresh.n, 'newer decision')} it hadn't learned from: ${score(rp.fresh)}.` : ' All of them were learned from, so this is an upper bound; newer decisions will give the honest number.') + '</p>' : '';
-  const btn = c.replaying ? `<p class="info">${SPIN} Checking your rules against your past decisions…</p>`
-    : pers.replayable ? `<p class="info"><button type="button" class="quiet" data-pp="replay">${rp ? 'Check again' : 'Check my rules against my past decisions'}</button></p>` : '';
-  return sent || res || btn ? `<h3 class="pgh">How well it knows you</h3>${sent}${res}${btn}` : '';
-}
-
-// ---- interactions
-async function saveRule(card) {
-  const id = card.dataset.rule, kind = card.dataset.kind, val = (f) => card.querySelector(`[data-rf=${f}]`)?.value.trim() ?? '';
-  const stages = [...card.querySelectorAll('[data-rstage][aria-pressed=true]')].map((b) => b.dataset.rstage);
-  const r = id && pers.rules.find((x) => x.id === id);
-  const body = { kind, when: val('when'), text: val('text'), because: val('because'), stages, status: 'active', source: r?.source === 'stated' || !r ? 'stated' : 'confirmed' };
-  if (!body.text) { card.querySelector('[data-err]').textContent = kind === 'fact' ? 'Write the fact first' : 'Write what you do first'; return card.querySelector('[data-rf=text]').focus(); }
-  await ruleCall(id ? 'PUT' : 'POST', id, body, id ? 'Saved' : kind === 'fact' ? 'Fact added' : 'Rule added', card);
-}
-async function ruleCall(method, id, body, msg, card) {
+async function factCall(method, id, body, msg, card) {
   try {
     const out = await api(`/api/rules${id ? `/${encodeURIComponent(id)}` : ''}`, { method, ...(body && { headers: JSON_HEADERS, body: JSON.stringify(body) }) });
     redit = null; announce(msg);
     await loadPersonal(); renderPersonal();
-    const newId = out.ops?.[0]?.id ?? id;
-    (document.querySelector(`#rule-${CSS.escape(newId || '')} .rtext`) || $('#ph-decide'))?.focus();
+    (document.querySelector(`#rule-${CSS.escape(out.ops?.[0]?.id ?? id ?? '')} .rtext`) || $('#ph-facts'))?.focus();
   } catch (e) { const err = card?.querySelector('[data-err]'); if (err) err.textContent = e.message; else announce(e.message); }
 }
-function editRule(id) {
-  redit = id; renderPersonal();
-  document.querySelector('#personal .rule.edit textarea')?.focus();
+async function saveFact(card) {
+  const text = card.querySelector('[data-rf=text]').value.trim(), id = card.dataset.rule;
+  if (!text) { card.querySelector('[data-err]').textContent = 'Write the fact first'; return card.querySelector('[data-rf=text]').focus(); }
+  await factCall(id ? 'PUT' : 'POST', id, { kind: 'fact', text, status: 'active', source: 'stated', when: '', because: '', stages: [] }, id ? 'Saved' : 'Fact added', card);
+}
+async function tell() {
+  const box = $('#tell'), text = box.value.trim(), err = box.parentElement.querySelector('[data-err]');
+  if (!text) return box.focus();
+  try {
+    await api('/api/mind/notes', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ text }) });
+    box.value = ''; announce('Noted. Rebuilding the portrait with it.');
+    await loadPersonal(); renderPersonal(); $('#tell')?.focus();
+  } catch (e) { err.textContent = e.message; }
 }
 
 $('#personal').addEventListener('click', async (e) => {
-  const optEl = e.target.closest('[data-opt]');
-  if (optEl) return answerQ(optEl.closest('[data-q]'), optEl.dataset.opt);
-  if (e.target.closest('[data-qskip]')) return answerQ(e.target.closest('[data-q]'), 'skip');
-  const st = e.target.closest('[data-rstage]');
-  if (st) return st.setAttribute('aria-pressed', st.getAttribute('aria-pressed') !== 'true');
-  const undo = e.target.closest('[data-undo]');
-  if (undo) {
-    if (undo.getAttribute('aria-disabled') === 'true') return;
-    undo.setAttribute('aria-disabled', 'true'); undo.lastChild.textContent = 'Undoing…';
-    try {
-      const c = await api(`/api/playbooks/changes/${encodeURIComponent(undo.dataset.undo)}/undo`, { method: 'POST' });
-      announce(`Undid: ${c.summary}`);
-      await loadPersonal(); renderPersonal();
-      document.getElementById(`ch-${c.id}`)?.focus();
-    } catch (er) {
-      undo.removeAttribute('aria-disabled'); undo.lastChild.textContent = 'Undo';
-      const err = undo.parentElement.querySelector('[data-err]');
-      if (err) err.textContent = er.message;
-      announce(er.message);
-    }
-    return;
-  }
   const act = e.target.closest('[data-pp]')?.dataset.pp;
   if (!act) return;
-  const card = e.target.closest('[data-rule]'), r = card && pers.rules.find((x) => x.id === card.dataset.rule);
-  if (act === 'new-rule' || act === 'new-fact') return editRule(act);
+  const card = e.target.closest('[data-rule]'), r = card && pers.facts.find((x) => x.id === card.dataset.rule);
+  if (act === 'build') {
+    try { pers.mind = await api('/api/mind/build', { method: 'POST' }); } catch (er) { announce(er.message); }
+    announce('Updating the portrait'); renderPersonal(); return loadPersonal();
+  }
+  if (act === 'tell') return tell();
+  if (act === 'new-fact') return editRule('new-fact');
   if (act === 'edit' && r) return editRule(r.id);
-  if (act === 'cancel-edit') { const was = redit; redit = null; renderPersonal(); return (document.querySelector(`#rule-${CSS.escape(was)} .rtext`) || $('#ph-decide'))?.focus(); }
-  if (act === 'save') return saveRule(card);
-  if (act === 'confirm' && r) return ruleCall('PUT', r.id, { ...r, status: 'active', source: r.source === 'stated' ? 'stated' : 'confirmed' }, 'Confirmed: moved to How you decide');
-  if (act === 'reject' && r) return ruleCall('PUT', r.id, { ...r, status: 'rejected', source: r.source === 'stated' ? 'stated' : 'confirmed' }, 'Rejected; undo in Recent learning');
-  if (act === 'restore' && r) return ruleCall('PUT', r.id, { ...r, status: 'active', source: 'confirmed' }, 'Restored');
-  if (act === 'delete' && card?.dataset.rule) return ruleCall('DELETE', card.dataset.rule, null, 'Deleted; undo in Recent learning', card);
-  if (act === 'more') { persShown += 20; return renderPersonal(); }
-  if (act === 'replay') {
-    try { pers.coach = await api('/api/personal/replay', { method: 'POST' }); } catch (er) { pers.coach = { ...pers.coach, error: er.message }; }
-    announce('Checking your rules against your past decisions');
-    renderPersonal(); return loadPersonal();
-  }
-  if (act === 'learn' || act === 'distill') {
-    try { pers.coach = await api(act === 'learn' ? '/api/playbooks/learn' : '/api/personal/distill', { method: 'POST' }); } catch (er) { pers.coach = { ...pers.coach, error: er.message }; }
-    announce(act === 'learn' ? 'Learning from your decisions' : 'Reading your past decisions');
-    renderPersonal(); loadPersonal();
-  }
+  if (act === 'cancel-edit') { const was = redit; redit = null; renderPersonal(); return (document.querySelector(`#rule-${CSS.escape(was)} .rtext`) || $('#ph-facts'))?.focus(); }
+  if (act === 'save') return saveFact(card);
+  if (act === 'delete' && card?.dataset.rule) return factCall('DELETE', card.dataset.rule, null, 'Deleted; undo it in Playbooks → What the AI learned', card);
 });
 $('#personal').addEventListener('keydown', (e) => {
-  const typing = e.target.matches('input, textarea');
-  if (e.target.matches('.qtext') && e.key === 'Enter' && !e.isComposing) { e.preventDefault(); return answerQ(e.target.closest('[data-q]'), null); }
+  if (e.target.id === 'tell' && (e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); return tell(); }
   const edit = e.target.closest('.rule.edit');
   if (edit && e.key === 'Escape') { e.preventDefault(); return edit.querySelector('[data-pp=cancel-edit]').click(); }
-  if (edit && e.metaKey && e.key === 'Enter') { e.preventDefault(); return saveRule(edit); }
+  if (edit && (e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); return saveFact(edit); }
   if (e.target.matches('.rtext') && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); return e.target.click(); }
-  const q = e.target.closest('[data-q]');
-  if (q && !typing && /^[1-4]$/.test(e.key)) { e.preventDefault(); q.querySelectorAll('[data-opt]')[e.key - 1]?.click(); }
 });
 $('#personal').addEventListener('focusout', () => setTimeout(() => { if (section === 'personal' && !$('#personal').contains(document.activeElement)) renderPersonal(false); }));
 
@@ -2335,7 +2221,7 @@ function renderPEditor(force = true) {
     <ul class="resps">${p.responses.map(renderResponse).join('')}</ul>
     <button type="button" class="link" data-pact="add-resp">+ Add reply</button>
     ${p.lessons.length ? `<h3 class="ph">Lessons</h3><ul class="lessons">${p.lessons.map(renderLesson).join('')}</ul>` : ''}
-    <p class="info">Rules about how you decide live in <a class="link" href="#personal" data-section="personal">Personalization</a>.</p>`;
+    <p class="info">How you think (what drafts follow before these steps) is in <a class="link" href="#personal" data-section="personal">You</a>.</p>`;
 }
 
 const renderPDelete = (asking) => asking

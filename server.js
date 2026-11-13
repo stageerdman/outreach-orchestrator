@@ -9,9 +9,9 @@ import { chatList, markRead, markUnread } from './lib/chats.js';
 import { events } from './lib/events.js';
 import { getSettings, saveSettings, DRAFT_PROMPT, STYLE_PROMPT, COACH_PROMPT, BUILD_PROMPT, MODELS } from './lib/settings.js';
 import { listPlaybooks, listChanges, applyOperations, undoChange } from './lib/playbooks.js';
-import { buildMind, validateMind, getMind, markItem } from './lib/mind.js';
-import { buildPlaybooks, coachState, learnNow, distill, pastDecisions, replay, replayCases, listReplays, fidelity, answerQuestion, skipQuestion, migrateLessons } from './lib/coach.js';
-import { listRules, openQuestions, getRule } from './lib/rules.js';
+import { getMind, addNote, refreshMind, maybeRefresh, staleness } from './lib/mind.js';
+import { buildPlaybooks, coachState, learnNow, fidelity, migrateLessons } from './lib/coach.js';
+import { listRules, getRule } from './lib/rules.js';
 import * as ai from './lib/assistant.js';
 
 const PORT = Number(process.env.PORT || 3000);
@@ -123,36 +123,28 @@ createServer(async (req, res) => {
       const op = body ? { op: 'setPlaybook', reason: 'Edited by the user', playbook: { ...body, id } } : { op: 'deletePlaybook', reason: 'Deleted by the user', id };
       return json(res, 200, applyOperations([op], { trigger: { kind: 'user' }, summary: body ? `Edited "${body.name || id}"` : `Deleted "${id}"`, merge: true }) ?? { unchanged: true });
     }
-    // Personalization: the user's rules and facts, the AI's open questions, the
-    // changes that touched rules (newest first), the coach's state.
+    // Personalization: the portrait of how the user thinks (lib/mind.js), the
+    // facts about the offer, how often drafts go out as written.
     if (url.pathname === '/api/personal') {
-      const changes = listChanges().filter((c) => c.ops.some((o) => o.op === 'setRule' || o.op === 'deleteRule')).slice(-100).reverse();
-      return json(res, 200, { rules: listRules(), questions: openQuestions(), changes, coach: coachState(), past: pastDecisions().length,
-        mind: mindForUi(), replay: listReplays().at(-1) ?? null, replayable: replayCases().length, fidelity: fidelity() });
+      return json(res, 200, { mind: mindForUi(), facts: listRules().filter((r) => r.kind === 'fact'), fidelity: fidelity(), stale: staleness() });
     }
-    if (url.pathname === '/api/personal/distill' && req.method === 'POST') return json(res, 202, distill());
-    // The portrait of how the user thinks (lib/mind.js): build it, mark an item.
-    if (url.pathname === '/api/mind/build' && req.method === 'POST') { buildMind(snapshotPeople()); return json(res, 202, mindForUi()); }
-    if (url.pathname === '/api/mind/validate' && req.method === 'POST') { validateMind(snapshotPeople()); return json(res, 202, mindForUi()); }
-    const mk = url.pathname.match(/^\/api\/mind\/marks\/([^/]+)$/);
-    if (mk && req.method === 'PUT') { const { mark = null } = await readBody(req); markItem(decodeURIComponent(mk[1]), ['me', 'not'].includes(mark) ? mark : null); return json(res, 200, mindForUi()); }
-    // Do the rules predict the user's past decisions? (with vs. without them)
-    if (url.pathname === '/api/personal/replay' && req.method === 'POST') return json(res, 202, replay());
+    // Rebuild the portrait and test it; or tell it something in your own words (rebuilds).
+    if (url.pathname === '/api/mind/build' && req.method === 'POST') { refreshMind(snapshotPeople()); return json(res, 202, mindForUi()); }
+    if (url.pathname === '/api/mind/notes' && req.method === 'POST') {
+      const note = addNote((await readBody(req)).text);
+      if (!note) return json(res, 400, { error: 'Write something first' });
+      refreshMind(snapshotPeople());
+      return json(res, 202, mindForUi());
+    }
+    // Facts about the offer (rules.json, kind "fact"): add, edit, delete; logged and undoable.
     const rm = url.pathname.match(/^\/api\/rules(?:\/([^/]+))?$/);
     if (rm && ['POST', 'PUT', 'DELETE'].includes(req.method)) {
       const id = rm[1] && decodeURIComponent(rm[1]);
       if (req.method !== 'POST' && !getRule(id)) return json(res, 404, { error: 'Rule not found' });
       const body = req.method === 'DELETE' ? null : await readBody(req);
-      const op = body ? { op: 'setRule', reason: 'By you', rule: { ...body, id: id ?? body.id } } : { op: 'deleteRule', reason: 'Deleted by you', id };
-      const what = (body?.kind || getRule(id)?.kind) === 'fact' ? 'fact' : 'rule';
-      const summary = !body ? `Deleted a ${what}` : !id ? `Added a ${what}` : body.status === 'rejected' ? `Rejected a ${what}` : `Edited a ${what}`;
+      const op = body ? { op: 'setRule', reason: 'By you', rule: { ...body, kind: 'fact', id: id ?? body.id } } : { op: 'deleteRule', reason: 'Deleted by you', id };
+      const summary = !body ? 'Deleted a fact' : !id ? 'Added a fact' : 'Edited a fact';
       return json(res, 200, applyOperations([op], { trigger: { kind: 'user' }, summary, merge: true }) ?? { unchanged: true });
-    }
-    const qm = url.pathname.match(/^\/api\/questions\/([^/]+)\/(answer|skip)$/);
-    if (qm && req.method === 'POST') {
-      const id = decodeURIComponent(qm[1]);
-      const out = qm[2] === 'skip' ? skipQuestion(id) : answerQuestion(id, await readBody(req));
-      return out ? json(res, 200, out) : json(res, 409, { error: 'This question is no longer open' });
     }
     if (url.pathname === '/api/settings') {
       if (req.method === 'PUT') {
@@ -200,4 +192,9 @@ createServer(async (req, res) => {
   console.log(`Outreach running at http://localhost:${PORT}`);
   refresh(); // the restored snapshot keeps serving meanwhile
   startLive();
+  // The portrait keeps itself current: built when missing, rebuilt and re-tested
+  // when enough new material came in (checked after the first refresh, then hourly).
+  const mind = () => maybeRefresh(snapshotPeople()).catch((e) => console.error('mind:', e.message));
+  setTimeout(mind, 3 * 60_000);
+  setInterval(mind, 60 * 60_000);
 });

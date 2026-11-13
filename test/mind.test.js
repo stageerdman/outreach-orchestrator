@@ -63,11 +63,11 @@ test('the newest 15% is held out; packing keeps the newest within budget, in tim
   assert.deepEqual(p.map((x) => x.at), ['2026-11-15', '2026-11-16', '2026-11-17']);
 });
 
-test('the portrait for drafts: without the items marked "not me", confirmed ones flagged, quotes only said/observed', () => {
+test('the portrait for drafts: every section with ids, quotes only said/observed, empty sections left out', () => {
   const ev = [{ quote: 'Co Vám brání?', label: 'observed' }, { quote: 'my reading', label: 'inferred' }];
-  const d = { marks: { m2: { mark: 'not' }, h1: { mark: 'me' } }, portrait: {
+  const d = { portrait: {
     identity: 'I sell honestly.', limits: ['Based on 2 weeks'],
-    models: [{ id: 'm1', name: 'Excuses hide doubts', line: 'Line.', apply: 'A.', limits: 'L.', evidence: ev }, { id: 'm2', name: 'Wrong one', line: '', apply: '', limits: '', evidence: [] }],
+    models: [{ id: 'm1', name: 'Excuses hide doubts', line: 'Line.', apply: 'A.', limits: 'L.', evidence: ev }],
     heuristics: [{ id: 'h1', when: 'he cancels', then: 'ask why', case: 'c', evidence: [] }],
     conversation: [{ id: 'c1', lens: 'resistance', text: 'Challenges first.', thin: true, evidence: [] }],
     values: [], never: [], tensions: [{ id: 't1', between: 'Direct vs. kind', text: 'Kind wins when he is hurting.', evidence: [] }],
@@ -75,11 +75,42 @@ test('the portrait for drafts: without the items marked "not me", confirmed ones
   const out = mind.renderMind(d);
   assert.match(out, /^I sell honestly\./);
   assert.match(out, /\[m1\] \*\*Excuses hide doubts\*\*: Line\. Applies: A\. Limits: L\. E\.g\. "Co Vám brání\?"/);
-  assert.doesNotMatch(out, /my reading|Wrong one/);
-  assert.match(out, /\[h1\] When he cancels: ask why \(case: c\) \(confirmed by the user\)/);
+  assert.doesNotMatch(out, /my reading/);
+  assert.match(out, /\[h1\] When he cancels: ask why \(case: c\)/);
   assert.match(out, /resistance: Challenges first\. \(thin evidence\)/);
+  assert.match(out, /## Limits of this portrait\n- Based on 2 weeks/);
   assert.doesNotMatch(out, /## Values/, 'empty sections left out');
-  assert.equal(mind.renderMind({ marks: {}, portrait: null }), '');
+  assert.equal(mind.renderMind({ portrait: null }), '');
+  assert.deepEqual([...mind.mindIds(d)], ['m1', 'h1', 'c1', 't1']);
+});
+
+test('drafts see how the user thinks and the facts, never the old rules', async () => {
+  const { systemPrompt } = await import('../lib/assistant.js');
+  const rules = [{ id: 'f1', kind: 'fact', status: 'active', text: 'The consultation is free only this month', stages: [], when: '' },
+    { id: 'r1', kind: 'rule', status: 'active', text: 'Old rule text', stages: [], when: '' }];
+  const out = systemPrompt({ styleGuide: '', draftPrompt: '' }, [], [], rules, 'I sell honestly.\n\n## Heuristics\n- [h1] When he cancels: ask why');
+  assert.match(out, /# How the user thinks\n[\s\S]*I sell honestly\.[\s\S]*\[h1\]/);
+  assert.match(out, /# Facts[\s\S]*\[f1\] The consultation is free only this month/);
+  assert.doesNotMatch(out, /Old rule text/);
+});
+
+test("it stays current on its own: none → build; the user's new note, 10 new corrections, or a week with 3 → rebuild", () => {
+  const corr = (at, extra = {}) => ({ status: 'regenerated', note: 'too pushy', text: 'a', aiText: 'a', updatedAt: at, ...extra });
+  const d = { portrait: {}, builtAt: '2026-11-10T00:00:00Z', notes: [], notesUsed: 0 };
+  const now = new Date('2026-11-12T00:00:00Z');
+  assert.equal(mind.staleness({ portrait: null }), 'none');
+  assert.equal(mind.staleness(d, [corr('2026-11-11T00:00:00Z')], now), '');
+  assert.equal(mind.staleness(d, [...Array(10)].map(() => corr('2026-11-11T00:00:00Z')), now), 'decisions');
+  assert.equal(mind.staleness(d, [...Array(10)].map(() => corr('2026-11-09T00:00:00Z')), now), '', 'only decisions after the build');
+  assert.equal(mind.staleness(d, [...Array(10)].map(() => corr('2026-11-11T00:00:00Z', { note: '' })), now), '', 'a plain send says nothing');
+  assert.equal(mind.staleness(d, [...Array(3)].map(() => corr('2026-11-11T00:00:00Z')), new Date('2026-11-18T00:00:00Z')), 'week');
+  assert.equal(mind.staleness({ ...d, notes: [{ at: 'x', text: 'y' }] }, [], now), 'notes');
+});
+
+test('what the user tells it is kept, trimmed, empty refused', () => {
+  assert.equal(mind.addNote('  '), null);
+  assert.equal(mind.addNote(' I always challenge first ').text, 'I always challenge first');
+  assert.equal(mind.getMind().notes.length, 1);
 });
 
 test('validation scores: blind order undone, points of 100 per dimension, portrait items relied on', () => {

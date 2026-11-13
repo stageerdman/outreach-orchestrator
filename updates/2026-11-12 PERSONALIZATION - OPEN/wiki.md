@@ -13,3 +13,16 @@
   itself is worth a question.
 - No fine-tuning, embeddings or Bayesian machinery: data is tens of
   decisions a day; plain JSON rules in the prompt are enough.
+
+## v2 (agent-creator) lessons, 2026-11-13
+- A flat rule list from notes predicted the user *worse than knowing
+  nothing* (~31 vs ~35/100); the portrait from their own conversations
+  ~39. The material matters more than the format: 1,476 own messages vs. 49
+  notes.
+- Measure before believing: one validation run moves ±5; compare averages,
+  same cases, blind grader.
+- Read the misses, not just the score: they exposed three bugs (logistics
+  detected as "resistance", follow-ups after my own message dropped,
+  rewritten drafts graded as "sent").
+- Team templates (openers, closing notices, links) pass as "heuristics"
+  unless the synthesis is told they belong to the playbooks.

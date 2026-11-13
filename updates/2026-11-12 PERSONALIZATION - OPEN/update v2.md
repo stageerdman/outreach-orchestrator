@@ -33,15 +33,15 @@ tensions.
 1. [x] `lib/mind.js`: corpus (pure: dimensions A–D from the snapshot +
    requests, anonymised, hold-out split), research runs, synthesis,
    `mind.json` store, render for prompts. Tests on the corpus and render.
-2. [~] Run on a copy of the app data; read the portrait. **Checkpoint with
+2. [x] Run on a copy of the app data; read the portrait. **Checkpoint with
    the user** before it's wired into drafts.
 3. [x] Validation run (held-out, with vs. without, blind grader). Tests.
-4. [ ] Tab: the portrait as the main thing (UX agents), "that's me / not
+4. [x] Tab: the portrait as the main thing (UX agents), "that's me / not
    me", edit, the fidelity number; rules demoted.
-5. [ ] Drafting uses the portrait; drafts name the model/heuristic.
-6. [ ] Incremental updates from new decisions and answers; questions from
+5. [x] Drafting uses the portrait; drafts name the model/heuristic.
+6. [x] Incremental updates from new decisions and answers; questions from
    thin areas.
-7. [ ] Verify on the copy, then docs (CLAUDE.md).
+7. [x] Verify on the copy, then docs (CLAUDE.md).
 
 ## Status
 - 2026-11-13 planned after reading agent-creator (SKILL.md, extraction
@@ -61,3 +61,16 @@ tensions.
   Single runs spread ±5, so only averages mean anything. Weakest: clients
   who went quiet (the "closing notice" heuristic was relied on 7×, right
   0.5×). Waiting for the user's read of the portrait (checkpoint).
+- 2026-11-13 the user: "good for now"; no per-item "that's me / not me",
+  make it work long term. Done: the portrait keeps itself current (built
+  when missing; rebuilt + re-tested after 10 new corrections, a new note, or
+  a week with 3; checked 3 min after start and hourly); one "Tell it" box
+  (notes outrank all research, shown as not-yet-in until the rebuild); the
+  You tab shows the portrait (cards, evidence folded), the score and its
+  history, drafts sent as written per week, facts. Drafts use portrait +
+  facts and cite item ids. v1 rules, questions, distill and replay removed
+  (code, routes, UI, tests); rules.json keeps the facts. Verified on the
+  copy: tab (desktop, 420 px, no console errors), add fact, a draft citing
+  priority-test / choice-in-his-hands, a test note changing the
+  quiet-after-booking heuristic, auto re-test after it. Open: per-item
+  feedback if wanted later; outcomes (booked / paid) as evidence.

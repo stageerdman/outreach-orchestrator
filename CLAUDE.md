@@ -180,7 +180,7 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   `<lid>@lid` chats mapped to that phone in the bridge's `whatsapp.db`
   (`whatsmeow_lid_map`, read-only). CRM phones must include the country code.
 - **Sections:** a left rail switches views (Messages, Tasks, Templates,
-  Playbooks, You = Personalization, Settings; ⌘1–6, Messages is the default; there is no separate
+  Playbooks, You (how you think), Settings; ⌘1–6, Messages is the default; there is no separate
   AI Requests view). Messages = every CRM contact with messages, newest
   first (`/api/chats`), unread pill, with a Requests / Unanswered / All switch
   on top (people with an open draft / unread chats / everyone; localStorage
@@ -222,8 +222,7 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   "not found" when there's no email.
 - **Playbooks** (`lib/playbooks.js`, `lib/coach.js`, `/api/playbooks`): a
   follow-up strategy per stage (plus a universal "no reply" one), ≤10 steps
-  (channel, wait, ask, why, template variants) and reply branches (no
-  lessons: those are rules now, see Personalization),
+  (channel, wait, ask, why, template variants) and reply branches,
   in `playbooks.json` (app data folder). Drafts get the playbooks and the
   follow-up position (messages sent since the client last wrote) and record
   the step they followed. Building and learning run through the coach, one at
@@ -233,26 +232,34 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   `BATCH` (15) lessons, or "Learn now" (`POST /api/playbooks/learn`), ONE run
   over all of them returns operations on playbooks, templates and the style
   guide (`setStyle`, full text, small edits; a cut to under half is refused),
-  rules (`setRule`/`deleteRule`) and questions,
+  and facts (`setRule`, kind `fact`),
   applied as one logged change (trigger `batch`); those lessons are removed
   only on success, a failure retries at the next lesson. Any change (also the
   user's own edits, merged per 10 min) can be undone if nothing changed it
   since. Method and data in the PLAYBOOKS update's `research-playbooks.md`.
   Learning is silent except in Playbooks: "N of 15 decisions collected ·
   Learn now", a failure (also rail "!").
-- **Personalization** (`lib/rules.js`, `/api/personal`, `/api/rules`,
-  `/api/questions/:id/answer|skip`, SSE `personal`; method in the
-  PERSONALIZATION update): judgement as rules ("when …, then …, because …",
-  stages, evidence for/against) and facts about the offer, in `rules.json`
-  (app data folder, with the questions). An AI rule is `testing` until 4
-  decisions support it with none against (an active one stays active until a
-  case against); one confirmation by the user makes it active; the AI can't
-  reword a confirmed/stated rule or revive a rejected one. Questions (≤3 open,
-  one batch a day, fewer after skips) only in the You tab (rail dot, keys
-  1–4); an answer applies at once and is queued as a lesson. "Learn from my
-  past decisions" (`POST /api/personal/distill`) reads past notes/edits once.
-  Drafts get facts + live rules (testing marked) and return `ruleIds`. The
-  playbooks' old lessons were migrated to rules once (trigger `migrate`).
+- **Personalization = how the user thinks** (`lib/mind.js`, the You tab,
+  `/api/personal`, `/api/mind/build`, `/api/mind/notes`; method: the
+  PERSONALIZATION update v2, after `/Users/stage/dev/agent-creator`): a
+  portrait in `mind.json` (app data), not rules. Built from the user's own
+  material — hard moments (the client pushes back), corrections of drafts
+  (notes, edits), ordinary exchanges, follow-ups after silence — by one
+  research run per dimension (quotes labelled said / observed / inferred,
+  contradictions kept) and one synthesis (recurs + predicts + not generic
+  sales advice → mental models, else heuristics; how they lead a
+  conversation; values; never; tensions; limits). Thinking only: wording is
+  the style guide, sequences and templates are the playbooks. The newest 15%
+  of each dimension is held out: a blind test (predict with vs. without the
+  portrait, a separate grader) gives a score of 100, kept in `scores`
+  (single runs move ±5). It keeps itself current: built when missing,
+  rebuilt + re-tested after 10 new corrections, a new note, or a week with 3
+  (checked 3 min after start, then hourly). "Tell it" notes outrank
+  everything. Drafts get the portrait + facts (`ruleIds` = the portrait item
+  / fact ids they relied on). Facts about the offer stay in `rules.json`
+  (kind `fact`, edited in the tab). The v1 rules and questions are retired
+  (they tested worse than nothing); the coach batch keeps playbooks,
+  templates, style and facts only.
 - **Drafts in the UI** live only in Messages (Requests filter) and the chat
   (a draft keeps `channel`, `instruction` and `previousId`, the version it
   replaced, so the chat shows the notes and earlier versions), kept in sync
