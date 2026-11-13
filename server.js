@@ -9,9 +9,10 @@ import { chatList, markRead, markUnread } from './lib/chats.js';
 import { events } from './lib/events.js';
 import { getSettings, saveSettings, DRAFT_PROMPT, STYLE_PROMPT, COACH_PROMPT, BUILD_PROMPT, MODELS } from './lib/settings.js';
 import { listPlaybooks, listChanges, applyOperations, undoChange } from './lib/playbooks.js';
-import { getMind, addNote, refreshMind, maybeRefresh, maybeAsk, askQuestions, closeQuestion, staleness } from './lib/mind.js';
-import { buildPlaybooks, coachState, learnNow, fidelity, migrateLessons } from './lib/coach.js';
+import { getMind, addNote, removeNote, refreshMind, maybeRefresh, maybeAsk, askQuestions, closeQuestion, staleness } from './lib/mind.js';
+import { buildPlaybooks, coachState, learnNow, fidelity, migrateLessons, makeGeneral } from './lib/coach.js';
 import { listRules, getRule } from './lib/rules.js';
+import { scenarioOf } from './lib/scenario.js';
 import * as ai from './lib/assistant.js';
 import { listConnections } from './lib/connections.js';
 import * as connect from './lib/connect.js';
@@ -34,7 +35,7 @@ const feed = (people) => {
 const findPerson = (id) => snapshotPeople().find((p) => p.id === decodeURIComponent(id));
 
 // Server-Sent Events: the UI's live stream (see lib/events.js for the events).
-const STREAM = ['snapshot', 'messages', 'requests', 'personal', 'connect', 'copilot'];
+const STREAM = ['snapshot', 'messages', 'requests', 'personal', 'connect', 'copilot', 'playbooks'];
 function stream(req, res) {
   res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
   res.write('retry: 3000\n\n');
@@ -86,8 +87,8 @@ const server = createServer(async (req, res) => {
     // AI requests: drafts waiting for the user (and their history).
     if (url.pathname === '/api/requests') {
       if (req.method === 'POST') {
-        const { personIds = [], instruction = '', channel = null } = await readBody(req);
-        return json(res, 202, ai.draft(personIds, instruction, { channel }));
+        const { personIds = [], instruction = '', channel = null, templateId = null } = await readBody(req);
+        return json(res, 202, ai.draft(personIds, instruction, { channel, templateId }));
       }
       return json(res, 200, ai.listForUi());
     }
@@ -127,6 +128,12 @@ const server = createServer(async (req, res) => {
     }
     // Learn now from the decisions collected so far (otherwise every BATCH).
     if (url.pathname === '/api/playbooks/learn' && req.method === 'POST') return json(res, 202, learnNow());
+    // "Make it the rule": a lesson the coach kept for one chat goes back as general.
+    const lg = url.pathname.match(/^\/api\/playbooks\/learnlog\/([^/]+)\/([^/]+)\/general$/);
+    if (lg && req.method === 'POST') {
+      try { return json(res, 202, makeGeneral(decodeURIComponent(lg[1]), decodeURIComponent(lg[2]))); }
+      catch (e) { return json(res, e.status || 500, { error: e.message }); }
+    }
     const u = url.pathname.match(/^\/api\/playbooks\/changes\/([^/]+)\/undo$/);
     if (u && req.method === 'POST') {
       const out = undoChange(decodeURIComponent(u[1]));
@@ -145,6 +152,8 @@ const server = createServer(async (req, res) => {
     }
     // Rebuild the portrait and test it; or tell it something in your own words (rebuilds).
     if (url.pathname === '/api/mind/build' && req.method === 'POST') { refreshMind(snapshotPeople()); return json(res, 202, mindForUi()); }
+    const nm = url.pathname.match(/^\/api\/mind\/notes\/([^/]+)$/);
+    if (nm && req.method === 'DELETE') return removeNote(decodeURIComponent(nm[1])) ? json(res, 200, { ok: true }) : json(res, 404, { error: 'Note not found' });
     if (url.pathname === '/api/mind/notes' && req.method === 'POST') {
       const note = addNote((await readBody(req)).text);
       if (!note) return json(res, 400, { error: 'Write something first' });
@@ -196,9 +205,10 @@ const server = createServer(async (req, res) => {
     if (m) {
       const person = findPerson(m[1]);
       if (!person) return json(res, 404, { error: 'Person not found' });
-      // reach: where the composer can write (ai.channelsOf); waKnown: the number is on WhatsApp.
+      // reach: where the AI can write (ai.channelsOf); waKnown: the number is on WhatsApp;
+      // scenario: where the chat is in the playbooks (lib/scenario.js), for the scenario line.
       const { messages, errors, ...rest } = person;
-      return json(res, 200, { person: rest, messages, errors, reach: ai.channelsOf(person), waKnown: person.phones.some(whatsappKnown) });
+      return json(res, 200, { person: rest, messages, errors, reach: ai.channelsOf(person), waKnown: person.phones.some(whatsappKnown), scenario: scenarioOf(person) });
     }
     // Messages: every contact with a conversation, newest first, with unread counts.
     if (url.pathname === '/api/chats') return json(res, 200, chatList(snapshotPeople()));

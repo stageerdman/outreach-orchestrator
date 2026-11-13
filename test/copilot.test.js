@@ -29,7 +29,7 @@ setJSON('snapshot', { at: null, people: [person, { ...person, id: 'c2', name: 'P
 const cp = await import('../lib/copilot.js');
 const store = await import('../lib/requests.js');
 const pb = await import('../lib/playbooks.js');
-const { getMind } = await import('../lib/mind.js');
+const { getMind, removeNote } = await import('../lib/mind.js');
 const { events } = await import('../lib/events.js');
 test.after(() => rmSync(dir, { recursive: true, force: true }));
 const lastCall = () => readFileSync(calls, 'utf8').split('===\n').filter(Boolean).at(-1).split('\n---\n');
@@ -112,7 +112,10 @@ test('a playbook change is applied, logged with trigger copilot and undoable; re
   assert.deepEqual([items[0].changeId, change.trigger], [change.id, { kind: 'copilot', personName: 'Jana Nová' }]);
   assert.equal(pb.getPlaybook('thinking').steps[0].waitDays, 3);
   assert.deepEqual(getMind().notes.at(-1), { ...getMind().notes.at(-1), text: 'Hesitation means fear of the price, not of the result.', source: 'copilot' });
-  assert.equal(items[1].text, 'Saved how you think: Hesitation means fear of the price, not of the result.');
+  assert.equal(items[1].text, 'Remembered: “Hesitation means fear of the price, not of the result.”');
+  assert.equal(items[1].noteAt, getMind().notes.at(-1).at);
+  assert.equal(removeNote(items[1].noteAt), true); // Undo
+  assert.equal(getMind().notes.some((n) => n.at === items[1].noteAt), false);
   assert.equal(pb.undoChange(change.id).change.undone, true);
   assert.equal(pb.getPlaybook('thinking'), undefined);
 });

@@ -218,6 +218,12 @@ test('a draft keeps its channel and instruction; regenerate links the new versio
   assert.equal(store.getRequest(first.id).note, 'hezčí');
   assert.deepEqual([next.previousId, next.instruction, next.channel], [first.id, 'hezčí', null]);
   assert.equal((await settle(next.id)).channel, 'whatsapp');
+  // "Draft with: <template>": the AI is told which one; the request shows it while it's written.
+  store.updateRequest(next.id, { status: 'cancelled' });
+  const [withTpl] = ai.draft(['c9'], '', { templateId: 'tpl-1' });
+  assert.deepEqual([withTpl.templateId, withTpl.instruction], ['tpl-1', 'Use template tpl-1.']);
+  await settle(withTpl.id);
+  store.updateRequest(withTpl.id, { status: 'cancelled' });
 });
 
 test('a regenerate sees every earlier version: each instruction, the AI text and the user\'s edit', () => {
