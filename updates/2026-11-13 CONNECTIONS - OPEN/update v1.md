@@ -48,3 +48,14 @@ it is and how to access it, the user answers in the chat, and it builds it.
   changing code. Restart tested (self-respawn); the Mac app rebuilt to restart
   the server on exit 75. Skipped: a pending node before the restart (the
   server only knows a connection after loading its code).
+
+## Next (when we come back)
+- The user tries it in the real app: quit + reopen Outreach (the rebuilt
+  ~/Applications/Outreach.app sets OUTREACH_SUPERVISED, so Restart = exit 75 →
+  the app starts the server again and reloads). Not yet tried in the real app.
+- First real connection (likely the calendar: see free slots, book meetings),
+  built through the chat; watch that it registers in lib/connections.js and
+  wires lib/assistant.js if drafts should offer real slots.
+- Maybe: a "pending" node for a connection built but not loaded yet; stream
+  the AI's text as it's typed (--include-partial-messages); more than one
+  conversation / history.

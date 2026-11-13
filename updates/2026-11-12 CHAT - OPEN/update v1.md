@@ -217,3 +217,8 @@ WhatsApp messages show up within seconds.
   decide on Tasks group names (NOVÝ LEAD / NO SHOW) vs. the categories, and
   whether cancelled drafts / Recover should come back in the chat (all in
   issues.txt). Learning has 11 of 15 lessons collected.
+- 2026-11-13 the user asked for "seen" tracking in Unanswered: it already
+  exists (reads.json; a chat counts as read after 1 s open, visible and
+  focused; unread again only on a newer client message). Verified on a copy
+  (31 → 30, survives reload). Waiting on a concrete case if it ever misbehaves
+  in the Mac app (WKWebView focus).

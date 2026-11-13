@@ -10,3 +10,7 @@
   TRANSP:TRANSPARENT; all handled in `lib/calendar.js` (wall-clock expansion in
   the event's zone, so DST keeps local times). Unknown FREQ = first occurrence only.
 - Privacy: the AI gets free windows only, never titles or attendees.
+- The CLI inherits the user's global hooks (SessionStart events show up as system lines); harmless, ignored.
+- Headless Chrome screenshots of this view sometimes hang (infinite CSS animations + emulation changes); kill Chrome and rerun, navigate once per run.
+- Secrets: the AI ends a message with `[[secret NAME: what it is]]`; the UI's secure field POSTs `/api/connect/secret`, which writes `.env` (mode 600), sets process.env and sends the AI only `[NAME saved to .env]`.
+- Restart without the Mac app: the server spawns a detached copy of itself and exits; listen retries EADDRINUSE for ~5 s.
