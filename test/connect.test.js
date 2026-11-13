@@ -88,5 +88,5 @@ test('connections: one plain object each; a status that throws shows as an error
     { id: 'b', name: 'B', what: 'w', status: () => { throw new Error('boom'); } },
   ]);
   assert.deepEqual(list, [{ id: 'a', name: 'A', what: 'w', state: 'live', detail: '2 things' }, { id: 'b', name: 'B', what: 'w', state: 'error', detail: 'boom' }]);
-  assert.deepEqual(listConnections({ people: [], errors: {} }).map((x) => x.id), ['crm', 'whatsapp', 'email']);
+  assert.deepEqual(listConnections({ people: [], errors: {} }).map((x) => x.id), ['crm', 'whatsapp', 'email', 'calendar']);
 });

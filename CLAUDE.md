@@ -290,6 +290,12 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   (rebuild the app with `npm run app` for that); otherwise the server starts
   a copy of itself. Look (after 3 UX agents): one cyan `--hud` accent, glow
   only in dark mode, slow motion, reduced-motion respected, real numbers only.
+- **Calendar** (`lib/calendar.js`, read-only): Google calendars through their
+  secret iCal addresses (`GOOGLE_CALENDAR_ICS`, space-separated), parsed and
+  recurrence-expanded in-house (no dependency), cached 5 min. Drafts get only
+  free windows (working hours `CALENDAR_HOURS`, default 9-18, Mon–Fri, Prague,
+  next 14 days, ≥30 min), never event titles; the AI offers times inside them
+  and can't book. Busy = opaque, not cancelled.
 - **Drafts in the UI** live only in Messages (Requests filter) and the chat
   (a draft keeps `channel`, `instruction` and `previousId`, the version it
   replaced, so the chat shows the notes and earlier versions), kept in sync

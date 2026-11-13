@@ -235,3 +235,9 @@ test('a regenerate sees every earlier version: each instruction, the AI text and
   assert.ok(!s.slice(s.indexOf('## Version 2')).includes('edited it to'), 'an unedited version has no edit');
   assert.ok(!s.includes('instruction for this draft'));
 });
+
+test('free calendar time reaches the prompt only when there is some', () => {
+  const person = { id: 'p', name: 'A', phones: [], emails: ['a@x.cz'], messages: [] };
+  assert.ok(ai.contextPrompt({ person, availability: 'Mon 16/11: 09:00–12:00' }).includes('# My free time'));
+  assert.ok(!ai.contextPrompt({ person }).includes('# My free time'));
+});
