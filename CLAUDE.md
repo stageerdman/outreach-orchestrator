@@ -91,7 +91,11 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   column (`#chat`, moved between the two views; each list keeps its own
   selection). Selecting a row (click, or ↑/↓ with a 150 ms debounce) opens
   the whole conversation, newest at the bottom (last 50, "Show earlier"),
-  with the composer under it. ≤900px: panes swap (`data-pane`, `.back`).
+  the scenario line and the draft under it, and the Copilot (`#copilot`,
+  inside `#chat`, so it moves with it): ≥1200px a third column
+  (`--cop-w`, the list clamp subtracts it), below that a bottom sheet in the
+  chat pane (collapsed = the input + the last line, 60% while focus is in
+  it, Esc collapses). ≤900px: panes swap (`data-pane`, `.back`).
   No channel tags anywhere in Messages rows or bubbles. Messages rows: name +
   stage, time / snippet + unread; a person with an open AI draft is on top
   (newest draft first, tinted, "Draft: …" as the snippet; also without any
@@ -109,7 +113,9 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   all folders every 2 min) re-collect only the people involved. The snapshot
   holds every CRM contact.
 - **Events:** `lib/events.js`, served as SSE at `GET /api/events`:
-  `snapshot {at, stage}`, `messages {ids}`, `requests {id, personId, status}`.
+  `snapshot {at, stage}`, `messages {ids}`, `requests {id, personId, status}`,
+  `personal`, `connect`, `copilot` (see Copilot), `playbooks {}` (a playbook
+  change or the coach's state / learning log; the Playbooks view, no polling).
 - **Messages** (`lib/chats.js`, `/api/chats`): every CRM contact with
   messages; read state in `reads.json` (app data folder); unread = client
   messages after the later of last read and my last message.
@@ -155,22 +161,48 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   (in memory only). Non-ResultsON CRMs: `queue` undefined = in the feed,
   grouped by stage. People already messaged today (Prague day; history or a
   sent request) are hidden unless the client wrote back since. Drafting
-  starts from ✨ in the chat or "Draft N".
+  starts from Enter in the empty Copilot box, the scenario line, or "Draft N".
 - **Live UI:** one `EventSource('/api/events')` drives everything (no polling,
   except `/api/refresh` once a second while a refresh runs). The status line
   only shows what's off (failed/unconnected source, sample data, live
   updates down >30 s).
-- **Composer = chat with the AI only** (nothing typed there reaches a
-  client; the AI picks channel and subject): Enter = ✨ (⌘J / Alt+Enter too),
-  Shift+Enter = newline. No draft: the text is ✨'s instruction; a draft on the
-  way: the note for the regenerate. The gray draft bubble's text is edited in
-  place (click or Enter/Space on it; email: subject too; Enter = newline,
-  Esc/blur ends; autosaved via PUT `/api/requests/:id`, flushed before
-  send/✨/×; `aiText`/`aiSubject` keep the AI's version, "edited by you"). Its
-  only buttons are two round ones: ↑ (`--ok`) sends via `/api/requests/:id/send` (disabled
-  while a note is typed) and × (`--err`) discards / stops / dismisses, taking
-  the typed text as the reason. Tasks rows show a draft only as a spinner or
-  dot after the name.
+- **Composer = the Copilot's input** (nothing typed there reaches a client):
+  Enter sends it to the Copilot, Enter on an empty box = ✨ (a plain draft, or
+  a new version of the one there), Shift+Enter = newline, ⌘J focuses it,
+  Enter/→ on a list row too; Esc stops a running turn, else back to the list.
+  The gray draft bubble's text is edited in place (click or Enter/Space on
+  it; email: subject too; Enter = newline, Esc/blur ends; autosaved via PUT
+  `/api/requests/:id`, flushed before send/✨/×; `aiText`/`aiSubject` keep
+  the AI's version, "edited by you"). Its only buttons are two round ones: ↑
+  (`--ok`) sends via `/api/requests/:id/send` (disabled while text is typed in
+  the Copilot) and × (`--err`) discards / stops / dismisses, taking the
+  Copilot's typed text as the reason. Tasks rows show a draft only as a
+  spinner or dot after the name.
+- **Scenario line** (`.scene`, above the draft, from `scenario` in
+  `/api/people/:id/history`, `lib/scenario.js`): no draft → the playbook (a
+  link to it at that step) · step n of N: ask — Draft with: ≤3 templates
+  (POST `/api/requests` with `templateId`) · Write freely; replied → Reply as:
+  the branches (sent as the instruction) · Other; not due → due <day> — Draft
+  now anyway; finished → Draft anyway · Edit playbook; none → No playbook for
+  <stage>. With a draft, its recorded provenance instead: Followed <playbook>
+  · step · template "X" (toggles its text) · adapted (word overlap with the
+  template, placeholders left out via `public/resolve.js`, < 70%), or Written
+  freely — <reasoning>; Drafting from "X"… while it's written.
+- **Copilot** (`lib/copilot.js`; the COPILOT update): per person, a chat with
+  the drafting AI, transcript in `copilot.json` (app data, last 60 items).
+  `GET/POST /api/copilot/:personId` ({text} → 202, 409 while one runs),
+  `POST …/stop`, `DELETE` (clear, no UI). Each turn is one stateless
+  `claude -p` (stream-json) with the draft's context, the scenario, the
+  current draft and the chat; SSE `copilot` streams the thinking and reply
+  (`{personId, id, thinking, reply, running}`) and every transcript change
+  (`{personId, running, item}`). Actions: `draft` (a new version replacing
+  the draft, `via: 'copilot'`), playbook / template / style / fact changes
+  (`applyOperations`, trigger `copilot`, undoable), `remember` (a mind note;
+  Undo = `DELETE /api/mind/notes/:at`). UI: no header; the thinking streams
+  in a muted 3-line box, then folds into "Thought for N s"; one line per
+  action (Draft updated · Show / … · Open · Undo / Remembered … · Undo);
+  ↑ becomes ■ while running; a sent or discarded draft draws a divider and
+  older rounds fold into "Earlier"; the reply is announced (`#announce`).
 - **Local cache** (`lib/cache.js`, node:sqlite) lives in
   `~/Library/Application Support/Outreach/`, never in the repo: last
   snapshot, email headers/bodies per folder (`imapNext:<folder>` in kv),
@@ -227,18 +259,26 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   follow-up position (messages sent since the client last wrote) and record
   the step they followed. Building and learning run through the coach, one at
   a time. Every send / regenerate / cancel is saved as a lesson in
-  `lessons.json` (app data folder; the decision, AI vs. user's text when
-  edited, the clipped conversation, rendered at decision time); every
-  `BATCH` (15) lessons, or "Learn now" (`POST /api/playbooks/learn`), ONE run
-  over all of them returns operations on playbooks, templates and the style
-  guide (`setStyle`, full text, small edits; a cut to under half is refused),
-  and facts (`setRule`, kind `fact`),
-  applied as one logged change (trigger `batch`); those lessons are removed
-  only on success, a failure retries at the next lesson. Any change (also the
-  user's own edits, merged per 10 min) can be undone if nothing changed it
-  since. Method and data in the PLAYBOOKS update's `research-playbooks.md`.
-  Learning is silent except in Playbooks: "N of 15 decisions collected ·
-  Learn now", a failure (also rail "!").
+  `lessons.json` (app data folder; the decision, the note — for a Copilot
+  draft its chat instructions —, AI vs. user's text when edited, the clipped
+  conversation, rendered at decision time). A lesson with a note or an edit
+  starts a run after 3 quiet minutes (`QUIET`, a later one resets it); plain
+  ones wait for `BATCH` (15). ONE run over all waiting lessons returns
+  operations on playbooks, templates and the style guide (`setStyle`, full
+  text, small edits; a cut to under half is refused) and facts (`setRule`,
+  kind `fact`), applied as one logged change (trigger `batch`), and accounts
+  for every note and edit (`handled`: changed / situational / already /
+  style, what and why) in `learnlog.json` (last 50 runs; `coach.log` = the
+  latest 10). Those lessons are removed only on success, a failure retries at
+  the next lesson. "Make it the rule" (`POST
+  /api/playbooks/learnlog/:run/:entry/general`) re-runs a situational one as
+  general. Any change (also the user's own edits, merged per 10 min) can be
+  undone if nothing changed it since. Method and data in the PLAYBOOKS
+  update's `research-playbooks.md`. In Playbooks, "What I learned" (first in
+  the list): per run "From your note on <name>" / "From N decisions" /
+  "Copilot", each note → its outcome (Show change, Undo (N changes) per run,
+  Make it the rule); runs that changed nothing from plain decisions get no
+  entry; "All changes" folded below; a failure shows there (also rail "!").
 - **Personalization = how the user thinks** (`lib/mind.js`, the You tab,
   `/api/personal`, `/api/mind/build`, `/api/mind/notes`; method: the
   PERSONALIZATION update v2, after `/Users/stage/dev/agent-creator`): a
@@ -297,10 +337,11 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   free windows (working hours `CALENDAR_HOURS`, default 9-18, Mon–Fri, Prague,
   next 14 days, ≥30 min), never event titles; the AI offers times inside them
   and can't book. Busy = opaque, not cancelled.
-- **Drafts in the UI** live only in Messages (Requests filter) and the chat
-  (a draft keeps `channel`, `instruction` and `previousId`, the version it
-  replaced, so the chat shows the notes and earlier versions), kept in sync
-  through SSE `requests`.
+- **Drafts in the UI** live only in Messages (Requests filter) and the chat:
+  one gray bubble, the current version only (a draft keeps `channel`,
+  `instruction`, `previousId` and its recorded `scenario`; the notes and
+  earlier versions are the Copilot transcript now), kept in sync through SSE
+  `requests`.
 - **Style guide** (Settings → Learn my style): `lib/style.js` builds reply
   pairs, follow-ups and measured stats from the snapshot; one Claude run turns
   them into a Markdown guide (method in the AI REQUESTS update's

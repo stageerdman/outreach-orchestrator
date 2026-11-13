@@ -48,16 +48,25 @@ playbook; "learn this about how I think" → it saves it.
   talk to the AI.
 
 ## Phases
-1. [ ] Scenario detection + template-first drafting + learning fixes
+1. [x] Scenario detection + template-first drafting + learning fixes
    (scenario.js, assistant.js, coach.js, prompts); tests.
-2. [ ] Copilot backend (copilot.js, routes, SSE `copilot`); tests with a fake
+2. [x] Copilot backend (copilot.js, routes, SSE `copilot`); tests with a fake
    `claude`.
-3. [ ] UI: the third column, scenario line, learning log (UX agents in
+3. [x] UI: the third column, scenario line, learning log (UX agents in
    parallel, synthesized).
 4. [ ] Verify on the real thing, docs (CLAUDE.md, wiki), close.
 
 ## Status
 - 2026-11-13: diagnosis done, roadmap written.
+- 2026-11-13: phases 1–3 built. UI per the spec below, with these choices:
+  the Copilot lives inside `#chat` (one element moves between Messages and
+  Tasks); "adapted" is computed in the UI (word overlap with the template,
+  placeholders dropped via `public/resolve.js`), not on the server; the full
+  change log stays under "All changes" in What I learned (undo of your own
+  edits and deletes needs it); a remembered note can be undone
+  (`DELETE /api/mind/notes/:at`). Verified on a copy of the app data (PORT
+  3100): a real turn streams, a draft action replaces the draft (Show), ×
+  draws the divider, a quiet coach run lands in What I learned.
 
 ## UI spec (3 UX agents, synthesized 2026-11-13)
 **Copilot column** (`#copilot`, moves with `#chat`, rendered only when a person
