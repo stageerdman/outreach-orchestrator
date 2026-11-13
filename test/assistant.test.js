@@ -241,3 +241,31 @@ test('free calendar time reaches the prompt only when there is some', () => {
   assert.ok(ai.contextPrompt({ person, availability: 'Mon 16/11: 09:00–12:00' }).includes('# My free time'));
   assert.ok(!ai.contextPrompt({ person }).includes('# My free time'));
 });
+
+test('the scenario opens the context, right after the time, with its templates and the template-first rule', async () => {
+  const { scenarioOf } = await import('../lib/scenario.js');
+  const pbs = [{ id: 'th', name: 'Thinking', stages: ['Thinking about it'], situation: 'conversation', goal: '', steps: [],
+    responses: [{ id: 'price', when: 'he asks the price', approach: 'explain', templateIds: ['t1'] }], lessons: [] }];
+  const templates = [{ id: 't1', name: 'Cena', subject: '', bodyHtml: '<div>Dobrý den {{ JMENO }}</div>' }];
+  const scenario = scenarioOf(person, pbs, new Date('2026-11-11T12:00:00Z'));
+  const s = ai.contextPrompt({ person, scenario, templates, now: new Date('2026-11-11T12:00:00Z'), onWa });
+  const parts = s.split('\n\n');
+  assert.match(parts[0], /^Now: /);
+  assert.ok(parts[1].startsWith('# Scenario\n'), parts[1]);
+  assert.ok(s.indexOf('# Scenario') < s.indexOf('# Client'));
+  assert.ok(s.includes('Thinking about it · the client wrote last · pick the reply branch that fits (1): he asks the price'));
+  assert.ok(s.includes('### t1 · Cena\nDobrý den {{ JMENO }}') && s.includes('When templates are listed, use one'));
+  assert.ok(!ai.contextPrompt({ person, scenario: null, onWa }).includes('# Scenario'));
+  assert.deepEqual(ai.contextOf(person, new Date('2026-11-11T12:00:00Z'), scenario).scenario,
+    { playbookId: 'th', stepId: null, situation: 'conversation', text: scenario.text });
+});
+
+test('the draft prompt sets the order of authority: instruction > scenario > portrait > style; the user\'s own prompt still wins', async () => {
+  const { DRAFT_PROMPT, prompts } = await import('../lib/settings.js');
+  const at = (x) => DRAFT_PROMPT.indexOf(x);
+  assert.ok(at("1. The user's instruction") < at('2. The playbook scenario') && at('2. The playbook scenario') < at('3. The portrait') && at('3. The portrait') < at('4. The style guide'));
+  assert.ok(DRAFT_PROMPT.includes('Templates first: when the scenario lists templates, use one'));
+  assert.equal(prompts({ draftPrompt: ' MINE ' }).draft, 'MINE');
+  const sys = ai.systemPrompt({ draftPrompt: '', styleGuide: '' }, [], [], [], 'portrait');
+  assert.ok(sys.includes('may justify a deviation') && !sys.includes('outranks the playbooks'));
+});
