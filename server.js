@@ -58,6 +58,7 @@ const json = (res, status, body) => {
   res.end(JSON.stringify(body));
 };
 
+const SHARED = ['/resolve.js', '/sent.js'];
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   try {
@@ -65,9 +66,10 @@ const server = createServer(async (req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       return res.end(await readFile(new URL('./public/index.html', import.meta.url)));
     }
-    if (url.pathname === '/resolve.js') {
+    // The modules shared by the UI and the server (index.html imports them).
+    if (SHARED.includes(url.pathname)) {
       res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8' });
-      return res.end(await readFile(new URL('./public/resolve.js', import.meta.url)));
+      return res.end(await readFile(new URL(`./public${url.pathname}`, import.meta.url)));
     }
     if (url.pathname === '/api/templates') {
       if (req.method === 'POST') return json(res, 201, saveTemplate(null, await readBody(req)));
