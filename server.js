@@ -9,11 +9,14 @@ import { chatList, markRead, markUnread } from './lib/chats.js';
 import { events } from './lib/events.js';
 import { getSettings, saveSettings, DRAFT_PROMPT, STYLE_PROMPT, COACH_PROMPT, BUILD_PROMPT, MODELS } from './lib/settings.js';
 import { listPlaybooks, listChanges, applyOperations, undoChange } from './lib/playbooks.js';
+import { buildMind, validateMind, getMind, markItem } from './lib/mind.js';
 import { buildPlaybooks, coachState, learnNow, distill, pastDecisions, replay, replayCases, listReplays, fidelity, answerQuestion, skipQuestion, migrateLessons } from './lib/coach.js';
 import { listRules, openQuestions, getRule } from './lib/rules.js';
 import * as ai from './lib/assistant.js';
 
 const PORT = Number(process.env.PORT || 3000);
+// The portrait without the research notes (large; kept in mind.json).
+const mindForUi = () => { const { research, ...m } = getMind(); return m; };
 restoreSnapshot();
 migrateLessons(); // once: the playbooks' lessons become rules
 
@@ -125,9 +128,14 @@ createServer(async (req, res) => {
     if (url.pathname === '/api/personal') {
       const changes = listChanges().filter((c) => c.ops.some((o) => o.op === 'setRule' || o.op === 'deleteRule')).slice(-100).reverse();
       return json(res, 200, { rules: listRules(), questions: openQuestions(), changes, coach: coachState(), past: pastDecisions().length,
-        replay: listReplays().at(-1) ?? null, replayable: replayCases().length, fidelity: fidelity() });
+        mind: mindForUi(), replay: listReplays().at(-1) ?? null, replayable: replayCases().length, fidelity: fidelity() });
     }
     if (url.pathname === '/api/personal/distill' && req.method === 'POST') return json(res, 202, distill());
+    // The portrait of how the user thinks (lib/mind.js): build it, mark an item.
+    if (url.pathname === '/api/mind/build' && req.method === 'POST') { buildMind(snapshotPeople()); return json(res, 202, mindForUi()); }
+    if (url.pathname === '/api/mind/validate' && req.method === 'POST') { validateMind(snapshotPeople()); return json(res, 202, mindForUi()); }
+    const mk = url.pathname.match(/^\/api\/mind\/marks\/([^/]+)$/);
+    if (mk && req.method === 'PUT') { const { mark = null } = await readBody(req); markItem(decodeURIComponent(mk[1]), ['me', 'not'].includes(mark) ? mark : null); return json(res, 200, mindForUi()); }
     // Do the rules predict the user's past decisions? (with vs. without them)
     if (url.pathname === '/api/personal/replay' && req.method === 'POST') return json(res, 202, replay());
     const rm = url.pathname.match(/^\/api\/rules(?:\/([^/]+))?$/);
