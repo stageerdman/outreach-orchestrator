@@ -30,12 +30,12 @@ portrait). Questions stay, but come from the portrait's thin areas and
 tensions.
 
 ## Phases
-1. [ ] `lib/mind.js`: corpus (pure: dimensions A–D from the snapshot +
+1. [x] `lib/mind.js`: corpus (pure: dimensions A–D from the snapshot +
    requests, anonymised, hold-out split), research runs, synthesis,
    `mind.json` store, render for prompts. Tests on the corpus and render.
-2. [ ] Run on a copy of the app data; read the portrait. **Checkpoint with
+2. [~] Run on a copy of the app data; read the portrait. **Checkpoint with
    the user** before it's wired into drafts.
-3. [ ] Validation run (held-out, with vs. without, blind grader). Tests.
+3. [x] Validation run (held-out, with vs. without, blind grader). Tests.
 4. [ ] Tab: the portrait as the main thing (UX agents), "that's me / not
    me", edit, the fidelity number; rules demoted.
 5. [ ] Drafting uses the portrait; drafts name the model/heuristic.
@@ -48,3 +48,16 @@ tensions.
   framework, fidelity scorecard, template, its wiki). Corpus measured on a
   copy: 258 people with messages, 1,476 of the user's messages, 616 reply
   pairs (~170k chars), 421 follow-ups, 38 pairs where the client resists.
+- 2026-11-13 phases 1 and 3 built (test/mind.test.js), run on a fresh copy
+  of the app data (~2 min to build, ~30 s to validate, the user's Claude
+  login). Fixes found by reading the results: the "hard moment" detector
+  caught scheduling logistics (now real pushback only: 29 moments); a
+  follow-up right after my own earlier message was dropped (new touch after
+  6 h); a rewritten-then-sent draft was graded as "sent it" (now "rewrote it
+  and sent their own version"); team templates (opener, closing notice,
+  links, prep video) crept in as heuristics (synthesis told to leave them to
+  the playbooks; some still do). Validation, 41 held-out moments, 2 runs
+  each: portrait ~39/100, nothing ~35, v1 rules ~31 (worse than nothing).
+  Single runs spread ±5, so only averages mean anything. Weakest: clients
+  who went quiet (the "closing notice" heuristic was relied on 7×, right
+  0.5×). Waiting for the user's read of the portrait (checkpoint).

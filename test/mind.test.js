@@ -16,7 +16,7 @@ const person = { id: 'p', name: 'Jan Novák', stage: { label: 'No show' }, messa
   msg('01T11:00', false, 'Dobře, díky. Kdy můžeme?'),
   msg('01T11:05', true, 'Zítra v 18:00?'),                               // a reply
   msg('01T11:06', true, 'Nebo ve čtvrtek.'),                             // same run: not a new item
-  msg('01T12:00', false, 'Bohužel nemůžu, ozvu se. Volejte +420 777 123 456'),
+  msg('01T12:00', false, 'Bohužel teď ne, ozvu se. Volejte +420 777 123 456'),
   msg('01T12:30', true, 'Co Vám v tom brání?'),                          // a hard moment
   msg('05T09:00', true, 'Ještě se připomínám.'),                         // after 4 days of silence → quiet
   msg('05T09:10', false, '[image]'),
@@ -27,7 +27,7 @@ test('corpus: replies, hard moments and follow-ups from my runs of messages; con
   assert.equal(c.replies.length, 1);
   assert.equal(c.hard.length, 1);
   assert.equal(c.quiet.length, 2);
-  assert.match(c.hard[0].text, /<moment stage="No show">[\s\S]*CLIENT\] Bohužel nemůžu[\s\S]*ME\] Co Vám v tom brání\?/);
+  assert.match(c.hard[0].text, /<moment stage="No show">[\s\S]*CLIENT\] Bohužel teď ne[\s\S]*ME\] Co Vám v tom brání\?/);
   assert.match(c.hard[0].text, /<phone>/);
   assert.doesNotMatch(c.hard[0].text, /777/);
   assert.match(c.quiet[1].text, /silence="4 days"/);
@@ -94,11 +94,11 @@ test('validation scores: blind order undone, points of 100 per dimension, portra
 
 test('test cases come only from the held-out newest moments and carry the situation and what I did', () => {
   const msgs = [];
-  for (let d = 1; d <= 9; d++) msgs.push(msg(`${String(d).padStart(2, '0')}T10:00`, false, `Nemůžu, den ${d}`), msg(`${String(d).padStart(2, '0')}T10:30`, true, `Co Vám brání? (${d})`));
+  for (let d = 1; d <= 9; d++) msgs.push(msg(`${String(d).padStart(2, '0')}T10:00`, false, `Teď ne, ozvu se, den ${d}`), msg(`${String(d).padStart(2, '0')}T10:30`, true, `Co Vám brání? (${d})`));
   const cases = mind.testCases([{ id: 'x', stage: { label: 'No show' }, messages: msgs }], { requests: [], rules: [], questions: [] });
   assert.equal(cases.length, 1, '15% of 9 hard moments');
   assert.equal(cases[0].dim, 'hard');
-  assert.match(cases[0].situation, /The client just wrote:[\s\S]*Nemůžu, den 9/);
+  assert.match(cases[0].situation, /The client just wrote:[\s\S]*Teď ne, ozvu se, den 9/);
   assert.doesNotMatch(cases[0].situation, /\(9\)/, 'never what I did');
   assert.match(cases[0].actual, /ME\] Co Vám brání\? \(9\)/);
 });
