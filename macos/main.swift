@@ -76,6 +76,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         p.standardInput = FileHandle.nullDevice
         var env = ProcessInfo.processInfo.environment
         env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+        if log == "server.log" {
+            // The server exits with 75 to be restarted (new code from the Connections chat).
+            env["OUTREACH_SUPERVISED"] = "1"
+            p.terminationHandler = { proc in
+                guard proc.terminationStatus == 75 else { return }
+                DispatchQueue.global().async {
+                    self.spawn(exe, args, cwd: cwd, log: log)
+                    for _ in 0..<80 where !isUp("http://127.0.0.1:\(port)/api/status") { Thread.sleep(forTimeInterval: 0.25) }
+                    DispatchQueue.main.async { self.reload() }
+                }
+            }
+        }
         p.environment = env
         do { try p.run(); started.append(p) } catch { NSLog("Outreach: could not start \(exe): \(error)") }
     }

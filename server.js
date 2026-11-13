@@ -13,6 +13,9 @@ import { getMind, addNote, refreshMind, maybeRefresh, maybeAsk, askQuestions, cl
 import { buildPlaybooks, coachState, learnNow, fidelity, migrateLessons } from './lib/coach.js';
 import { listRules, getRule } from './lib/rules.js';
 import * as ai from './lib/assistant.js';
+import { listConnections } from './lib/connections.js';
+import * as connect from './lib/connect.js';
+import { spawn } from 'node:child_process';
 
 const PORT = Number(process.env.PORT || 3000);
 // The portrait without the research notes (large; kept in mind.json).
@@ -30,7 +33,7 @@ const feed = (people) => {
 const findPerson = (id) => snapshotPeople().find((p) => p.id === decodeURIComponent(id));
 
 // Server-Sent Events: the UI's live stream (see lib/events.js for the events).
-const STREAM = ['snapshot', 'messages', 'requests', 'personal'];
+const STREAM = ['snapshot', 'messages', 'requests', 'personal', 'connect'];
 function stream(req, res) {
   res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
   res.write('retry: 3000\n\n');
@@ -53,7 +56,7 @@ const json = (res, status, body) => {
   res.end(JSON.stringify(body));
 };
 
-createServer(async (req, res) => {
+const server = createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   try {
     if (url.pathname === '/') {
@@ -194,12 +197,47 @@ createServer(async (req, res) => {
       return json(res, 200, c[2] === 'read' ? { id: person.id, readAt: markRead(person) } : { id: person.id, markedAt: markUnread(person) });
     }
     if (url.pathname === '/api/events') return stream(req, res);
+    // Connections: what the orchestrator is wired to, and the chat that adds more.
+    if (url.pathname === '/api/connections') return json(res, 200, listConnections({ people: snapshotPeople(), errors: syncState().errors ?? {} }));
+    if (url.pathname === '/api/connect') {
+      if (req.method !== 'POST') return json(res, 200, connect.getConversation());
+      const { text } = await readBody(req);
+      try { connect.say(text); } catch (e) { return json(res, 409, { error: e.message }); }
+      return json(res, 202, connect.getConversation());
+    }
+    const k = url.pathname.match(/^\/api\/connect\/(stop|reset|secret)$/);
+    if (k && req.method === 'POST') {
+      const body = await readBody(req);
+      try {
+        if (k[1] === 'stop') return json(res, 200, { stopped: connect.stop() });
+        if (k[1] === 'reset') return json(res, 200, connect.reset());
+        return json(res, 200, connect.saveSecret(body.name, body.value));
+      } catch (e) { return json(res, 409, { error: e.message }); }
+    }
+    if (url.pathname === '/api/restart' && req.method === 'POST') { json(res, 202, { restarting: true }); return restart(); }
     json(res, 404, { error: 'Not found' });
   } catch (e) {
     console.error(e);
     json(res, 500, { error: e.message });
   }
-}).listen(PORT, () => {
+});
+// Restart to load new code: the Mac app (OUTREACH_SUPERVISED) starts the server
+// again when it exits with 75; otherwise it starts a copy of itself first.
+function restart() {
+  connect.stop();
+  setTimeout(() => {
+    if (process.env.OUTREACH_SUPERVISED) process.exit(75);
+    spawn(process.execPath, [...process.execArgv, ...process.argv.slice(1)], { cwd: process.cwd(), detached: true, stdio: 'inherit', env: { ...process.env, OUTREACH_RESTARTED: '1' } }).unref();
+    process.exit(0);
+  }, 200);
+}
+// After a restart the old process may still hold the port for a moment.
+let tries = 0;
+server.on('error', (e) => {
+  if (e.code !== 'EADDRINUSE' || ++tries > 20) throw e;
+  setTimeout(() => server.listen(PORT), 250);
+});
+server.listen(PORT, () => {
   console.log(`Outreach running at http://localhost:${PORT}`);
   refresh(); // the restored snapshot keeps serving meanwhile
   startLive();
