@@ -15,6 +15,7 @@ import { listRules, getRule } from './lib/rules.js';
 import * as ai from './lib/assistant.js';
 import { listConnections } from './lib/connections.js';
 import * as connect from './lib/connect.js';
+import * as copilot from './lib/copilot.js';
 import { spawn } from 'node:child_process';
 
 const PORT = Number(process.env.PORT || 3000);
@@ -33,7 +34,7 @@ const feed = (people) => {
 const findPerson = (id) => snapshotPeople().find((p) => p.id === decodeURIComponent(id));
 
 // Server-Sent Events: the UI's live stream (see lib/events.js for the events).
-const STREAM = ['snapshot', 'messages', 'requests', 'personal', 'connect'];
+const STREAM = ['snapshot', 'messages', 'requests', 'personal', 'connect', 'copilot'];
 function stream(req, res) {
   res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
   res.write('retry: 3000\n\n');
@@ -105,6 +106,17 @@ const server = createServer(async (req, res) => {
           : ai.editRequest(id, body);
         return out ? json(res, 200, out) : json(res, 409, { error: 'This request is no longer open' });
       } catch (e) { return json(res, e.status || 502, { error: e.message }); }
+    }
+    // Copilot: per person, a chat with the drafting AI (lib/copilot.js); a turn streams over SSE `copilot`.
+    const cp = url.pathname.match(/^\/api\/copilot\/([^/]+)(?:\/(stop))?$/);
+    if (cp) {
+      const id = decodeURIComponent(cp[1]);
+      try {
+        if (cp[2]) return req.method === 'POST' ? json(res, 200, { stopped: copilot.stop(id) }) : json(res, 405, { error: 'POST only' });
+        if (req.method === 'POST') { copilot.say(id, (await readBody(req)).text); return json(res, 202, copilot.getCopilot(id)); }
+        if (req.method === 'DELETE') return json(res, 200, copilot.clear(id));
+        return json(res, 200, copilot.getCopilot(id));
+      } catch (e) { return json(res, e.status || 500, { error: e.message }); }
     }
     // Playbooks: the follow-up strategies, their change log (newest first) and the coach's state.
     if (url.pathname === '/api/playbooks') {
