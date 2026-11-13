@@ -58,3 +58,53 @@ playbook; "learn this about how I think" → it saves it.
 
 ## Status
 - 2026-11-13: diagnosis done, roadmap written.
+
+## UI spec (3 UX agents, synthesized 2026-11-13)
+**Copilot column** (`#copilot`, moves with `#chat`, rendered only when a person
+is open). ≥1200px: `list | chat | copilot`, `--cop-w: clamp(300px, 24vw, 400px)`,
+no toggle, no second gutter; the list clamp subtracts `--cop-w`. <1200px: a
+bottom sheet inside the chat pane (collapsed = the input + last reply line;
+expands to 60% on focus, Esc collapses). `--panel` background, `border-left`,
+`--accent` (not `--hud`); reuses the Connections chat pieces (`.xchat`).
+- No header, no "New", no prompt chips. Placeholder "Enter drafts it · or tell
+  me what you want"; first time ever one muted line "I can redo the draft,
+  change a playbook ('from now on…'), or remember how you think."
+- Turns: user = `.msg.me`; thinking streams in a muted ≤3-line box ("Thinking…"),
+  folds into `<details>` "Thought for N s" when the reply starts (open state
+  survives re-renders); reply rendered like the Connections chat; one line per
+  action: `Draft updated · Show` (scrolls to + outlines the bubble 1 s),
+  `Playbook "X", step 3: … · Open · Undo`, `Remembered: "…" · Undo`; undone →
+  "Undone"; failure → error line + Try again.
+- While running ↑ becomes ■ Stop (Esc stops too). A sent/discarded draft draws
+  a divider ("Sent 14:02" / "Discarded"); older rounds fold into "Earlier".
+- Keys: ⌘J focuses the copilot input from Messages/Tasks; Enter sends,
+  Shift+Enter newline; **Enter on an empty input = ✨ (plain draft, as today)**;
+  Enter/→ on a list row focuses the copilot input; Esc stops, else back to the
+  list. Turns in `aria-live="polite"` (reply only).
+**Conversation column:** the composer, `#chint` and the `.anote` / "Earlier
+draft" trail go (that history is the copilot transcript now). Kept: the gray
+bubble, edit in place, ↑ / ×, "edited by you", the stale line. × takes the
+copilot input's text as the reason; ↑ is disabled while text is typed there
+(title says why).
+**Scenario line** (`.scene`, one line above the draft box, muted, like `.anote`;
+only in the conversation, not in the copilot; channel never named; the
+playbook name links to Playbooks at that step):
+- no draft, step due: `New lead · step 2 of 4: ask for a call — Draft with:
+  A · B · Write freely` (≤3 templates, one tap drafts with that templateId);
+- client replied: `They replied — Reply as: Price objection · Needs time · Other`;
+- not due: `No reply · step 3 of 4 due Fri (in 2 days) — Draft now anyway`;
+- finished: `No reply · all 4 steps sent — Draft anyway · Edit playbook`;
+- no playbook: `No playbook for <stage> — the AI will write freely`.
+- With a draft, provenance replaces it (from the draft's recorded scenario, never
+  live): `Followed No reply · step 2 of 4 · template "X"` (name toggles the
+  template text inline), `· adapted` when the server's similarity to the filled
+  template is < 70%; free: `Written freely — <reason>` (in `--text`). While
+  generating: `Drafting from "X"…`.
+**Playbooks: "What I learned"** replaces "What the AI learned" and the
+"N of 15 · Learn now" counter (only failures stay, + rail "!"): first row,
+grouped by run ("From your note on <name>" / "From N decisions" / "Copilot"),
+each entry: person · the note quoted → outcome: Changed · <what> (Show change =
+before/after of the changed field · Undo (N changes) on the run), Style guide ·
+…, Already a rule · …, Kept for this chat only · <why> + **Make it the rule**
+(re-runs that lesson as general). Runs that changed nothing from plain
+sends/cancels get no entry.
