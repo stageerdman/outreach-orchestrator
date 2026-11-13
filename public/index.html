@@ -670,6 +670,7 @@
 <div class="cmenu" id="cmenu" role="menu" aria-label="Chat" hidden><button type="button" role="menuitem" id="cmark"></button></div>
 <script type="module">
 import { placeholders, hasGender, resolve, htmlToText } from '/resolve.js';
+import { inHistory } from '/sent.js';
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const CHANNELS = { email: 'Email', whatsapp: 'WhatsApp' };
@@ -1008,7 +1009,7 @@ function renderMessages() {
   const visible = chat.all ? messages : messages.slice(-RECENT);
   // Sent from the app and not in the history yet (WhatsApp counts as sent once opened).
   const lastMine = messages.findLast((m) => m.fromMe)?.at ?? '';
-  const sent = requests.filter((r) => r.personId === chat.id && r.status === 'sent' && r.updatedAt > lastMine)
+  const sent = requests.filter((r) => r.personId === chat.id && r.status === 'sent' && r.updatedAt > lastMine && !inHistory(r, messages))
     .map((r) => ({ channel: r.channel, id: r.id, at: r.updatedAt, fromMe: true, subject: r.subject, text: r.text, local: r.channel === 'email' ? 'sent from app' : 'opened in WhatsApp' }));
   let prev = null, lastSubject = null;
   const items = [...visible, ...sent].map((m) => {

@@ -17,7 +17,7 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   `update vX.md` (goal, phased roadmap, live status) and `wiki.md` (durable
   decisions and lessons). Reopen an update by flipping `CLOSED` → `OPEN`.
 - **Stay flat.** `server.js` (routes), `lib/` (one file per data source:
-  `crm.js`, `email.js`, `whatsapp.js`), `public/index.html` (the UI), `public/resolve.js` (template placeholders),
+  `crm.js`, `email.js`, `whatsapp.js`), `public/index.html` (the UI), `public/resolve.js` (template placeholders), `public/sent.js` (is a sent draft in the history yet),
   `data/` (sample data), `macos/` (the native app wrapper, built with
   `npm run app`), `patches/` (changes to vendored code). Add folders only when the project genuinely grows
   into them; tests, when added, go in `test/` using Node's built-in
@@ -237,7 +237,7 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   no tools, JSON schema, the user's own login, max 2 at once) for the next
   step: a message (WhatsApp or email, templates first) or an "offer a meeting"
   request (Done = the user offered it, an activity, not a booking). Drafts wait in `requests.json` (app data folder) until the user
-  sends (email over SMTP as a reply + Sent copy; WhatsApp opens the app
+  sends (email over SMTP as a reply + Sent copy, its Message-ID kept on the request so the app's own "sent from app" bubble disappears once the Sent copy syncs (`public/sent.js`; older sends: same text within 15 min); WhatsApp opens the app
   prefilled and counts as sent), regenerates or cancels with an optional
   note. A person with a generating/pending draft can't get another. The AI
   sees the last 30 messages, its unsent drafts with the user's notes, and
