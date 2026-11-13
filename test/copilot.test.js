@@ -67,7 +67,7 @@ test('a turn streams its thinking and reply, then a draft action becomes the pen
   for (const a of ['--output-format\nstream-json', '--include-partial-messages', '--no-session-persistence', '--tools\n\n']) assert.ok(args.includes(a), a);
   assert.match(args, /# Copilot/);
   assert.match(input, /# The draft in front of the user\n\(none yet\)/);
-  assert.match(input, /# The user's new message\nnapiš to kratší$/);
+  assert.match(input, /# The user's new message\nnapiš to kratší\n\nWrite "thinking" in English and "reply" in Czech\.$/);
   assert.ok(!input.includes('Prepare the next step'));
 });
 
@@ -136,4 +136,11 @@ test('one turn at a time per person; Stop ends it; clear starts over', async () 
   assert.deepEqual([cp.getCopilot('c1').items.at(-1).kind, cp.getCopilot('c1').items.at(-1).text], ['error', 'Not logged in']);
   assert.deepEqual(cp.clear('c1'), { items: [], running: false });
   assert.throws(() => cp.say('nobody', 'hi'), (e) => e.status === 404);
+});
+
+test('the reply language follows the user, not the client', async () => {
+  const { langOf } = await import('../lib/copilot.js');
+  assert.equal(langOf('what step are we at?'), 'English');
+  assert.equal(langOf('zkrať to'), 'Czech');
+  assert.equal(langOf('udělej to kratší'), 'Czech');
 });
