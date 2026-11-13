@@ -80,10 +80,18 @@ tensions.
 gathered (new corrections, notes) and asks about the thinking behind the
 patterns it can't explain; one question at a time in the You tab, answer
 (a suggested answer and/or own words) or skip; the count on the rail.
-8. [ ] `lib/mind.js`: questions in mind.json; asked when none are open and
+8. [x] `lib/mind.js`: questions in mind.json; asked when none are open and
    (never asked, or ≥15 new corrections/notes and ≥2 days since the last
    set); ≤5 per set, grounded in a real case, about why — never wording.
    An answer = the user's own words (a note, source `answer`); once the set
    is done the portrait rebuilds with them. Tests.
-9. [ ] API + You tab: a quiz card (n of N, why it asks, the case, suggested
+9. [x] API + You tab: a quiz card (n of N, why it asks, the case, suggested
    answers, own words, Answer / Skip), rail count. UX review on screenshots.
+- 2026-11-13 questions built and reviewed (2 UX agents: visual, wording).
+  From the review: 3 per set (not 5), one factor per question, options
+  exclusive with "No fixed rule, I go by feel", no internal labels, a
+  readable example above the question, a tap answers, "Not sure", Tell it
+  secondary while a question is open, a calm count on the rail, the
+  thank-you survives reloads. Verified on the copy: real questions
+  generated, answer / one tap / not sure, focus to the next, the set's
+  answers folded into a rebuild.

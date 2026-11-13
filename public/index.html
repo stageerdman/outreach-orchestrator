@@ -364,23 +364,27 @@
   .moredetail[open] > summary { margin-bottom: var(--s3); }
 
   /* Questions for you: one at a time, a quiz card */
-  .qhead { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s3); margin-bottom: var(--s3); }
-  .qhead .psh { margin: 0; }
   .qcard { padding: var(--s4); background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); display: grid; gap: var(--s3); }
   .qcard > p { margin: 0; }
   .qask { font-size: var(--fs-lg); font-weight: 600; line-height: 1.45; }
-  .qcase { margin: 0; padding: var(--s2) var(--s3); background: var(--bg); border-radius: var(--radius); font-size: var(--fs-sm); font-style: italic; overflow-wrap: anywhere; }
-  .qopts { display: flex; flex-wrap: wrap; gap: var(--s2); }
-  .qopts button { all: unset; box-sizing: border-box; cursor: pointer; padding: var(--s2) var(--s3); border: 1px solid var(--line); border-radius: var(--radius); display: inline-flex; gap: var(--s2); align-items: baseline; overflow-wrap: anywhere; }
+  .qcase { margin: 0; padding: var(--s2) var(--s3); background: color-mix(in srgb, var(--line) 40%, transparent); border-radius: var(--radius); overflow-wrap: anywhere; }
+  .qcase .why { display: block; font-size: var(--fs-sm); margin-bottom: var(--s1); }
+  .qopts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: var(--s2); }
+  .qopts button { all: unset; box-sizing: border-box; width: 100%; cursor: pointer; padding: var(--s2) var(--s3); border: 1px solid var(--line); border-radius: var(--radius); display: flex; gap: var(--s2); align-items: baseline; overflow-wrap: anywhere; }
   .qopts button:hover { border-color: var(--muted); }
   .qopts button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-  .qopts button[aria-pressed=true] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
-  .qopts .k { color: var(--muted); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
+  .qopts button[aria-pressed=true] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+  .qopts button[aria-pressed=true] .k { color: inherit; border-color: currentColor; }
+  .k { flex: none; padding: 0 var(--s1); border: 1px solid var(--line); border-radius: var(--radius); color: var(--muted); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
+  @media (hover: none) { .qopts .k { display: none; } }
+  .qcard .qpos { margin-right: auto; color: var(--muted); font-size: var(--fs-sm); }
+  .qwhy { font-size: var(--fs-sm); }
+  #ybadge { background: transparent; color: var(--muted); border: 1px solid var(--muted); }
   #qtext { display: block; width: 100%; min-height: calc(2 * 1.45em + 2 * var(--s2)); resize: none; field-sizing: content; background: var(--panel); }
   #qtext:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 var(--s1) color-mix(in srgb, var(--accent) 20%, transparent); }
   .qcard .ractions { flex-direction: row-reverse; gap: var(--s3); }
   .qcard .btn.primary { padding: var(--s2) var(--s4); font-weight: 600; }
-  .qdone { margin: 0; padding: var(--s3) var(--s4); background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+
 
   /* Correct it: the one obvious input */
   #personal .tell .psh { margin-bottom: var(--s1); }
@@ -1682,7 +1686,7 @@ addEventListener('pagehide', () => { for (const t of Object.values(settingTimers
 // words; does it help (a blind test); facts about the offer. Live through the
 // SSE `personal` event only (no polling); what's open survives the updates.
 let pers = null, persError = '', redit = null, allHeur = false, seen = null, lastBuilt = null, lastMap = null;
-let qpick = { id: null, option: '', text: '' }, qdone = 0; // the open question's draft answer; answered this visit
+let qpick = { id: null, option: '', text: '' }; // the open question's draft answer
 const ruleLine = (r) => `${r.when ? `When ${r.when}: ` : ''}${r.text}`; // also the Playbooks log
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 // "5m ago", "just now", "on 3 Nov": for sentences.
@@ -1704,6 +1708,7 @@ function renderYBadge() {
   const n = openQs().length, b = $('#ybadge');
   b.hidden = !n; b.textContent = n;
   b.parentElement.setAttribute('aria-label', `You${n ? `, ${plural(n, 'question')} for you` : ''}`);
+  b.title = n ? `${plural(n, 'question')} for you` : '';
 }
 const openQs = () => (pers?.mind.questions || []).filter((q) => q.status === 'open');
 
@@ -1761,7 +1766,7 @@ function renderTell(m) {
   return `<section class="tell" aria-labelledby="ph-tell"><h2 class="psh" id="ph-tell">Correct it</h2>
     <p class="info">Your words outrank everything it read.</p>
     <textarea class="input" id="tell" rows="3" aria-label="Correct it in your own words" placeholder="Something wrong or missing? Say it like you'd tell a new colleague."></textarea>
-    <div class="ractions"><button type="button" class="btn primary" data-pp="tell" aria-keyshortcuts="Meta+Enter" title="Tell it (⌘↵)">Tell it</button>
+    <div class="ractions"><button type="button" class="btn${openQs().length ? '' : ' primary'}" data-pp="tell" aria-keyshortcuts="Meta+Enter" title="Tell it (⌘↵)">Tell it</button>
       <span class="why">⌘↵</span><span class="err" data-err></span></div>
     ${waiting.map((n) => `<p class="pending">“${esc(n.text)}”<span class="why">${m.building ? `${SPIN} Updating with this…` : 'In the next update'}</span></p>`).join('')}
     ${done.length ? `<details data-k="notes"><summary class="link">Your corrections (${done.length})</summary><ul class="quotes">${done.slice().reverse()
@@ -1772,21 +1777,32 @@ function renderTell(m) {
 // your words, then Answer; or Skip. The next one follows; when the set is
 // done, the portrait folds your answers in.
 function renderQuiz() {
-  const qs = openQs(), set = qs.length ? (pers.mind.questions || []).filter((q) => q.at === qs[0].at) : [];
-  if (!qs.length) return qdone ? `<section aria-labelledby="ph-quiz"><h2 class="psh" id="ph-quiz">Questions for you</h2>
-    <p class="qdone" tabindex="-1" id="qdone">Thanks. ${plural(qdone, 'answer')} in. ${pers.mind.building ? `${SPIN} Folding them into the portrait…` : 'They’re part of how it sees you now.'}</p></section>` : '';
-  const q = qs[0], pos = set.indexOf(q) + 1;
+  const all = pers.mind.questions || [], qs = openQs();
+  if (!qs.length) return renderQuizDone(all);
+  const q = qs[0], set = all.filter((x) => x.at === q.at), pos = set.indexOf(q) + 1;
   if (qpick.id !== q.id) qpick = { id: q.id, option: '', text: '' };
-  return `<section aria-labelledby="ph-quiz"><div class="qhead"><h2 class="psh" id="ph-quiz">Questions for you</h2><span class="why">${pos} of ${set.length}</span></div>
+  return `<section aria-labelledby="ph-quiz"><h2 class="psh" id="ph-quiz">Questions for you</h2>
     <div class="qcard" data-q="${esc(q.id)}">
-      ${q.why ? `<p class="why">${esc(q.why)}</p>` : ''}
+      ${q.case ? `<p class="qcase"><span class="why">Example</span><span lang="cs">${esc(q.case)}</span></p>` : ''}
       <p class="qask" id="qask">${esc(q.ask)}</p>
-      ${q.case ? `<p class="qcase" lang="cs">${esc(q.case)}</p>` : ''}
       ${q.options.length ? `<div class="qopts" role="group" aria-labelledby="qask">${q.options.map((o, i) => `<button type="button" data-qopt="${esc(o)}" aria-pressed="${qpick.option === o}" aria-keyshortcuts="${i + 1}"><span class="k" aria-hidden="true">${i + 1}</span>${esc(o)}</button>`).join('')}</div>` : ''}
-      <textarea class="input" id="qtext" rows="2" aria-label="Your answer in your own words" placeholder="${q.options.length ? 'Or in your own words: why, what tips it…' : 'In your own words: why, what tips it…'}">${esc(qpick.text)}</textarea>
-      <div class="ractions"><button type="button" class="btn primary" data-pp="qanswer" title="Answer (⌘↵)">Answer</button>
-        <button type="button" class="quiet" data-pp="qskip">Skip</button><span class="err" data-err></span></div>
+      <textarea class="input" id="qtext" rows="2" aria-label="Your answer in your own words" placeholder="${q.options.length ? 'Or say it your way…' : 'Say it your way…'}">${esc(qpick.text)}</textarea>
+      <div class="ractions"><button type="button" class="btn primary" data-pp="qanswer" title="Answer (⌘↵)">Answer</button><span class="why">⌘↵</span>
+        <button type="button" class="quiet" data-pp="qskip">Not sure</button><span class="err" data-err></span><span class="qpos">Question ${pos} of ${set.length}</span></div>
+      ${q.why ? `<p class="why qwhy">Why I ask: ${esc(q.why)}</p>` : ''}
     </div></section>`;
+}
+// After a set: what happened to your answers (for 12 hours, survives reloads).
+function renderQuizDone(all) {
+  const last = all.at(-1);
+  if (!last) return '';
+  const set = all.filter((x) => x.at === last.at), answered = set.filter((x) => x.status === 'answered').length;
+  const closed = set.map((x) => x.answer?.at || x.closedAt).filter(Boolean).sort().at(-1);
+  if (!closed || Date.now() - new Date(closed) > 12 * 36e5) return '';
+  const msg = !answered ? 'No problem. I’ll ask again later.'
+    : pers.mind.building ? `${SPIN} Thanks, that’s ${plural(answered, 'answer')}. Updating how I see you…`
+    : pers.mind.builtAt > closed ? `Thanks, that’s ${plural(answered, 'answer')}. They’re part of how I see you now.` : `Thanks, that’s ${plural(answered, 'answer')}. They go in with the next update.`;
+  return `<section aria-labelledby="ph-quiz"><h2 class="psh" id="ph-quiz">Questions for you</h2><p class="info" tabindex="-1" id="qdone">${msg}</p></section>`;
 }
 async function closeQ(skip) {
   const card = $('#personal .qcard'), id = card?.dataset.q;
@@ -1797,7 +1813,6 @@ async function closeQ(skip) {
   try {
     pers.mind = await api(`/api/mind/questions/${encodeURIComponent(id)}/${skip ? 'skip' : 'answer'}`,
       skip ? { method: 'POST' } : { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ option: qpick.option, text: qpick.text }) });
-    if (!skip) qdone++;
     qpick = { id: null, option: '', text: '' };
     announce(skip ? 'Skipped' : 'Answered');
     renderYBadge(); renderPersonal();
@@ -1807,9 +1822,11 @@ async function closeQ(skip) {
     card.querySelector('[data-err]').textContent = e.message;
   }
 }
+// A tap answers at once; with your own words typed, it only picks (Answer sends both).
 function pickQ(option) {
   qpick.option = qpick.option === option ? '' : option;
   for (const b of $('#personal').querySelectorAll('[data-qopt]')) b.setAttribute('aria-pressed', b.dataset.qopt === qpick.option);
+  if (qpick.option && !$('#qtext').value.trim()) return closeQ(false);
 }
 
 // One row: the headline; open it for the reasoning and the quotes.

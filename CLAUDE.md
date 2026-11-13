@@ -265,6 +265,15 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   reasoning and ≤2 quotes, plain lines for values / never, the conversation
   lenses folded away, "Does it help?" (the gap in words, two bars, blind
   spots), facts; live via SSE only, open rows and focus survive updates.
+  **Questions for you** (`shouldAsk`, `askQuestions`, `closeQuestion`;
+  `/api/mind/questions/:id/answer|skip`): after a while — the first
+  portrait, then ≥15 new corrections/notes and ≥2 days, never with some
+  open — ≤3 questions about the thinking behind patterns it can't explain
+  (plain words, one factor per question, a real example, suggested answers
+  incl. "No fixed rule"), one at a time on top of the tab: a tap answers,
+  own words + Answer, or "Not sure"; the count on the You icon. An answer is
+  the user's own words (a note, source `answer`); the portrait rebuilds
+  when the set is done (not before).
 - **Drafts in the UI** live only in Messages (Requests filter) and the chat
   (a draft keeps `channel`, `instruction` and `previousId`, the version it
   replaced, so the chat shows the notes and earlier versions), kept in sync
