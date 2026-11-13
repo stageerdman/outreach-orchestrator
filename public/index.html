@@ -1593,7 +1593,7 @@ const SOURCE = { inferred: 'AI noticed', confirmed: 'You confirmed', stated: 'Yo
 const ACTIVE_SUPPORT = 4; // = lib/rules.js
 let pers = null, persError = '', persTimer, redit = null, persShown = 3;
 const answered = []; // this session's answered questions: { id, text }, shown collapsed
-const persBusy = () => pers && (pers.coach.distilling || pers.coach.learning || pers.coach.running || pers.coach.queued > 0);
+const persBusy = () => pers && (pers.coach.distilling || pers.coach.replaying || pers.coach.learning || pers.coach.running || pers.coach.queued > 0);
 
 async function loadPersonal() {
   try { pers = await api('/api/personal'); persError = ''; } catch (e) { persError = e.message; }
@@ -1626,7 +1626,7 @@ function renderPersonal(force = true) {
   const editNew = (kind) => (redit === `new-${kind}` ? renderRuleEdit({ id: '', kind, when: '', text: '', because: '', stages: [] }) : '');
   el.innerHTML = `<h1>Personalization</h1>
     ${renderAsk()}
-    <section aria-labelledby="ph-decide"><div class="lrow"><h2 class="psh" id="ph-decide">How you decide${decide.length ? ` · ${decide.length}` : ''}</h2>
+    <section aria-labelledby="ph-decide"><div class="lrow"><h2 class="psh" id="ph-decide">How you think${decide.length ? ` · ${decide.length}` : ''}</h2>
       <button type="button" class="btn sm" data-pp="new-rule" title="Add a rule (⌘N)">+ Add a rule</button></div>
       ${editNew('rule') ? `<ul class="changes">${editNew('rule')}</ul>` : ''}
       ${decide.length ? renderRuleGroups(decide) : emptyDecide(testing.length)}</section>
@@ -1645,7 +1645,7 @@ function emptyDecide(testing) {
   if (pers.coach.distilling) return `<p class="empty">${SPIN} Reading your past decisions… (a minute or two)</p>`;
   if (pers.past && !distilled()) return `<div class="empty"><p>The AI hasn't learned how you decide yet.</p>
     <button type="button" class="btn primary" data-pp="distill">${icon('regen')} Learn from my past decisions</button>
-    <p class="info">Reads your ${plural(pers.past, 'past decision')} with a note or an edit once, and proposes rules to test.</p></div>`;
+    <p class="info">Reads your ${plural(pers.past, 'past decision')} with a note or an edit and proposes rules about how you think, to test.</p></div>`;
   return `<p class="info">${testing ? 'Nothing confirmed yet. Confirm a rule under Still testing, or add your own.'
     : 'The AI learns how you decide from what you send, edit and cancel, and from your answers here.'}</p>`;
 }
@@ -1663,7 +1663,7 @@ function renderRule(r) {
   const meta = [SOURCE[r.source],
     c.for || c.against ? `from ${plural(c.for, 'decision')}${c.against ? ` (${c.against} against)` : ''}` : '',
     r.status === 'testing' && r.source === 'inferred' && !c.against && c.for < ACTIVE_SUPPORT ? `${ACTIVE_SUPPORT - c.for} more to use it without asking` : '',
-    r.stages.length > 1 ? r.stages.join(', ') : ''].filter(Boolean).join(' · ');
+    replayed(r), r.stages.length > 1 ? r.stages.join(', ') : ''].filter(Boolean).join(' · ');
   const acts = r.status === 'testing' ? `<button type="button" class="btn sm primary" data-pp="confirm">Confirm</button><button type="button" class="quiet" data-pp="reject">Reject</button>`
     : r.status === 'rejected' ? `<button type="button" class="quiet" data-pp="restore">Restore</button><button type="button" class="quiet danger" data-pp="delete">Delete</button>`
     : `<button type="button" class="quiet" data-pp="reject">Reject</button>`;
@@ -1735,13 +1735,35 @@ function renderPLearning() {
   const line = c.error ? `<span class="err">Learning failed: ${esc(c.error)}. Nothing was changed; it retries at the next decision.</span>`
     : c.learning ? `${SPIN} Learning from ${plural(c.lessons, 'decision')}…`
     : `${c.lessons} of ${c.batch} decisions collected${c.lessons ? ' · <button type="button" class="quiet" data-pp="learn">Learn now</button>' : ''}`;
+  const busy = c.distilling ? `${SPIN} Re-reading your past decisions…` : '';
+  const reread = pers.past && !c.distilling && (distilled() || pers.rules.some((r) => r.status === 'active'))
+    ? ` · <button type="button" class="quiet" data-pp="distill">${distilled() ? 'Re-read my past decisions' : 'Learn from my past decisions'}</button>` : '';
   const last = c.last ? `<p class="info">Last run ${timeTag(c.last.at, ago(c.last.at))}, ${plural(c.last.count, 'decision')}: ${esc(c.last.summary)}</p>` : '';
   const shown = pers.changes.slice(0, persShown), left = pers.changes.length - shown.length;
   return `<section aria-labelledby="ph-learn"><h2 class="psh" id="ph-learn">Recent learning</h2>
-    <p class="info" role="status">${line}${pers.past && !distilled() && pers.rules.some((r) => r.status === 'active') && !c.distilling
-      ? ' · <button type="button" class="quiet" data-pp="distill">Learn from my past decisions</button>' : ''}</p>${last}
+    <p class="info" role="status">${line}${reread}${busy ? ` · ${busy}` : ''}</p>${last}${renderFit()}
     ${shown.length ? `<ul class="changes">${shown.map(renderChange).join('')}</ul>` : '<p class="info">No changes to your rules yet.</p>'}
     ${left ? `<button type="button" class="link" data-pp="more">Show ${Math.min(left, 20)} more (${left} left)</button>` : ''}</section>`;
+}
+
+// How well the AI knows the user: drafts sent as written (per week) and the
+// replay check (does it predict your past notes, with vs. without your rules).
+const pct = (a, n) => (n ? `${Math.round((100 * a) / n)}%` : '–');
+function replayed(r) {
+  const x = pers.replay?.rules?.[r.id];
+  return x ? `right in ${Math.round(x.right)} of ${plural(x.cited, 'past case')}` : '';
+}
+function renderFit() {
+  const f = pers.fidelity, rp = pers.replay, c = pers.coach;
+  const wk = (d) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en', { day: 'numeric', month: 'short' });
+  const weeks = f.slice(0, 3).map((w) => `${pct(w.asIs, w.decided)} in the week of ${wk(w.week)} (${w.asIs} of ${w.decided})`);
+  const sent = f.length ? `<p class="info">Sent as the AI wrote it: ${weeks.join(' · ')}</p>` : '';
+  const score = (t) => `${pct(t.with, t.n)} with your rules, ${pct(t.without, t.n)} without`;
+  const res = rp ? `<p class="info">Checked ${timeTag(rp.at, ago(rp.at))} on ${plural(rp.all.n, 'past note')}: the AI read your thinking right ${score(rp.all)}.`
+    + (rp.fresh.n ? ` On ${plural(rp.fresh.n, 'newer decision')} it hadn't learned from: ${score(rp.fresh)}.` : ' All of them were learned from, so this is an upper bound; newer decisions will give the honest number.') + '</p>' : '';
+  const btn = c.replaying ? `<p class="info">${SPIN} Checking your rules against your past decisions…</p>`
+    : pers.replayable ? `<p class="info"><button type="button" class="quiet" data-pp="replay">${rp ? 'Check again' : 'Check my rules against my past decisions'}</button></p>` : '';
+  return sent || res || btn ? `<h3 class="pgh">How well it knows you</h3>${sent}${res}${btn}` : '';
 }
 
 // ---- interactions
@@ -1802,6 +1824,11 @@ $('#personal').addEventListener('click', async (e) => {
   if (act === 'restore' && r) return ruleCall('PUT', r.id, { ...r, status: 'active', source: 'confirmed' }, 'Restored');
   if (act === 'delete' && card?.dataset.rule) return ruleCall('DELETE', card.dataset.rule, null, 'Deleted; undo in Recent learning', card);
   if (act === 'more') { persShown += 20; return renderPersonal(); }
+  if (act === 'replay') {
+    try { pers.coach = await api('/api/personal/replay', { method: 'POST' }); } catch (er) { pers.coach = { ...pers.coach, error: er.message }; }
+    announce('Checking your rules against your past decisions');
+    renderPersonal(); return loadPersonal();
+  }
   if (act === 'learn' || act === 'distill') {
     try { pers.coach = await api(act === 'learn' ? '/api/playbooks/learn' : '/api/personal/distill', { method: 'POST' }); } catch (er) { pers.coach = { ...pers.coach, error: er.message }; }
     announce(act === 'learn' ? 'Learning from your decisions' : 'Reading your past decisions');

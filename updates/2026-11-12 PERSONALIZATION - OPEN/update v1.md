@@ -69,6 +69,34 @@ changed something. Method in `research-personalization.md`.
    with/without the rules; a rule that doesn't help stays `testing`. A
    fidelity number (share of drafts sent unchanged, by week) in the tab.
 
+## Thinking, not messages (user, 2026-11-13)
+Rules must capture how the user **thinks** — how they read a client and a
+situation, what they believe, weigh, push for or refuse — not how a message
+is worded. Message matters (wording, length, greeting, tykání, channel, send
+time, templates, reply-rate stats) belong to the style guide and playbooks.
+The user's own examples are not to be written as rules (or put in prompts as
+examples); the AI must find them in the user's decisions.
+
+9. [ ] One definition of a rule (`THINKING` in `lib/settings.js`) used by
+   the batch coach, distill and the drafting prompt; the test: it still holds
+   if the user phones or meets the client instead of writing. Rule schema
+   descriptions say the same.
+10. [ ] Distill re-sorts existing rules: an inferred message-level rule is
+   deleted and its content moved to the style guide (`setStyle`) or the
+   right playbook (`setPlaybook`); one that hides a judgement is rewritten as
+   that judgement. The user's confirmed/stated rules are left alone.
+   "Re-read my past decisions" stays available after the first run.
+11. [ ] Replay (phase 8): past decisions with a note; one run predicts the
+   user's decision and note from the AI's draft and the conversation with the
+   rules, one without; a third, blind (order shuffled), judges each against
+   what the user really did. Score with vs. without, per rule (cited, right),
+   split into decisions the rules were learned from vs. newer ones (the
+   honest number). Saved in `replay.json`. Fidelity: share of drafts sent as
+   the AI wrote them, per week (sent unchanged / sent + regenerated +
+   cancelled). Both in the tab's Recent learning. Tests.
+12. [ ] Verify on a copy: re-read → the message rules leave, thinking rules
+   remain; replay numbers; tab.
+
 ## Decisions (user, 2026-11-12)
 - Questions only in the Personalization tab (rail dot), never in the chat.
 - Rules replace playbook lessons: a one-off migration (trigger `migrate`,

@@ -9,7 +9,7 @@ import { chatList, markRead, markUnread } from './lib/chats.js';
 import { events } from './lib/events.js';
 import { getSettings, saveSettings, DRAFT_PROMPT, STYLE_PROMPT, COACH_PROMPT, BUILD_PROMPT, MODELS } from './lib/settings.js';
 import { listPlaybooks, listChanges, applyOperations, undoChange } from './lib/playbooks.js';
-import { buildPlaybooks, coachState, learnNow, distill, pastDecisions, answerQuestion, skipQuestion, migrateLessons } from './lib/coach.js';
+import { buildPlaybooks, coachState, learnNow, distill, pastDecisions, replay, replayCases, listReplays, fidelity, answerQuestion, skipQuestion, migrateLessons } from './lib/coach.js';
 import { listRules, openQuestions, getRule } from './lib/rules.js';
 import * as ai from './lib/assistant.js';
 
@@ -124,9 +124,12 @@ createServer(async (req, res) => {
     // changes that touched rules (newest first), the coach's state.
     if (url.pathname === '/api/personal') {
       const changes = listChanges().filter((c) => c.ops.some((o) => o.op === 'setRule' || o.op === 'deleteRule')).slice(-100).reverse();
-      return json(res, 200, { rules: listRules(), questions: openQuestions(), changes, coach: coachState(), past: pastDecisions().length });
+      return json(res, 200, { rules: listRules(), questions: openQuestions(), changes, coach: coachState(), past: pastDecisions().length,
+        replay: listReplays().at(-1) ?? null, replayable: replayCases().length, fidelity: fidelity() });
     }
     if (url.pathname === '/api/personal/distill' && req.method === 'POST') return json(res, 202, distill());
+    // Do the rules predict the user's past decisions? (with vs. without them)
+    if (url.pathname === '/api/personal/replay' && req.method === 'POST') return json(res, 202, replay());
     const rm = url.pathname.match(/^\/api\/rules(?:\/([^/]+))?$/);
     if (rm && ['POST', 'PUT', 'DELETE'].includes(req.method)) {
       const id = rm[1] && decodeURIComponent(rm[1]);
