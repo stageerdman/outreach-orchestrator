@@ -161,22 +161,24 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   (in memory only). Non-ResultsON CRMs: `queue` undefined = in the feed,
   grouped by stage. People already messaged today (Prague day; history or a
   sent request) are hidden unless the client wrote back since. Drafting
-  starts from Enter in the empty Copilot box, the scenario line, or "Draft N".
+  starts from ✨ in the chat, the scenario line, or "Draft N".
 - **Live UI:** one `EventSource('/api/events')` drives everything (no polling,
   except `/api/refresh` once a second while a refresh runs). The status line
   only shows what's off (failed/unconnected source, sample data, live
   updates down >30 s).
-- **Composer = the Copilot's input** (nothing typed there reaches a client):
-  Enter sends it to the Copilot, Enter on an empty box = ✨ (a plain draft, or
-  a new version of the one there), Shift+Enter = newline, ⌘J focuses it,
-  Enter/→ on a list row too; Esc stops a running turn, else back to the list.
-  The gray draft bubble's text is edited in place (click or Enter/Space on
+- **Composer = quick drafting, under the conversation** (`#ctext` + ✨;
+  nothing typed there reaches a client): Enter / ✨ / ⌘J / Alt+Enter drafts,
+  the text being the instruction (no draft) or the note for a new version;
+  Shift+Enter = newline; ⌘J and Enter/→ on a list row focus it. The Copilot
+  (`#cptext`) is only for discussing: Enter sends to it, Esc stops a running
+  turn; below 1200px it collapses to one line ("Discuss the draft with the
+  AI…" / the last reply) that opens the sheet. The gray draft bubble's text is edited in place (click or Enter/Space on
   it; email: subject too; Enter = newline, Esc/blur ends; autosaved via PUT
   `/api/requests/:id`, flushed before send/✨/×; `aiText`/`aiSubject` keep
   the AI's version, "edited by you"). Its only buttons are two round ones: ↑
-  (`--ok`) sends via `/api/requests/:id/send` (disabled while text is typed in
-  the Copilot) and × (`--err`) discards / stops / dismisses, taking the
-  Copilot's typed text as the reason. Tasks rows show a draft only as a
+  (`--ok`) sends via `/api/requests/:id/send` (disabled while a note is typed in the
+  composer) and × (`--err`) discards / stops / dismisses, taking the
+  composer's note as the reason. Tasks rows show a draft only as a
   spinner or dot after the name.
 - **Scenario line** (`.scene`, above the draft, from `scenario` in
   `/api/people/:id/history`, `lib/scenario.js`): no draft → the playbook (a

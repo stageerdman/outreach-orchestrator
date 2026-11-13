@@ -328,15 +328,15 @@
   .copilot li.me .msg { border-left-color: var(--line); white-space: pre-wrap; }
   .cpthread { padding: var(--s3); }
   .cpthread:focus-visible { outline-offset: -2px; }
-  .cplast { all: unset; box-sizing: border-box; display: block; padding: var(--s2) var(--s4) 0; color: var(--muted); font-size: var(--fs-sm); cursor: pointer;
+  .cplast { all: unset; box-sizing: border-box; display: block; padding: var(--s2) var(--s4); color: var(--muted); font-size: var(--fs-sm); cursor: pointer;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .cplast:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-  .copilot:not([data-open]) .cpthread, .copilot[data-open] .cplast { display: none; }
+  .copilot:not([data-open]) :is(.cpthread, .composer), .copilot[data-open] .cplast { display: none; }
   .copilot[data-open] { height: 60%; }
   @media (min-width: 1200px) {
     .chat:has(> .copilot) { display: grid; grid-template-columns: minmax(0, 1fr) var(--cop-w); }
     .copilot, .copilot[data-open] { height: auto; border-top: 0; border-left: 1px solid var(--line); }
-    .copilot:not([data-open]) .cpthread { display: flex; } .copilot .cplast { display: none; }
+    .copilot:not([data-open]) .cpthread { display: flex; } .copilot:not([data-open]) .composer { display: grid; } .copilot .cplast { display: none; }
   }
   .cpthink { margin: var(--s1) 0 0; max-height: calc(3 * 1.45em); overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end;
     white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -952,6 +952,7 @@ async function fetchHistory(id) {
 // the bottom, the scenario line, the AI draft as a gray bubble; next to it
 // (or as a bottom sheet) the Copilot, the one place to talk to the AI.
 let chat = null;                  // { id, data, all, unseen, error, sending, edit: { id, text, subject, open, dirty } }
+const noteText = new Map();       // unsent ✨ note (the composer under the conversation) per person
 const composerText = new Map();   // unsent text for the Copilot per person
 const atBottom = (el) => el.scrollHeight - el.scrollTop - el.clientHeight < 48;
 const LIST_NAME = { tasks: 'Tasks', messages: 'Messages' };
@@ -959,21 +960,27 @@ const chatPerson = () => chat.data?.person || people.find((p) => p.id === chat.i
   || { id: chat.id, name: chats.find((c) => c.id === chat.id)?.name || '', stage: chats.find((c) => c.id === chat.id)?.stage, emails: [], phones: [] };
 // Fits a textarea to its text (one sized by CSS field-sizing, like the Copilot's, is left alone).
 const grow = (el) => { if (el && getComputedStyle(el).fieldSizing !== 'content') { el.style.height = 'auto'; el.style.height = `${el.scrollHeight + 2}px`; } };
-const saveComposer = () => { if (chat && $('#cptext')) composerText.set(chat.id, $('#cptext').value); };
+const saveComposer = () => {
+  if (chat && $('#ctext')) noteText.set(chat.id, $('#ctext').value);
+  if (chat && $('#cptext')) composerText.set(chat.id, $('#cptext').value);
+};
 
 function renderChat() {
   const el = $('#chat');
   if (!chat) { el.innerHTML = `<p class="empty">${section === 'messages' ? 'Pick a chat.' : 'Pick a person (↑↓, Enter).'}</p>`; return; }
   el.innerHTML = `<div class="conv"><header class="chead" id="chead"></header>
     <div class="thread" id="thread" tabindex="0" role="region"><div id="msgs"></div><div class="scene" id="scene" hidden></div><div id="draftbox"></div></div>
-    <button type="button" class="pill newpill" id="newpill" hidden></button></div>
+    <button type="button" class="pill newpill" id="newpill" hidden></button>
+    <div class="composer"><div class="cline"><textarea class="input ctext" id="ctext" rows="1" aria-keyshortcuts="Enter Meta+J"></textarea>
+      <button type="button" class="ib" id="cspark" aria-keyshortcuts="Enter Meta+J">${icon('spark')}</button></div><p class="info" id="chint" hidden></p></div></div>
     <aside class="copilot" id="copilot" aria-label="AI for this chat">
       <div class="thread cpthread" id="cpthread" tabindex="-1"></div>
       <button type="button" class="cplast" id="cplast" aria-label="Open the AI chat" hidden></button>
-      <div class="composer"><div class="cline"><textarea class="input ctext" id="cptext" rows="1" aria-keyshortcuts="Enter Meta+J"></textarea>
+      <div class="composer"><div class="cline"><textarea class="input ctext" id="cptext" rows="1" aria-keyshortcuts="Enter"></textarea>
         <button type="button" class="ib rb" id="cpsend"></button></div><p class="info" id="cphint" hidden></p></div></aside>`;
+  $('#ctext').value = noteText.get(chat.id) || '';
   $('#cptext').value = composerText.get(chat.id) || '';
-  renderChatHeader(); renderMessages(); renderDraft(); renderCopilot(); grow($('#cptext'));
+  renderChatHeader(); renderMessages(); renderDraft(); renderCopilot(); grow($('#ctext')); grow($('#cptext'));
   $('#thread').scrollTop = $('#thread').scrollHeight;
   if (!cops.has(chat.id)) loadCopilot(chat.id);
   if (!tpls) loadTemplates().then(() => chat && renderScene()); // the scenario line names templates
@@ -1021,7 +1028,7 @@ function renderMessages() {
   }).join('');
   const earlier = messages.length > visible.length ? `<button type="button" class="link earlier" data-earlier>Show earlier (${messages.length - visible.length})</button>` : '';
   el.innerHTML = renderErrors(errors) + (items ? earlier + `<ol class="msgs">${items}</ol>`
-    : renderEmpty(p) + `<p class="info center">Press Enter in the AI box to draft the first message.</p>`);
+    : renderEmpty(p) + `<p class="info center">Press ✨ (Enter) to draft the first message.</p>`);
 }
 
 // The draft for the open person, after the conversation and the scenario line.
@@ -1042,7 +1049,7 @@ function renderDraftButtons(r, p) {
 function renderDraftBubble(r, p) {
   const id = esc(r.id), btns = renderDraftButtons(r, p);
   if (r.status === 'generating') return `<article class="msg draft" data-req="${id}"><p class="working">${SPIN} Drafting… <span data-elapsed="${esc(r.createdAt)}"></span></p><div class="dmeta"><span></span>${btns}</div></article>`;
-  if (r.status === 'failed') return `<article class="msg draft" data-req="${id}"><p class="err">Draft failed: ${esc(r.error)}</p><div class="dmeta"><span>Press Enter in the AI box to try again</span>${btns}</div></article>`;
+  if (r.status === 'failed') return `<article class="msg draft" data-req="${id}"><p class="err">Draft failed: ${esc(r.error)}</p><div class="dmeta"><span>Press ✨ to try again</span>${btns}</div></article>`;
   const stale = (chat.data?.messages || []).some((m) => !m.fromMe && m.at > r.createdAt)
     ? `<p class="why">${esc(p.name.split(' ')[0])} wrote after this draft · ask the AI to redo it</p>` : '';
   if (r.kind === 'meeting') return `<article class="msg draft" data-req="${id}"><p class="body"><b>Offer a meeting:</b> ${esc(r.text)}</p>${stale}
@@ -1083,31 +1090,38 @@ const tickElapsed = () => {
 };
 setInterval(tickElapsed, 1000);
 
-// The Copilot's input and button, and the draft's buttons that follow it: ×
-// takes the typed text as the reason; ↑ waits until it's sent to the AI or cleared.
+// The ✨ composer under the conversation (quick drafting: Enter drafts, or redoes
+// the draft with the typed note), the Copilot's input (discussion only), and the
+// draft's buttons: × takes the ✨ note as the reason; ↑ waits while a note is typed.
 const sparkOff = () => {
   const d = chat?.data, r = activeReq(chat?.id);
   return !d ? 'Loading…' : !Object.keys(d.reach || {}).length ? 'No email or phone in the CRM' : r?.status === 'generating' ? 'The draft is on its way' : '';
 };
 function updateComposer() {
-  const ta = $('#cptext');
-  if (!ta || !chat) return;
-  const p = chatPerson(), r = activeReq(chat.id), typed = ta.value.trim(), running = copOf(chat.id).running;
-  ta.placeholder = 'Enter drafts it · or tell me what you want';
-  ta.setAttribute('aria-label', `Message to the AI about ${p.name}. Enter sends it; Enter on an empty box drafts`);
-  const b = $('#cpsend'), off = !typed && !running ? sparkOff() : '';
-  const label = running ? 'Stop (Esc)' : typed ? 'Send to the AI (Enter)' : off || (r ? 'Redo the draft (Enter)' : 'Draft with AI (Enter)');
+  const nt = $('#ctext'), ta = $('#cptext');
+  if (!nt || !ta || !chat) return;
+  const p = chatPerson(), r = activeReq(chat.id), typed = nt.value.trim(), asked = ta.value.trim(), running = copOf(chat.id).running;
+  nt.placeholder = r ? 'Note for a new version (optional) · Enter' : 'What to write (optional) · Enter drafts it';
+  nt.setAttribute('aria-label', r ? `Note for a new version of the draft for ${p.name}` : `Instruction for a draft for ${p.name}`);
+  const spark = $('#cspark'), soff = sparkOff();
+  const sl = soff || (r ? 'Redo the draft with your note (Enter)' : 'Draft with AI (Enter)');
+  spark.setAttribute('aria-label', sl); spark.title = sl; spark.setAttribute('aria-disabled', Boolean(soff));
+  ta.placeholder = 'Discuss the draft with the AI…';
+  ta.setAttribute('aria-label', `Message to the AI about ${p.name}. Enter sends it`);
+  const b = $('#cpsend'), off = !asked && !running ? 'Type a message for the AI' : '';
+  const label = running ? 'Stop (Esc)' : off || 'Send to the AI (Enter)';
   b.innerHTML = `<span class="rc${running ? ' no' : ''}">${running ? STOP : icon('up')}</span>`;
   b.setAttribute('aria-label', label); b.title = label; b.setAttribute('aria-disabled', Boolean(off));
   const x = $('#draftbox [data-dact=discard]');
   if (x) { const l = `${x.dataset.label}${typed ? ` (reason: “${typed}”)` : ''}`; x.setAttribute('aria-label', l); x.title = l; }
   const go = $('#draftbox [data-dact=send]');
   if (go) {
-    const why = chat.sending ? 'Sending…' : go.dataset.off || (typed ? 'You typed a message for the AI: press Enter to send it, or clear it' : '');
+    const why = chat.sending ? 'Sending…' : go.dataset.off || (typed ? 'You typed a note: press Enter for a new version, or clear it' : '');
     go.setAttribute('aria-disabled', Boolean(why)); go.title = why || go.dataset.label;
   }
   const hint = chat.error || (chat.data && !Object.keys(chat.data.reach || {}).length ? 'No email or phone in the CRM.' : '');
-  $('#cphint').textContent = hint; $('#cphint').hidden = !hint; $('#cphint').classList.toggle('err', Boolean(chat.error));
+  $('#chint').textContent = hint; $('#chint').hidden = !hint; $('#chint').classList.toggle('err', Boolean(chat.error));
+  $('#cphint').textContent = chat.copError || ''; $('#cphint').hidden = !chat.copError; $('#cphint').classList.add('err');
 }
 
 const renderNewPill = () => {
@@ -1199,17 +1213,18 @@ async function sendDraft(r) {
   } catch (e) { if (chat?.id === id) chat.error = `Not sent: ${e.message}`; announce(`Not sent: ${e.message}`); }
   if (chat?.id !== id) return;
   chat.sending = false;
-  renderDraft(); stick(renderMessages); updateComposer(); $('#cptext')?.focus();
+  renderDraft(); stick(renderMessages); updateComposer(); $('#ctext')?.focus();
 }
 
-// ✨ (Enter on an empty Copilot box, the scenario line, g in Tasks): a first
-// draft, or a new version of the current one. instruction: what the AI is told
-// (a reply branch, "write freely"); templateId: draft from this template.
-async function spark({ instruction = '', templateId = null } = {}) {
+// ✨ (the composer under the conversation, the scenario line, g in Tasks): a
+// first draft, or a new version of the current one. instruction: what the AI is
+// told (the typed note, a reply branch, "write freely"); templateId: draft from this template.
+async function spark({ instruction = '', templateId = null, typed = false } = {}) {
   if (!chat) return;
   const off = sparkOff();
   if (off) return announce(off);
-  const id = chat.id, r = activeReq(id);
+  const id = chat.id, r = activeReq(id), nt = $('#ctext');
+  if (typed) instruction = nt.value.trim();
   chat.error = '';
   await saveDraftText(true); // the AI gets the edited text as the previous draft
   try {
@@ -1217,6 +1232,7 @@ async function spark({ instruction = '', templateId = null } = {}) {
       : (await api('/api/requests', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ personIds: [id], instruction, templateId }) }))[0];
     if (!out) throw new Error('There is no email or WhatsApp to write to, or a draft is already waiting');
     announce(`Drafting for ${out.personName}`);
+    if (typed && chat?.id === id) { nt.value = ''; grow(nt); noteText.delete(id); }
     if (!r || templateId) await loadRequests();
   } catch (e) { if (chat?.id === id) chat.error = `Could not draft: ${e.message}`; }
   if (chat?.id !== id) return;
@@ -1224,11 +1240,11 @@ async function spark({ instruction = '', templateId = null } = {}) {
 }
 
 async function discard(r) {
-  const ta = $('#cptext'), note = ta.value.trim(), id = chat.id;
+  const ta = $('#ctext'), note = ta.value.trim(), id = chat.id;
   await saveDraftText(true); // the lesson keeps the user's version
   try {
     await requestAction(r, 'cancel', { note });
-    if (chat?.id === id && note) { ta.value = ''; grow(ta); composerText.delete(id); }
+    if (chat?.id === id && note) { ta.value = ''; grow(ta); noteText.delete(id); }
     announce('Draft discarded');
   } catch (e) { if (chat?.id === id) chat.error = e.message; }
   if (chat?.id !== id) return;
@@ -1274,7 +1290,7 @@ function pick(id, { delay = 0, composer = false } = {}) {
   const go = () => {
     openChat(id);
     if (narrow()) splitOf().dataset.pane = 'chat';
-    if (composer) $('#cptext')?.focus(); else if (narrow()) $('#thread')?.focus();
+    if (composer) $('#ctext')?.focus(); else if (narrow()) $('#thread')?.focus();
   };
   if (delay) pickTimer = setTimeout(go, delay); else go();
 }
@@ -1397,7 +1413,7 @@ function withDrafts(list) {
 // Requests = people with an open AI draft, Unanswered = unread chats, All. Remembered per browser;
 // the open chat stays in the list until another is picked.
 const MTABS = {
-  requests: { label: 'Requests', test: (c) => Boolean(activeReq(c.id)), count: () => new Set(requests.filter((r) => REQ_OPEN.includes(r.status)).map((r) => r.personId)).size, empty: 'No drafts. Open a chat and press Enter in the AI box to draft one.' },
+  requests: { label: 'Requests', test: (c) => Boolean(activeReq(c.id)), count: () => new Set(requests.filter((r) => REQ_OPEN.includes(r.status)).map((r) => r.personId)).size, empty: 'No drafts. Open a chat and press ✨ to draft one.' },
   unanswered: { label: 'Unanswered', test: (c) => c.unread > 0, count: () => unreadChats(), empty: 'Nothing unanswered.' },
   all: { label: 'All', test: () => true },
 };
@@ -1753,17 +1769,17 @@ function renderCopilot() {
   if (focusK) t.querySelector(`[data-k="${CSS.escape(focusK)}"]`)?.focus({ preventScroll: true });
   // The collapsed sheet shows the last line.
   const last = c.running ? (c.live?.reply || 'Thinking…') : c.items.findLast((i) => i.kind !== 'user')?.text || '';
-  $('#cplast').textContent = last; $('#cplast').hidden = !last;
+  $('#cplast').textContent = last ? `AI: ${last}` : 'Discuss the draft with the AI…'; $('#cplast').hidden = false;
   updateComposer();
 }
 
-// Enter / the button: running → Stop; text → to the AI; empty → ✨ (a plain draft).
+// Enter / the button: running → Stop; text → to the AI (drafting is the ✨ composer's).
 async function copilotGo(fromKey = false) {
   if (!chat) return;
   const ta = $('#cptext'), text = ta.value.trim(), id = chat.id;
   if (copOf(id).running) return fromKey ? announce('Still working on your last message. Esc stops it') : stopCopilot();
-  if (!text) return spark();
-  ta.value = ''; grow(ta); composerText.delete(id); chat.error = '';
+  if (!text) return announce('Type a message for the AI');
+  ta.value = ''; grow(ta); composerText.delete(id); chat.copError = '';
   if (!copSeen) { copSeen = true; try { localStorage.setItem('copSeen', '1'); } catch {} }
   await sayCopilot(id, text, () => { ta.value = text; grow(ta); });
 }
@@ -1771,7 +1787,7 @@ async function sayCopilot(id, text, undo = () => {}) {
   cops.set(id, { ...copOf(id), running: true, error: '' });
   renderCopilot();
   try { const out = await api(`/api/copilot/${enc(id)}`, { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ text }) }); cops.set(id, { ...copOf(id), items: mergeItems(copOf(id).items, out.items) }); }
-  catch (e) { cops.set(id, { ...copOf(id), running: false }); undo(); if (chat?.id === id) chat.error = e.message; }
+  catch (e) { cops.set(id, { ...copOf(id), running: false }); undo(); if (chat?.id === id) chat.copError = e.message; }
   if (chat?.id === id) renderCopilot();
 }
 async function stopCopilot() {
@@ -1819,8 +1835,9 @@ chatEl.addEventListener('click', (e) => {
     return th.focus({ preventScroll: true });
   }
   if (bodyClick(e)) return;
+  if (t.closest('#cspark')) return $('#cspark').getAttribute('aria-disabled') === 'true' ? announce($('#cspark').title) : spark({ typed: true });
   if (t.closest('#cpsend')) return $('#cpsend').getAttribute('aria-disabled') === 'true' ? announce($('#cpsend').title) : copilotGo();
-  if (t.closest('#cplast')) return $('#cptext').focus();
+  if (t.closest('#cplast')) { setSheet(true); return $('#cptext').focus(); }
   if (t.closest('[data-cp]')) return copAct(t.closest('[data-cp]'));
   if (t.closest('[data-sact]')) return sceneAct(t.closest('[data-sact]'), e);
   if (t.closest('[data-dedit]')) { const r = activeReq(chat.id); return r && editDraftText(r); }
@@ -1830,7 +1847,7 @@ chatEl.addEventListener('click', (e) => {
   return act.dataset.dact === 'send' ? sendDraft(r) : discard(r);
 });
 chatEl.addEventListener('input', (e) => {
-  if (e.target.id === 'cptext') { grow(e.target); saveComposer(); updateComposer(); }
+  if (e.target.id === 'cptext' || e.target.id === 'ctext') { grow(e.target); saveComposer(); updateComposer(); }
   const f = e.target.dataset.dfield;
   if (f && chat.edit) { chat.edit[f] = e.target.value; chat.edit.dirty = true; if (f === 'text') grow(e.target); saveDraftText(); }
 });
@@ -1852,11 +1869,14 @@ chatEl.addEventListener('keydown', (e) => {
   // In the draft's own fields Enter is a new line; Esc stops editing.
   if (e.target.dataset?.dfield) { if (e.key === 'Escape') { e.preventDefault(); endDraftEdit(true); } return; }
   if (e.key === 'Enter' && !e.isComposing && e.target.id === 'cptext' && !e.shiftKey) { e.preventDefault(); return copilotGo(true); }
+  if (e.target.id === 'ctext' && ((e.key === 'Enter' && !e.isComposing && !e.shiftKey) || (e.altKey && e.key === 'Enter') || (e.metaKey && e.key === 'j'))) {
+    e.preventDefault(); return $('#cspark').getAttribute('aria-disabled') === 'true' ? announce($('#cspark').title) : spark({ typed: true });
+  }
   if (e.key !== 'Escape') return;
   e.preventDefault();
   if (e.target.closest('#copilot') && copOf(chat.id).running) return stopCopilot();
   if (e.target.closest('#copilot') && sheetMode() && $('#copilot').hasAttribute('data-open')) { setSheet(false); return $('#thread').focus(); }
-  if (e.target.closest('#draftbox, #scene')) return $('#cptext').focus();
+  if (e.target.closest('#draftbox, #scene')) return $('#ctext').focus();
   toList();
 });
 chatEl.addEventListener('scroll', (e) => {
@@ -1866,7 +1886,7 @@ chatEl.addEventListener('scroll', (e) => {
 document.addEventListener('keydown', (e) => {
   const a = document.activeElement, typing = a?.matches('input, textarea, [contenteditable=true]');
   if (e.metaKey && SECTIONS.includes(SECTIONS[e.key - 1])) { e.preventDefault(); return showSection(SECTIONS[e.key - 1], true); }
-  if (e.metaKey && e.key === 'j' && ['messages', 'tasks'].includes(section) && $('#cptext')) { e.preventDefault(); return $('#cptext').focus(); }
+  if (e.metaKey && e.key === 'j' && ['messages', 'tasks'].includes(section) && $('#ctext')) { e.preventDefault(); return $('#ctext').focus(); }
   if (e.metaKey && e.key === 'n' && section === 'templates') { e.preventDefault(); return newTemplate(); }
   if (e.metaKey && e.key === 'n' && section === 'personal') { e.preventDefault(); return editRule('new-fact'); }
   const search = SEARCH[section];
