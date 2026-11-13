@@ -12,7 +12,7 @@
     --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px;
     --measure: 720px; --fs-xl: 22px; /* reading width, the largest type (You) */
     --fs-sm: 12px; --fs: 14px; --fs-lg: 16px; --radius: 6px; --width: 860px; --gh: 32px;
-    --rail: 72px; --list-w: 280px; --feed-w: 380px; --feed-min: 240px; --feed-max: 640px; --chat-min: 360px; --icon: 20px; --hit: 28px; --badge: 16px;
+    --rail: 72px; --list-w: 280px; --feed-w: 380px; --feed-min: 240px; --feed-max: 640px; --chat-min: 360px; --cop-w: clamp(300px, 24vw, 400px); --icon: 20px; --hit: 28px; --badge: 16px;
     /* Fronta group colours (A, B; C is a hollow dot) and the gray of an AI draft */
     --q-a: var(--st-7); --q-b: var(--st-1); --draft: color-mix(in srgb, var(--muted) 14%, var(--bg));
     /* Draft buttons: send (green) and discard (red) circles */
@@ -238,7 +238,8 @@
   .back { display: none; }
 
   /* Messages and Tasks: a list, and the chat column on the right */
-  .csplit { --list-w: clamp(var(--feed-min), var(--feed-w), min(var(--feed-max), 100vw - var(--rail) - var(--chat-min))); }
+  .csplit { --side: 0px; --list-w: clamp(var(--feed-min), var(--feed-w), min(var(--feed-max), 100vw - var(--rail) - var(--chat-min) - var(--side))); }
+  @media (min-width: 1200px) { .csplit { --side: var(--cop-w); } }
   .csplit > .tlist { position: relative; }
   .gutter { position: absolute; top: 0; bottom: 0; right: calc(-1 * var(--s1)); width: var(--s2); z-index: 3; cursor: col-resize; touch-action: none; }
   .gutter::after { content: ""; position: absolute; top: 0; bottom: 0; left: calc(var(--s1) - 1px); width: 2px; }
@@ -271,6 +272,7 @@
   .cmenu button { all: unset; box-sizing: border-box; display: block; width: 100%; padding: var(--s1) var(--s2); border-radius: var(--radius); cursor: pointer; }
   .cmenu button:hover, .cmenu button:focus-visible { background: var(--sel); outline: none; }
   .chat { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--bg); }
+  .conv { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
   .chat > .empty { margin: auto; }
   .chead { background: var(--panel); border-bottom: 1px solid var(--line); padding: var(--s3) var(--s4); }
   .ctitle { display: flex; align-items: center; gap: var(--s2); }
@@ -287,10 +289,12 @@
   .mt { display: block; text-align: right; font-size: var(--fs-sm); color: var(--muted); margin-top: var(--s1); }
   .quoted { color: var(--muted); margin-top: var(--s1); }
   .dchain { display: flex; flex-direction: column; align-items: flex-end; gap: var(--s2); }
-  .anote { margin: 0; color: var(--muted); font-size: var(--fs-sm); }
-  .anote svg, .dmeta svg, .info svg { width: var(--fs); height: var(--fs); vertical-align: -2px; }
-  .early { max-width: 85%; font-size: var(--fs-sm); color: var(--muted); }
-  .early summary { cursor: pointer; text-align: right; }
+  /* The scenario line above the draft: where the chat is in the playbooks, or where the draft came from */
+  .scene { margin: 0; color: var(--muted); font-size: var(--fs-sm); text-align: right; overflow-wrap: anywhere; }
+  .scene .link { margin: 0; } .scene .free { color: var(--text); }
+  .scene .brief { margin-top: var(--s1); text-align: left; margin-left: auto; width: min(85%, 40em); }
+  .dmeta svg, .info svg, .cpact svg { width: var(--fs); height: var(--fs); vertical-align: -2px; }
+  .flash { outline: 2px solid var(--accent); outline-offset: var(--s1); }
   .msg.draft { width: min(85%, 40em); background: var(--draft); border-style: dashed; border-color: var(--muted); }
   .msg.draft.whatsapp { border-left-color: var(--wa); } .msg.draft.email { border-left-color: var(--email); }
   /* The draft's own text: click (or Enter) to edit it in place, same look */
@@ -311,7 +315,37 @@
   .cline { display: flex; align-items: flex-end; gap: var(--s1); }
   textarea.ctext { flex: 1; width: auto; resize: none; max-height: 40vh; overflow-y: auto; }
   .composer .ib { height: calc(1.45em + 2 * var(--s2) + 2px); }
-  #chint { margin: 0; }
+
+  /* The Copilot: the chat with the AI that drafts, next to the conversation
+     (≥1200px) or a bottom sheet in it (collapsed: the input and the last line) */
+  .copilot { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--panel); border-top: 1px solid var(--line); flex: none; }
+  .copilot .composer { border-top: 0; }
+  #cptext { field-sizing: content; }
+  .copilot .rc { background: var(--accent); }
+  .copilot .rc.no { width: var(--hit); height: var(--hit); background: transparent; border: 1px solid var(--line); color: var(--text); }
+  .copilot .msg { border-left-color: var(--accent); white-space: normal; max-width: 100%; }
+  .copilot li.me .msg { border-left-color: var(--line); white-space: pre-wrap; }
+  .cpthread { padding: var(--s3); }
+  .cpthread:focus-visible { outline-offset: -2px; }
+  .cplast { all: unset; box-sizing: border-box; display: block; padding: var(--s2) var(--s4) 0; color: var(--muted); font-size: var(--fs-sm); cursor: pointer;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cplast:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .copilot:not([data-open]) .cpthread, .copilot[data-open] .cplast { display: none; }
+  .copilot[data-open] { height: 60%; }
+  @media (min-width: 1200px) {
+    .chat:has(> .copilot) { display: grid; grid-template-columns: minmax(0, 1fr) var(--cop-w); }
+    .copilot, .copilot[data-open] { height: auto; border-top: 0; border-left: 1px solid var(--line); }
+    .copilot:not([data-open]) .cpthread { display: flex; } .copilot .cplast { display: none; }
+  }
+  .cpthink { margin: var(--s1) 0 0; max-height: calc(3 * 1.45em); overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end;
+    white-space: pre-wrap; overflow-wrap: anywhere; }
+  .cpthought { margin: var(--s1) 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .cpact { margin: 0; font-size: var(--fs-sm); color: var(--muted); overflow-wrap: anywhere; }
+  .cpact .link { margin: 0; } .cpact.bad { color: var(--err); }
+  .msgs > li.cpdiv { flex-direction: row; align-items: center; gap: var(--s2); color: var(--muted); font-size: var(--fs-sm); }
+  .cpdiv::before, .cpdiv::after { content: ""; flex: 1; border-top: 1px solid var(--line); }
+  .cpthread > .msgs { margin-top: auto; }
+  .cpearly > summary { text-align: center; } .cpearly .msgs { margin-top: var(--s2); }
 
   /* Connections: the orchestrator (a reactor) and what it's wired to around it;
      one accent (--hud), glow only in dark mode, real numbers only. The chat on
@@ -377,11 +411,11 @@
   .xchat .chead { display: flex; align-items: center; gap: var(--s2); }
   .xchat .chead h2 { flex: 1; margin: 0; font-size: var(--fs-lg); }
   .xchat .msg { border-left-color: var(--hud); white-space: normal; }
-  .xchat .msg p { margin: 0; } .xchat .msg p + p, .xchat .msg ul, .xchat .msg ol { margin: var(--s2) 0 0; }
-  .xchat .msg ul, .xchat .msg ol { padding-left: 1.2em; }
-  .xchat .msg code { font-size: .92em; background: var(--bg); padding: 0 3px; border-radius: 3px; overflow-wrap: anywhere; }
+  :is(.xchat, .copilot) .msg p { margin: 0; } :is(.xchat, .copilot) .msg p + p, :is(.xchat, .copilot) .msg ul, :is(.xchat, .copilot) .msg ol { margin: var(--s2) 0 0; }
+  :is(.xchat, .copilot) .msg ul, :is(.xchat, .copilot) .msg ol { padding-left: 1.2em; }
+  :is(.xchat, .copilot) .msg code { font-size: .92em; background: var(--bg); padding: 0 3px; border-radius: 3px; overflow-wrap: anywhere; }
   .xchat li.me .msg { border-left-color: var(--accent); white-space: pre-wrap; }
-  .xchat .msg.bad { border-left-color: var(--err); }
+  :is(.xchat, .copilot) .msg.bad { border-left-color: var(--err); }
   .xsteps { font-size: var(--fs-sm); color: var(--muted); }
   .xsteps summary { cursor: pointer; } .xsteps ul { margin: var(--s1) 0 0; padding-left: 1.2em; }
   .xlive { font-size: var(--fs-sm); color: var(--muted); display: flex; align-items: center; gap: var(--s2); }
@@ -913,30 +947,34 @@ async function fetchHistory(id) {
 }
 
 // ---- the chat column: the selected person's whole conversation, newest at
-// the bottom, the AI draft as a gray bubble, and the composer.
+// the bottom, the scenario line, the AI draft as a gray bubble; next to it
+// (or as a bottom sheet) the Copilot, the one place to talk to the AI.
 let chat = null;                  // { id, data, all, unseen, error, sending, edit: { id, text, subject, open, dirty } }
-const composerText = new Map();   // unsent text for the AI per person
+const composerText = new Map();   // unsent text for the Copilot per person
 const atBottom = (el) => el.scrollHeight - el.scrollTop - el.clientHeight < 48;
 const LIST_NAME = { tasks: 'Tasks', messages: 'Messages' };
 const chatPerson = () => chat.data?.person || people.find((p) => p.id === chat.id)
   || { id: chat.id, name: chats.find((c) => c.id === chat.id)?.name || '', stage: chats.find((c) => c.id === chat.id)?.stage, emails: [], phones: [] };
-const grow = (el) => { if (el) { el.style.height = 'auto'; el.style.height = `${el.scrollHeight + 2}px`; } };
-const saveComposer = () => { if (chat && $('#ctext')) composerText.set(chat.id, $('#ctext').value); };
+// Fits a textarea to its text (one sized by CSS field-sizing, like the Copilot's, is left alone).
+const grow = (el) => { if (el && getComputedStyle(el).fieldSizing !== 'content') { el.style.height = 'auto'; el.style.height = `${el.scrollHeight + 2}px`; } };
+const saveComposer = () => { if (chat && $('#cptext')) composerText.set(chat.id, $('#cptext').value); };
 
 function renderChat() {
   const el = $('#chat');
   if (!chat) { el.innerHTML = `<p class="empty">${section === 'messages' ? 'Pick a chat.' : 'Pick a person (↑↓, Enter).'}</p>`; return; }
-  el.innerHTML = `<header class="chead" id="chead"></header>
-    <div class="thread" id="thread" tabindex="0" role="region"><div id="msgs"></div><div id="draftbox"></div></div>
-    <button type="button" class="pill newpill" id="newpill" hidden></button>
-    <div class="composer">
-      <div class="cline"><textarea class="input ctext" id="ctext" rows="1" aria-keyshortcuts="Enter"></textarea>
-        <button type="button" class="ib" id="cspark" aria-keyshortcuts="Enter Meta+J">${icon('spark')}</button></div>
-      <p class="info" id="chint" hidden></p>
-    </div>`;
-  $('#ctext').value = composerText.get(chat.id) || '';
-  renderChatHeader(); renderMessages(); renderDraft(); updateComposer(); grow($('#ctext'));
+  el.innerHTML = `<div class="conv"><header class="chead" id="chead"></header>
+    <div class="thread" id="thread" tabindex="0" role="region"><div id="msgs"></div><div class="scene" id="scene" hidden></div><div id="draftbox"></div></div>
+    <button type="button" class="pill newpill" id="newpill" hidden></button></div>
+    <aside class="copilot" id="copilot" aria-label="AI for this chat">
+      <div class="thread cpthread" id="cpthread" tabindex="-1"></div>
+      <button type="button" class="cplast" id="cplast" aria-label="Open the AI chat" hidden></button>
+      <div class="composer"><div class="cline"><textarea class="input ctext" id="cptext" rows="1" aria-keyshortcuts="Enter Meta+J"></textarea>
+        <button type="button" class="ib rb" id="cpsend"></button></div><p class="info" id="cphint" hidden></p></div></aside>`;
+  $('#cptext').value = composerText.get(chat.id) || '';
+  renderChatHeader(); renderMessages(); renderDraft(); renderCopilot(); grow($('#cptext'));
   $('#thread').scrollTop = $('#thread').scrollHeight;
+  if (!cops.has(chat.id)) loadCopilot(chat.id);
+  if (!tpls) loadTemplates().then(() => chat && renderScene()); // the scenario line names templates
 }
 
 // Opens this person's chat in the WhatsApp app (the Mac app hands whatsapp:// links to macOS).
@@ -981,19 +1019,11 @@ function renderMessages() {
   }).join('');
   const earlier = messages.length > visible.length ? `<button type="button" class="link earlier" data-earlier>Show earlier (${messages.length - visible.length})</button>` : '';
   el.innerHTML = renderErrors(errors) + (items ? earlier + `<ol class="msgs">${items}</ol>`
-    : renderEmpty(p) + `<p class="info center">Ask the AI below to draft the first message.</p>`);
+    : renderEmpty(p) + `<p class="info center">Press Enter in the AI box to draft the first message.</p>`);
 }
 
-// The draft for the open person, after the conversation: the user's notes,
-// earlier versions folded, the current version last. Changed only by talking to the AI.
-function chainOf(r) {
-  const out = [r];
-  for (let x = r; x.previousId && (x = requests.find((y) => y.id === x.previousId));) out.unshift(x);
-  return out;
-}
-const renderAiNote = (v) => (v.instruction ? `<p class="anote">${icon('spark')} you: ${esc(v.instruction)}</p>`
-  : v.previousId ? `<p class="anote">${icon('spark')} another version</p>` : '');
-
+// The draft for the open person, after the conversation and the scenario line.
+// Changed by talking to the AI (the Copilot keeps that history) or by hand.
 // Two round buttons: × discards (stops drafting, dismisses a failure), ↑ sends
 // (email over SMTP, WhatsApp opens prefilled, a meeting offer is marked done).
 function renderDraftButtons(r, p) {
@@ -1010,9 +1040,9 @@ function renderDraftButtons(r, p) {
 function renderDraftBubble(r, p) {
   const id = esc(r.id), btns = renderDraftButtons(r, p);
   if (r.status === 'generating') return `<article class="msg draft" data-req="${id}"><p class="working">${SPIN} Drafting… <span data-elapsed="${esc(r.createdAt)}"></span></p><div class="dmeta"><span></span>${btns}</div></article>`;
-  if (r.status === 'failed') return `<article class="msg draft" data-req="${id}"><p class="err">Draft failed: ${esc(r.error)}</p><div class="dmeta"><span>Press ${icon('spark')} to try again</span>${btns}</div></article>`;
+  if (r.status === 'failed') return `<article class="msg draft" data-req="${id}"><p class="err">Draft failed: ${esc(r.error)}</p><div class="dmeta"><span>Press Enter in the AI box to try again</span>${btns}</div></article>`;
   const stale = (chat.data?.messages || []).some((m) => !m.fromMe && m.at > r.createdAt)
-    ? `<p class="why">${esc(p.name.split(' ')[0])} wrote after this draft · ${icon('spark')} to redo</p>` : '';
+    ? `<p class="why">${esc(p.name.split(' ')[0])} wrote after this draft · ask the AI to redo it</p>` : '';
   if (r.kind === 'meeting') return `<article class="msg draft" data-req="${id}"><p class="body"><b>Offer a meeting:</b> ${esc(r.text)}</p>${stale}
     <div class="dmeta"><span></span>${btns}</div></article>`;
   const e = chat.edit?.id === r.id ? chat.edit : null;
@@ -1031,6 +1061,7 @@ function renderDraftText(r) {
 }
 
 function renderDraft() {
+  renderScene();
   const el = $('#draftbox');
   if (!el) return;
   const focused = el.contains(document.activeElement) ? document.activeElement.dataset.dact : null;
@@ -1038,10 +1069,7 @@ function renderDraft() {
   if (chat.edit && (chat.edit.id !== r?.id || r.status !== 'pending')) chat.edit = null;
   if (chat.edit?.open && el.querySelector('[data-dfield]')) return; // never re-render under the user's hands
   if (!r) { el.innerHTML = ''; return; }
-  const chain = chainOf(r), p = chatPerson();
-  const early = chain.slice(0, -1).map((v) => renderAiNote(v)
-    + (v.text ? `<details class="early"><summary>Earlier draft</summary><p class="brief">${esc(v.text)}</p></details>` : '')).join('');
-  el.innerHTML = `<div class="dchain">${early}${renderAiNote(r)}${renderDraftBubble(r, p)}</div>`;
+  el.innerHTML = `<div class="dchain">${renderDraftBubble(r, chatPerson())}</div>`;
   if (focused) el.querySelector(`[data-dact="${focused}"]`)?.focus({ preventScroll: true });
   tickElapsed();
 }
@@ -1053,29 +1081,31 @@ const tickElapsed = () => {
 };
 setInterval(tickElapsed, 1000);
 
-// The box only talks to the AI: no draft, ✨ drafts (the text is the
-// instruction); a draft on the way, ✨ redoes it with the text as the note.
+// The Copilot's input and button, and the draft's buttons that follow it: ×
+// takes the typed text as the reason; ↑ waits until it's sent to the AI or cleared.
+const sparkOff = () => {
+  const d = chat?.data, r = activeReq(chat?.id);
+  return !d ? 'Loading…' : !Object.keys(d.reach || {}).length ? 'No email or phone in the CRM' : r?.status === 'generating' ? 'The draft is on its way' : '';
+};
 function updateComposer() {
-  const ta = $('#ctext');
+  const ta = $('#cptext');
   if (!ta || !chat) return;
-  const p = chatPerson(), r = activeReq(chat.id), d = chat.data, typed = ta.value.trim();
-  const none = d && !Object.keys(d.reach || {}).length;
-  ta.placeholder = r ? 'Tell the AI what to change…' : 'Ask AI to draft a message…';
-  ta.setAttribute('aria-label', r ? `Note to the AI about the draft for ${p.name}` : `Ask the AI to draft a message to ${p.name}`);
-  const spark = $('#cspark'), off = !d ? 'Loading…' : none ? 'No email or phone in the CRM' : r?.status === 'generating' ? 'The draft is on its way' : '';
-  const sparkLabel = off || (r ? 'Redo the draft with your note (Enter)' : 'Draft with AI (Enter)');
-  spark.setAttribute('aria-label', sparkLabel); spark.title = sparkLabel;
-  spark.setAttribute('aria-disabled', Boolean(off));
-  // The draft's buttons follow the box: × takes the text as the reason; ↑ waits until it's applied or cleared.
+  const p = chatPerson(), r = activeReq(chat.id), typed = ta.value.trim(), running = copOf(chat.id).running;
+  ta.placeholder = 'Enter drafts it · or tell me what you want';
+  ta.setAttribute('aria-label', `Message to the AI about ${p.name}. Enter sends it; Enter on an empty box drafts`);
+  const b = $('#cpsend'), off = !typed && !running ? sparkOff() : '';
+  const label = running ? 'Stop (Esc)' : typed ? 'Send to the AI (Enter)' : off || (r ? 'Redo the draft (Enter)' : 'Draft with AI (Enter)');
+  b.innerHTML = `<span class="rc${running ? ' no' : ''}">${running ? STOP : icon('up')}</span>`;
+  b.setAttribute('aria-label', label); b.title = label; b.setAttribute('aria-disabled', Boolean(off));
   const x = $('#draftbox [data-dact=discard]');
   if (x) { const l = `${x.dataset.label}${typed ? ` (reason: “${typed}”)` : ''}`; x.setAttribute('aria-label', l); x.title = l; }
   const go = $('#draftbox [data-dact=send]');
   if (go) {
-    const why = chat.sending ? 'Sending…' : go.dataset.off || (typed ? 'Press Enter to apply your note, or clear it' : '');
+    const why = chat.sending ? 'Sending…' : go.dataset.off || (typed ? 'You typed a message for the AI: press Enter to send it, or clear it' : '');
     go.setAttribute('aria-disabled', Boolean(why)); go.title = why || go.dataset.label;
   }
-  const hint = chat.error || (none ? 'No email or phone in the CRM.' : '');
-  $('#chint').textContent = hint; $('#chint').hidden = !hint; $('#chint').classList.toggle('err', Boolean(chat.error));
+  const hint = chat.error || (chat.data && !Object.keys(chat.data.reach || {}).length ? 'No email or phone in the CRM.' : '');
+  $('#cphint').textContent = hint; $('#cphint').hidden = !hint; $('#cphint').classList.toggle('err', Boolean(chat.error));
 }
 
 const renderNewPill = () => {
@@ -1167,32 +1197,32 @@ async function sendDraft(r) {
   } catch (e) { if (chat?.id === id) chat.error = `Not sent: ${e.message}`; announce(`Not sent: ${e.message}`); }
   if (chat?.id !== id) return;
   chat.sending = false;
-  renderDraft(); stick(renderMessages); updateComposer(); $('#ctext').focus();
+  renderDraft(); stick(renderMessages); updateComposer(); $('#cptext')?.focus();
 }
 
-// ✨: a first draft (the typed text is the instruction), or a new version of
-// the current one (the typed text is the note about it).
-async function spark() {
+// ✨ (Enter on an empty Copilot box, the scenario line, g in Tasks): a first
+// draft, or a new version of the current one. instruction: what the AI is told
+// (a reply branch, "write freely"); templateId: draft from this template.
+async function spark({ instruction = '', templateId = null } = {}) {
   if (!chat) return;
-  if ($('#cspark').getAttribute('aria-disabled') === 'true') return announce($('#cspark').title);
-  const id = chat.id, r = activeReq(id), ta = $('#ctext'), note = ta.value.trim();
+  const off = sparkOff();
+  if (off) return announce(off);
+  const id = chat.id, r = activeReq(id);
   chat.error = '';
   await saveDraftText(true); // the AI gets the edited text as the previous draft
   try {
-    const out = r ? await requestAction(r, 'regenerate', { note })
-      : (await api('/api/requests', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ personIds: [id], instruction: note }) }))[0];
+    const out = r && !templateId ? await requestAction(r, 'regenerate', { note: instruction })
+      : (await api('/api/requests', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ personIds: [id], instruction, templateId }) }))[0];
     if (!out) throw new Error('There is no email or WhatsApp to write to, or a draft is already waiting');
-    composerText.delete(id);
-    if (chat?.id === id) { ta.value = ''; grow(ta); }
     announce(`Drafting for ${out.personName}`);
-    if (!r) await loadRequests();
+    if (!r || templateId) await loadRequests();
   } catch (e) { if (chat?.id === id) chat.error = `Could not draft: ${e.message}`; }
   if (chat?.id !== id) return;
   renderDraft(); updateComposer(); toBottom(); rerenderTasks();
 }
 
 async function discard(r) {
-  const ta = $('#ctext'), note = ta.value.trim(), id = chat.id;
+  const ta = $('#cptext'), note = ta.value.trim(), id = chat.id;
   await saveDraftText(true); // the lesson keeps the user's version
   try {
     await requestAction(r, 'cancel', { note });
@@ -1242,7 +1272,7 @@ function pick(id, { delay = 0, composer = false } = {}) {
   const go = () => {
     openChat(id);
     if (narrow()) splitOf().dataset.pane = 'chat';
-    if (composer || narrow()) $('#ctext')?.focus();
+    if (composer) $('#cptext')?.focus(); else if (narrow()) $('#thread')?.focus();
   };
   if (delay) pickTimer = setTimeout(go, delay); else go();
 }
@@ -1254,7 +1284,7 @@ function toList() {
 }
 
 // ↑/↓/Home/End move focus and selection (the chat follows; narrow: focus only);
-// Enter/→ goes to the composer; Esc clears the selection.
+// Enter/→ goes to the Copilot's input; Esc clears the selection.
 function listKeys(e, rows, i, search) {
   if (e.key === 'Escape') { e.preventDefault(); return unpick(); }
   if (i < 0) return;
@@ -1273,7 +1303,9 @@ function listKeys(e, rows, i, search) {
 const rootCss = (name) => parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
 const FEED = { def: rootCss('--feed-w'), min: rootCss('--feed-min'), max: rootCss('--feed-max'), step: 16 };
 let feedW = FEED.def;
-const feedMax = () => Math.max(FEED.min, Math.min(FEED.max, innerWidth - rootCss('--rail') - rootCss('--chat-min')));
+// ≥1200px the Copilot column (--cop-w: clamp(300px, 24vw, 400px)) takes its share too.
+const copW = () => (innerWidth >= 1200 ? Math.min(400, Math.max(300, innerWidth * 0.24)) : 0);
+const feedMax = () => Math.max(FEED.min, Math.min(FEED.max, innerWidth - rootCss('--rail') - rootCss('--chat-min') - copW()));
 function setFeed(w, save) {
   feedW = Math.round(Math.min(FEED.max, Math.max(FEED.min, w)));
   document.documentElement.style.setProperty('--feed-w', `${feedW}px`);
@@ -1363,7 +1395,7 @@ function withDrafts(list) {
 // Requests = people with an open AI draft, Unanswered = unread chats, All. Remembered per browser;
 // the open chat stays in the list until another is picked.
 const MTABS = {
-  requests: { label: 'Requests', test: (c) => Boolean(activeReq(c.id)), count: () => new Set(requests.filter((r) => REQ_OPEN.includes(r.status)).map((r) => r.personId)).size, empty: 'No drafts. Press ✨ in a chat to draft a follow-up.' },
+  requests: { label: 'Requests', test: (c) => Boolean(activeReq(c.id)), count: () => new Set(requests.filter((r) => REQ_OPEN.includes(r.status)).map((r) => r.personId)).size, empty: 'No drafts. Open a chat and press Enter in the AI box to draft one.' },
   unanswered: { label: 'Unanswered', test: (c) => c.unread > 0, count: () => unreadChats(), empty: 'Nothing unanswered.' },
   all: { label: 'All', test: () => true },
 };
@@ -1446,7 +1478,8 @@ function connectEvents() {
   es.onopen = () => {
     if (live) return;
     live = true; renderHeader();
-    onSnapshot(); loadRequests(); // anything missed while away
+    onSnapshot(); loadRequests(); loadPlaybooks(); // anything missed while away
+    if (chat) loadCopilot(chat.id);
   };
   es.onerror = () => {
     if (!live) return;
@@ -1458,6 +1491,8 @@ function connectEvents() {
   es.addEventListener('requests', () => soon('requests', loadRequests));
   es.addEventListener('personal', () => soon('personal', loadPersonal));
   es.addEventListener('connect', () => { if (xconv) soon('connect', loadConnect, 100); });
+  es.addEventListener('copilot', (e) => onCopilot(JSON.parse(e.data)));
+  es.addEventListener('playbooks', () => soon('playbooks', loadPlaybooks));
 }
 
 // ---- events: Tasks
@@ -1551,6 +1586,224 @@ $('#clist').addEventListener('pointerenter', () => { listHover = true; });
 $('#clist').addEventListener('pointerleave', () => { listHover = false; renderChatList(); });
 $('#clist').addEventListener('focusout', () => setTimeout(() => { if (!frozen()) renderChatList(); }));
 
+// ---- the scenario line: where the chat is in the playbooks (no draft), or
+// where the draft came from (from the draft's recorded scenario, never live)
+const pbById = (id) => pb?.playbooks.find((p) => p.id === id);
+const sceneBtn = (act, label, data = '', title = '') => `<button type="button" class="link" data-sact="${act}"${data}${title ? ` title="${esc(title)}"` : ''}>${esc(label)}</button>`;
+const pbLink = (pbId, stepId, label) => `<a class="link" href="#playbooks" data-sact="pb" data-pb="${esc(pbId)}" data-step="${esc(stepId || '')}" title="Open the playbook">${esc(label)}</a>`;
+const cut = (t, n = 32) => (t.length > n ? `${t.slice(0, n - 1).trimEnd()}…` : t);
+const inDays = (n) => `${new Date(Date.now() + n * 864e5).toLocaleDateString('en', { weekday: 'short' })} (in ${plural(n, 'day')})`;
+function renderScenario(s, p) {
+  if (!s) return `No playbook for ${esc(p.stage?.label || 'this chat')} — the AI will write freely`;
+  if (s.candidates.length) {
+    return `They replied — Reply as: ${s.candidates.slice(0, 4).map((c, i) => sceneBtn('branch', cut(c.when), ` data-i="${i}"`, `${c.when}: ${c.approach}`)).join(' · ')} · ${sceneBtn('draft', 'Other')}`;
+  }
+  const name = pbLink(s.playbookId, s.step?.id, s.playbookName);
+  if (!s.step) return `${name} · all ${plural(pbById(s.playbookId)?.steps.length ?? 0, 'step')} sent — ${sceneBtn('draft', 'Draft anyway')} · ${pbLink(s.playbookId, '', 'Edit playbook')}`;
+  const st = s.step, where = `${name} · step ${st.n} of ${st.of}`;
+  if (st.dueInDays > 0) return `${where} due ${esc(inDays(st.dueInDays))} — ${sceneBtn('draft', 'Draft now anyway')}`;
+  const ts = s.templateIds.map(tplById).filter(Boolean).slice(0, 3);
+  return `${where}: ${esc(lc(st.ask))} — ${ts.length ? `Draft with: ${ts.map((t) => sceneBtn('tpl', cut(t.name || 'Untitled', 24), ` data-id="${esc(t.id)}"`, t.name)).join(' · ')} · ${sceneBtn('free', 'Write freely')}` : sceneBtn('draft', 'Draft it')}`;
+}
+// How close the draft stayed to its template (placeholders left out): word overlap, 0–1.
+const words = (t) => fold(t).match(/[\p{L}\p{N}]+/gu) || [];
+function similarity(text, t) {
+  const body = htmlToText(t.bodyHtml), skip = Object.fromEntries(placeholders(t.subject || '', t.bodyHtml).map((n) => [n, { include: false }]));
+  const b = new Set(words(text));
+  return Math.max(...['female', 'male'].map((g) => {
+    const a = new Set(words(resolve(body, skip, g)));
+    const both = [...a].filter((w) => b.has(w)).length;
+    return a.size + b.size ? (2 * both) / (a.size + b.size) : 1;
+  }));
+}
+function stepName(pbId, stepId) {
+  const p = pbById(pbId), i = p?.steps.findIndex((x) => x.id === stepId) ?? -1, r = p?.responses.find((x) => x.id === stepId);
+  return i >= 0 ? `step ${i + 1} of ${p.steps.length}` : r ? `reply “${cut(r.when)}”` : '';
+}
+function renderProvenance(r) {
+  const pbId = r.playbookId || r.scenario?.playbookId, stepId = r.stepId || r.scenario?.stepId, t = r.templateId && tplById(r.templateId);
+  const where = pbId && pbById(pbId) ? [pbLink(pbId, stepId, pbById(pbId).name), stepName(pbId, stepId)].filter(Boolean).join(' · ') : '';
+  if (r.status === 'generating') return t ? `Drafting from “${esc(t.name || 'Untitled')}”…` : where ? `Drafting from ${where}…` : '';
+  if (r.status === 'failed') return renderScenario(chat.data?.scenario, chatPerson());
+  if (!r.templateId) return `<span class="free">Written freely${r.reasoning ? ` — ${esc(r.reasoning)}` : ''}</span>`;
+  const name = t ? `<button type="button" class="link" data-sact="tpltext" aria-expanded="false" aria-controls="scene-tpl">“${esc(t.name || 'Untitled')}”</button>` : '“a deleted template”';
+  const adapted = t && r.kind === 'message' && similarity(r.text, t) < 0.7 ? ' · adapted' : '';
+  return `Followed ${where ? `${where} · ` : ''}template ${name}${adapted}${t ? `<p class="brief" id="scene-tpl" hidden>${esc(htmlToText(t.bodyHtml))}</p>` : ''}`;
+}
+function renderScene() {
+  const el = $('#scene');
+  if (!el || !chat) return;
+  const r = activeReq(chat.id), focused = el.contains(document.activeElement) ? document.activeElement.dataset.sact : null;
+  const open = $('#scene-tpl') ? !$('#scene-tpl').hidden : false;
+  el.innerHTML = r ? renderProvenance(r) : chat.data ? renderScenario(chat.data.scenario, chatPerson()) : '';
+  el.hidden = !el.innerHTML;
+  if (open && $('#scene-tpl')) { $('#scene-tpl').hidden = false; el.querySelector('[data-sact=tpltext]').setAttribute('aria-expanded', 'true'); }
+  if (focused) el.querySelector(`[data-sact="${focused}"]`)?.focus({ preventScroll: true });
+}
+function sceneAct(b, e) {
+  const a = b.dataset.sact, s = chat.data?.scenario;
+  if (a === 'pb') { e.preventDefault(); return openPlaybook(b.dataset.pb, b.dataset.step); }
+  if (a === 'tpltext') { const t = $('#scene-tpl'), open = t.hidden; t.hidden = !open; return b.setAttribute('aria-expanded', open); }
+  if (a === 'tpl') return spark({ templateId: b.dataset.id });
+  if (a === 'free') return spark({ instruction: 'Write this one freely, without a template.' });
+  if (a === 'branch') { const c = s?.candidates[b.dataset.i]; return c && spark({ instruction: `Reply as the branch “${c.when}” [${c.id}]: ${c.approach}` }); }
+  if (a === 'draft') return spark();
+}
+const flash = (el) => { el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1000); };
+// Playbooks, at this step or reply branch.
+function openPlaybook(id, stepId) {
+  showSection('playbooks');
+  if (!pbById(id)) return announce('That playbook is gone');
+  psel = id; ppane = 'editor';
+  renderPList(); renderPEditor();
+  const p = curPb(), i = p.steps.findIndex((x) => x.id === stepId), r = p.responses.findIndex((x) => x.id === stepId);
+  const el = i >= 0 ? $(`#peditor .step[data-i="${i}"]`) : r >= 0 ? $(`#peditor .step[data-r="${r}"]`) : null;
+  if (!el) return $('#peditor .tname')?.focus();
+  el.scrollIntoView({ block: 'center' }); flash(el);
+  el.querySelector('textarea')?.focus({ preventScroll: true });
+}
+
+// ---- the Copilot: per person, a chat with the AI that drafts (lib/copilot.js).
+// A turn streams in over SSE `copilot`: its thinking (a muted box, folded into
+// "Thought for N s" once the reply starts), the reply, one line per action.
+// A sent or discarded draft draws a divider; older rounds fold into "Earlier".
+const cops = new Map();  // personId -> { items, running, live: { id, thinking, reply, replyAt } | null }
+const undoneNotes = new Set();
+const copOf = (id) => cops.get(id) || { items: [], running: false, live: null };
+let copSeen = false;
+try { copSeen = Boolean(localStorage.getItem('copSeen')); } catch {}
+const byAt = (a, b) => a.at.localeCompare(b.at);
+const mergeItems = (a, b) => [...new Map([...a, ...b].map((i) => [i.id, i])).values()].sort(byAt);
+async function loadCopilot(id) {
+  try { const c = await api(`/api/copilot/${enc(id)}`); cops.set(id, { ...copOf(id), items: mergeItems(copOf(id).items, c.items), running: c.running }); }
+  catch (e) { cops.set(id, { ...copOf(id), error: e.message }); }
+  if (chat?.id === id) renderCopilot();
+}
+function onCopilot(d) {
+  if (!cops.has(d.personId)) return; // fetched when the chat opens
+  const c = { ...copOf(d.personId) };
+  if (d.cleared) c.items = [];
+  if (d.item) {
+    c.items = mergeItems(c.items, [d.item]);
+    if (d.item.kind === 'ai') { c.live = null; if (chat?.id === d.personId && d.item.text) announce(d.item.text); }
+    if (d.item.changeId) soon('playbooks', loadPlaybooks);
+  } else if (d.id && d.running) c.live = { id: d.id, thinking: d.thinking || '', reply: d.reply || '', replyAt: c.live?.replyAt ?? (d.reply ? Date.now() : null) };
+  c.running = d.running;
+  if (!d.running) c.live = null;
+  cops.set(d.personId, c);
+  if (chat?.id === d.personId) renderCopilot();
+}
+
+const secs = (from, to) => Math.max(1, Math.round((new Date(to) - new Date(from)) / 1000));
+const thought = (k, n, text, open) => `<li><details class="xsteps" data-k="${k}"${open.has(k) ? ' open' : ''}><summary>Thought for ${n} s</summary><p class="cpthought">${esc(text)}</p></details></li>`;
+function renderCopAction(i, lastUser) {
+  const retry = lastUser ? ` · <button type="button" class="link" data-cp="retry" data-text="${esc(lastUser)}">Try again</button>` : '';
+  if (!i.ok) return `<li><p class="cpact bad">${esc(i.text)}${retry}</p></li>`;
+  const b = (act, label, data) => ` · <button type="button" class="link" data-cp="${act}" data-k="${act}-${esc(i.id)}"${data}>${label}</button>`;
+  let more = '';
+  if (i.type === 'draft') {
+    const r = requests.find((x) => x.id === i.requestId);
+    more = r && activeReq(chat.id)?.id === r.id ? b('show', 'Show', ` data-req="${esc(r.id)}"`) : r && ['sent', 'done'].includes(r.status) ? ' · sent' : '';
+  } else if (i.changeId) {
+    more = pb?.changes.find((x) => x.id === i.changeId)?.undone ? ' · Undone' : b('open', 'Open', ` data-change="${esc(i.changeId)}"`) + b('undo', 'Undo', ` data-change="${esc(i.changeId)}"`);
+  } else if (i.type === 'remember' && i.noteAt) {
+    const gone = undoneNotes.has(i.noteAt) || (pers && !pers.mind.notes?.some((n) => n.at === i.noteAt));
+    more = gone ? ' · Undone' : b('forget', 'Undo', ` data-note="${esc(i.noteAt)}"`);
+  }
+  return `<li><p class="cpact">${icon('done')} ${esc(i.text)}${more}</p></li>`;
+}
+const DIVIDER = { sent: 'Sent', done: 'Done', cancelled: 'Discarded' };
+function renderCopThread(c, open) {
+  const out = [], items = c.items, first = items[0]?.at;
+  let lastUser = null;
+  const parts = items.map((i, n) => {
+    if (i.kind === 'user') { lastUser = i; return { at: i.at, html: `<li class="me"><div class="msg">${esc(i.text)}</div></li>` }; }
+    const isLast = n === items.length - 1 && !c.running;
+    if (i.kind === 'ai') {
+      return { at: i.at, html: (i.thinking ? thought(`t-${i.id}`, secs(lastUser?.at ?? i.at, i.at), i.thinking, open) : '')
+        + (i.text ? `<li><div class="msg">${xmd(i.text)}</div></li>` : '') + (i.stopped ? '<li><p class="cpact">Stopped.</p></li>' : '') };
+    }
+    if (i.kind === 'action') return { at: i.at, html: renderCopAction(i, !i.ok && isLast ? lastUser?.text : '') };
+    return { at: i.at, html: `<li><div class="msg bad"><p>${esc(i.text)}</p>${isLast && lastUser ? `<div class="xdone"><button type="button" class="btn sm" data-cp="retry" data-text="${esc(lastUser.text)}">Try again</button></div>` : ''}</div></li>` };
+  });
+  const divs = first ? requests.filter((r) => r.personId === chat.id && DIVIDER[r.status] && r.updatedAt >= first && (r.status !== 'cancelled' || r.text))
+    .map((r) => ({ at: r.updatedAt, div: true, html: `<li class="cpdiv" role="separator"><span>${DIVIDER[r.status]}${r.status === 'cancelled' ? '' : ` ${hhmm(r.updatedAt)}`}</span></li>` })) : [];
+  const all = [...parts, ...divs].sort(byAt), cutAt = all.findLastIndex((x) => x.div);
+  if (cutAt > 0) out.push(`<li><details class="xsteps cpearly" data-k="earlier"${open.has('earlier') ? ' open' : ''}><summary>Earlier</summary><ul class="msgs">${all.slice(0, cutAt).map((x) => x.html).join('')}</ul></details></li>`);
+  out.push(...all.slice(Math.max(0, cutAt)).map((x) => x.html));
+  if (!items.length && !copSeen) out.push(`<li><p class="info">I can redo the draft, change a playbook (“from now on…”), or remember how you think.</p></li>`);
+  if (c.running && items.at(-1)?.kind === 'user') {
+    const l = c.live;
+    if (l?.reply) out.push((l.thinking ? thought(`t-${l.id}`, secs(items.at(-1).at, l.replyAt), l.thinking, open) : '') + `<li><div class="msg">${xmd(l.reply)}</div></li>`);
+    else out.push(`<li><div class="cpact"><p class="xlive">${SPIN}<span>Thinking…</span></p>${l?.thinking ? `<p class="cpthink"><span>${esc(l.thinking)}</span></p>` : ''}</div></li>`);
+  }
+  if (c.error) out.push(`<li><p class="cpact bad">Could not load the AI chat: ${esc(c.error)}</p></li>`);
+  return `<ul class="msgs">${out.join('')}</ul>`;
+}
+function renderCopilot() {
+  const t = $('#cpthread');
+  if (!t || !chat) return;
+  const c = copOf(chat.id), bottom = atBottom(t) || c.running;
+  const open = new Set([...t.querySelectorAll('details[open]')].map((d) => d.dataset.k));
+  const focusK = t.contains(document.activeElement) ? document.activeElement.dataset.k : null;
+  t.innerHTML = renderCopThread(c, open);
+  if (bottom) t.scrollTop = t.scrollHeight;
+  if (focusK) t.querySelector(`[data-k="${CSS.escape(focusK)}"]`)?.focus({ preventScroll: true });
+  // The collapsed sheet shows the last line.
+  const last = c.running ? (c.live?.reply || 'Thinking…') : c.items.findLast((i) => i.kind !== 'user')?.text || '';
+  $('#cplast').textContent = last; $('#cplast').hidden = !last;
+  updateComposer();
+}
+
+// Enter / the button: running → Stop; text → to the AI; empty → ✨ (a plain draft).
+async function copilotGo(fromKey = false) {
+  if (!chat) return;
+  const ta = $('#cptext'), text = ta.value.trim(), id = chat.id;
+  if (copOf(id).running) return fromKey ? announce('Still working on your last message. Esc stops it') : stopCopilot();
+  if (!text) return spark();
+  ta.value = ''; grow(ta); composerText.delete(id); chat.error = '';
+  if (!copSeen) { copSeen = true; try { localStorage.setItem('copSeen', '1'); } catch {} }
+  await sayCopilot(id, text, () => { ta.value = text; grow(ta); });
+}
+async function sayCopilot(id, text, undo = () => {}) {
+  cops.set(id, { ...copOf(id), running: true, error: '' });
+  renderCopilot();
+  try { const out = await api(`/api/copilot/${enc(id)}`, { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ text }) }); cops.set(id, { ...copOf(id), items: mergeItems(copOf(id).items, out.items) }); }
+  catch (e) { cops.set(id, { ...copOf(id), running: false }); undo(); if (chat?.id === id) chat.error = e.message; }
+  if (chat?.id === id) renderCopilot();
+}
+async function stopCopilot() {
+  try { await api(`/api/copilot/${enc(chat.id)}/stop`, { method: 'POST' }); announce('Stopped'); } catch (e) { announce(e.message); }
+}
+function showDraft(id) {
+  const b = $(`#draftbox [data-req="${CSS.escape(id)}"]`);
+  if (!b) return announce('That draft is no longer open');
+  b.scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  flash(b);
+  (b.querySelector('[data-dedit]') || b).focus({ preventScroll: true });
+}
+async function copAct(b) {
+  const a = b.dataset.cp;
+  if (a === 'show') return showDraft(b.dataset.req);
+  if (a === 'retry') return sayCopilot(chat.id, b.dataset.text);
+  const ch = b.dataset.change && pb?.changes.find((x) => x.id === b.dataset.change);
+  if (a === 'open') {
+    const o = ch?.ops[0];
+    if (!o) return showSection('playbooks');
+    return o.op === 'setTemplate' ? openTemplate(o.id) : o.op === 'setStyle' ? showSection('settings') : o.op === 'setRule' ? showSection('personal') : openPlaybook(o.id);
+  }
+  if (b.getAttribute('aria-disabled') === 'true') return;
+  b.setAttribute('aria-disabled', 'true');
+  try {
+    if (a === 'undo') { const c = await api(`/api/playbooks/changes/${enc(b.dataset.change)}/undo`, { method: 'POST' }); announce(`Undid: ${c.summary}`); tpls = null; await loadTemplates(); await loadPlaybooks(); }
+    if (a === 'forget') { await api(`/api/mind/notes/${enc(b.dataset.note)}`, { method: 'DELETE' }); undoneNotes.add(b.dataset.note); announce('Forgotten'); }
+  } catch (e) { b.removeAttribute('aria-disabled'); announce(e.message); }
+  renderCopilot();
+}
+// The bottom sheet (<1200px) opens while focus is in it; Esc or focus elsewhere collapses it.
+const sheetMode = () => !matchMedia('(min-width: 1200px)').matches;
+const setSheet = (on) => { const el = $('#copilot'); if (el) el.toggleAttribute('data-open', on); };
+
 // ---- events: the chat column
 const chatEl = $('#chat');
 chatEl.addEventListener('click', (e) => {
@@ -1564,7 +1817,10 @@ chatEl.addEventListener('click', (e) => {
     return th.focus({ preventScroll: true });
   }
   if (bodyClick(e)) return;
-  if (t.closest('#cspark')) return spark();
+  if (t.closest('#cpsend')) return $('#cpsend').getAttribute('aria-disabled') === 'true' ? announce($('#cpsend').title) : copilotGo();
+  if (t.closest('#cplast')) return $('#cptext').focus();
+  if (t.closest('[data-cp]')) return copAct(t.closest('[data-cp]'));
+  if (t.closest('[data-sact]')) return sceneAct(t.closest('[data-sact]'), e);
   if (t.closest('[data-dedit]')) { const r = activeReq(chat.id); return r && editDraftText(r); }
   const act = t.closest('[data-dact]'), r = act && activeReq(chat.id);
   if (!r) return;
@@ -1572,24 +1828,33 @@ chatEl.addEventListener('click', (e) => {
   return act.dataset.dact === 'send' ? sendDraft(r) : discard(r);
 });
 chatEl.addEventListener('input', (e) => {
-  if (e.target.id === 'ctext') { grow(e.target); updateComposer(); }
+  if (e.target.id === 'cptext') { grow(e.target); saveComposer(); updateComposer(); }
   const f = e.target.dataset.dfield;
   if (f && chat.edit) { chat.edit[f] = e.target.value; chat.edit.dirty = true; if (f === 'text') grow(e.target); saveDraftText(); }
 });
 // Leaving the draft's fields (not to the other field) ends editing.
 chatEl.addEventListener('focusout', (e) => {
   if (e.target.dataset?.dfield && !e.relatedTarget?.dataset?.dfield) endDraftEdit();
+  // Focus moved somewhere else (not just lost to a re-render): the sheet collapses.
+  if (e.target.closest('#copilot')) setTimeout(() => { const a = document.activeElement; if (a && a !== document.body && !$('#copilot')?.contains(a)) setSheet(false); });
 });
-// The box never goes to a client: Enter asks the AI, Shift+Enter is a new line.
+chatEl.addEventListener('focusin', (e) => {
+  if (!e.target.closest('#copilot') || $('#copilot').hasAttribute('data-open')) return;
+  const t = $('#thread'), was = atBottom(t);
+  setSheet(true);
+  if (was) t.scrollTop = t.scrollHeight; // the conversation keeps its end in view
+});
+// The Copilot never goes to a client: Enter asks the AI (empty: drafts), Shift+Enter is a new line.
 chatEl.addEventListener('keydown', (e) => {
   if (e.target.dataset?.dedit != null && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); const r = activeReq(chat.id); return r && editDraftText(r); }
   // In the draft's own fields Enter is a new line; Esc stops editing.
   if (e.target.dataset?.dfield) { if (e.key === 'Escape') { e.preventDefault(); endDraftEdit(true); } return; }
-  const enter = e.key === 'Enter' && !e.isComposing && e.target.id === 'ctext' && !e.shiftKey;
-  if (enter || (e.metaKey && e.key === 'j') || (e.altKey && e.key === 'Enter')) { e.preventDefault(); return spark(); }
+  if (e.key === 'Enter' && !e.isComposing && e.target.id === 'cptext' && !e.shiftKey) { e.preventDefault(); return copilotGo(true); }
   if (e.key !== 'Escape') return;
   e.preventDefault();
-  if (e.target.closest('#draftbox')) return $('#ctext').focus();
+  if (e.target.closest('#copilot') && copOf(chat.id).running) return stopCopilot();
+  if (e.target.closest('#copilot') && sheetMode() && $('#copilot').hasAttribute('data-open')) { setSheet(false); return $('#thread').focus(); }
+  if (e.target.closest('#draftbox, #scene')) return $('#cptext').focus();
   toList();
 });
 chatEl.addEventListener('scroll', (e) => {
@@ -1599,6 +1864,7 @@ chatEl.addEventListener('scroll', (e) => {
 document.addEventListener('keydown', (e) => {
   const a = document.activeElement, typing = a?.matches('input, textarea, [contenteditable=true]');
   if (e.metaKey && SECTIONS.includes(SECTIONS[e.key - 1])) { e.preventDefault(); return showSection(SECTIONS[e.key - 1], true); }
+  if (e.metaKey && e.key === 'j' && ['messages', 'tasks'].includes(section) && $('#cptext')) { e.preventDefault(); return $('#cptext').focus(); }
   if (e.metaKey && e.key === 'n' && section === 'templates') { e.preventDefault(); return newTemplate(); }
   if (e.metaKey && e.key === 'n' && section === 'personal') { e.preventDefault(); return editRule('new-fact'); }
   const search = SEARCH[section];
@@ -1672,13 +1938,12 @@ async function loadRequests() {
   if (done.length === 1) $('#announce').textContent = done[0].status === 'failed' ? `Draft failed for ${done[0].personName}` : `Draft ready for ${done[0].personName}`;
   else if (done.length) $('#announce').textContent = `${done.filter((r) => r.status !== 'failed').length} drafts ready, ${done.filter((r) => r.status === 'failed').length} failed`;
   rerenderTasks(); renderMessagesBadge(); if (chatsLoaded) renderChatList();
-  if (chat) { renderDraft(); updateComposer(); stick(renderMessages); }
+  if (chat) { renderDraft(); stick(renderMessages); renderCopilot(); }
 }
 
 async function requestAction(r, action, body = {}) {
   const res = await api(`/api/requests/${encodeURIComponent(r.id)}/${action}`, { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(body) });
   await loadRequests();
-  if (['send', 'cancel', 'regenerate'].includes(action)) setTimeout(loadPlaybooks, 500); // a decision collected (the 15th starts learning)
   return res;
 }
 
@@ -1688,7 +1953,7 @@ const SETTING_TEXTS = [
   ['styleGuide', 'Style guide', 'Learned from your sent WhatsApp messages and emails; the playbook learning may refine it (undo in Playbooks). Edit freely: every draft follows this text.', 18],
   ['draftPrompt', 'Follow-up prompt', 'Instructions for every draft. The client, task, conversation, earlier drafts, style guide and templates are added after it.', 14],
   ['stylePrompt', 'Style-learning prompt', 'Used by Learn my style. Your reply pairs, follow-ups and measured stats are added before it.', 14],
-  ['coachPrompt', 'Learning prompt', 'Your decisions on drafts (sent, edited, regenerated, cancelled) and answers to questions are collected; every 15 (or Learn now) one run reviews them. The playbooks, your rules and questions, templates, style guide and the decisions with their conversations are added before it.', 14],
+  ['coachPrompt', 'Learning prompt', 'Your decisions on drafts (sent, edited, regenerated, cancelled) are collected: one with a note or an edit is learned after 3 quiet minutes, plain ones every 15 (see Playbooks → What I learned). The playbooks, your rules and questions, templates, style guide and the decisions with their conversations are added before it.', 14],
   ['buildPrompt', 'Playbook-building prompt', 'Used by Build playbooks. Your templates, measured reply rates, style guide and current playbooks are added before it.', 14],
 ];
 
@@ -2036,7 +2301,7 @@ $('#personal').addEventListener('click', async (e) => {
   if (act === 'edit' && r) return editRule(r.id);
   if (act === 'cancel-edit') { const was = redit; redit = null; renderPersonal(); return (document.querySelector(`#rule-${CSS.escape(was)} .rtext`) || $('[data-pp=new-fact]'))?.focus(); }
   if (act === 'save') return saveFact(card);
-  if (act === 'delete' && card?.dataset.rule) return factCall('DELETE', card.dataset.rule, null, 'Deleted. Undo in Playbooks → What the AI learned.', card);
+  if (act === 'delete' && card?.dataset.rule) return factCall('DELETE', card.dataset.rule, null, 'Deleted. Undo in Playbooks → What I learned.', card);
 });
 $('#personal').addEventListener('keydown', (e) => {
   if (e.target.id === 'tell' && (e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); return tell(); }
@@ -2398,20 +2663,22 @@ editor.addEventListener('keydown', (e) => {
 addEventListener('pagehide', () => { if (dirty.size) flushSaves(true); });
 
 // ---- Playbooks: a follow-up strategy per stage; the AI builds them and learns
-// from every decision on a draft. The left list has the learning log first.
+// from every decision on a draft. The left list has "What I learned" first.
 const PB_STAGES = ['Installments', 'Thinking about it', 'No show', 'To be booked', 'Not answered', 'New lead']; // = STAGES in lib/resultson.js
 const PB_CHANNELS = { whatsapp: 'WhatsApp', email: 'Email', any: 'Any channel' };
 const LEARNED = '__learned';
 const MAX_STEPS = 10;
-let pb = null, psel = null, ppane = 'list', pbTimer, pbSave, pbError = '', lastChange, changesShown = 20, rebuildAsk = false;
+let pb = null, psel = null, ppane = 'list', pbSave, pbError = '', lastChange, changesShown = 20, rebuildAsk = false;
 const curPb = () => pb?.playbooks.find((p) => p.id === psel);
 const stageRank = (s) => PB_STAGES.indexOf(s) + 1;
 const topRank = (p) => Math.min(...p.stages.map(stageRank).filter((r) => r > 0), 99);
 const tplById = (id) => tpls?.find((t) => t.id === id);
-const coachBusy = () => pb?.coach.running || pb?.coach.queued > 0;
 
+// Live through SSE `playbooks` (no polling). While a playbook is being edited
+// its fields stay as they are; only the log and the coach's state refresh.
+const editingPb = () => section === 'playbooks' && $('#peditor').contains(document.activeElement) && document.activeElement.matches('textarea, input, select');
 async function loadPlaybooks() {
-  try { pb = await api('/api/playbooks'); pbError = ''; } catch (e) { pbError = e.message; }
+  try { const fresh = await api('/api/playbooks'); if (pb && editingPb()) fresh.playbooks = pb.playbooks; pb = fresh; pbError = ''; } catch (e) { pbError = e.message; }
   if (pb) {
     const newest = pb.changes[0]?.id;
     if (lastChange !== undefined && newest && newest !== lastChange && pb.changes[0].trigger.kind !== 'user') {
@@ -2423,20 +2690,14 @@ async function loadPlaybooks() {
   }
   renderCoachBadge();
   if (section === 'playbooks') { renderPList(); renderPEditor(false); }
-  clearTimeout(pbTimer);
-  if (coachBusy()) pbTimer = setTimeout(loadPlaybooks, 3000);
+  if (chat) { renderScene(); renderCopilot(); } // playbook names, undone changes
 }
 
-// Learning runs quietly in the background: decisions are collected and every
-// c.batch of them one run learns. Only here: the count, Learn now, a failure (also "!" on the rail).
+// Learning runs in the background; the list only shows a failure (also "!" on the rail).
 function renderCoachLine() {
   const c = pb?.coach;
   if (!c) return pbError ? `<span class="bad">Could not load playbooks: ${esc(pbError)}</span>` : '';
-  const err = c.error ? `<span class="bad"><span class="dot bad"></span>Learning failed: ${esc(c.error)}. Nothing was changed; it retries at the next decision.</span>` : '';
-  const count = c.learning ? `<span>${SPIN} Learning from ${c.lessons} decision${c.lessons === 1 ? '' : 's'}…</span>`
-    : c.lessons ? `<span>${c.lessons} of ${c.batch} decisions collected</span> · <button type="button" class="quiet" data-pact="learn">Learn now</button>`
-    : c.last && !c.last.changed ? `<span title="${esc(c.last.summary)}">Reviewed ${c.last.count} decision${c.last.count === 1 ? '' : 's'}: nothing to change.</span>` : '';
-  return err + count;
+  return c.error ? `<span class="bad"><span class="dot bad"></span>Learning failed: ${esc(c.error)}. Nothing was changed; it retries at the next decision.</span>` : '';
 }
 function renderCoachBadge() {
   const b = $('#pbadge'), bad = Boolean(pb?.coach.error);
@@ -2459,8 +2720,9 @@ function renderPList() {
   if (!pb) { $('#plist').innerHTML = pbError ? `<li class="empty err">${esc(pbError)}</li>` : ''; return; }
   const groups = [['Any stage', 0, pb.playbooks.filter((p) => !p.stages.length)],
     ...PB_STAGES.map((s, i) => [s, i + 1, pb.playbooks.filter((p) => p.stages.length && topRank(p) === i + 1)])];
-  const learned = pb.changes.length ? `<li><button type="button" class="trow" data-pid="${LEARNED}"${psel === LEARNED ? ' aria-current="true"' : ''}>
-    <span class="tn">What the AI learned</span><span class="ts">${pb.changes.length} change${pb.changes.length === 1 ? '' : 's'}${pb.changes[0] ? ` · last ${ago(pb.changes[0].at)}` : ''}</span></button></li>` : '';
+  const feed = learnFeed(), sub = feed.length ? `last ${ago(feed[0].at)}` : 'what your notes and edits changed';
+  const learned = pb.playbooks.length || pb.changes.length ? `<li><button type="button" class="trow" data-pid="${LEARNED}"${psel === LEARNED ? ' aria-current="true"' : ''}>
+    <span class="tn">What I learned</span><span class="ts">${pb.coach.learning ? 'learning…' : sub}</span></button></li>` : '';
   $('#plist').innerHTML = learned + groups.filter(([, , ps]) => ps.length).map(([label, rank, ps]) =>
     `<li class="pgh">${rank ? `<span class="sd" style="--st: ${stageColor(rank)}"></span>` : ''}${esc(label)}</li>`
     + ps.sort((a, b) => (a.situation === 'no-reply' ? 0 : 1) - (b.situation === 'no-reply' ? 0 : 1)).map(renderPRow).join('')).join('');
@@ -2522,7 +2784,12 @@ function renderPEditor(force = true) {
         <button type="button" class="btn primary" data-pact="build">${icon('regen')} Build playbooks</button></div>`;
     return;
   }
-  if (psel === LEARNED) { ed.innerHTML = back + renderLearned(); return; }
+  if (psel === LEARNED) {
+    const open = new Set([...ed.querySelectorAll('details[open]')].map((d) => d.dataset.k));
+    ed.innerHTML = back + renderLearned();
+    for (const d of ed.querySelectorAll('details[data-k]')) if (open.has(d.dataset.k)) d.open = true;
+    return;
+  }
   const p = curPb();
   if (!p) { ed.innerHTML = '<p class="empty">Pick a playbook.</p>'; return; }
   ed.innerHTML = `${back}
@@ -2574,6 +2841,7 @@ const TRIGGER = {
   answer: () => 'Your answer to a question',
   migrate: () => 'Playbook lessons became your rules',
   user: () => 'Your edit',
+  copilot: (t) => `In the AI chat about ${t.personName}`,
 };
 
 function stepDiff(before, after) {
@@ -2653,12 +2921,47 @@ function renderChange(c) {
       : `<span class="err" data-err></span><button type="button" class="btn sm" data-undo="${esc(c.id)}" aria-label="Undo: ${esc(c.summary)}">${icon('recover')}Undo</button>`}</span></div></li>`;
 }
 
+// What I learned: per learning run, what happened to every note and edit
+// (changed, already a rule, kept for this chat…), and the Copilot's changes;
+// runs that changed nothing from plain sends and cancels get no entry. All
+// changes (also your own edits) stay below, each undoable.
+const OUTCOME = { changed: 'Changed', style: 'Style guide', already: 'Already a rule', situational: 'Kept for this chat only', unanswered: 'Not accounted for' };
+const changeOf = (id) => id && pb.changes.find((c) => c.id === id);
+function learnFeed() {
+  const runs = (pb?.coach.log || []).filter((r) => r.handled.length || r.changeId).map((run) => ({ at: run.at, run }));
+  const cop = (pb?.changes || []).filter((c) => c.trigger.kind === 'copilot').map((change) => ({ at: change.at, change }));
+  return [...runs, ...cop].sort((a, b) => b.at.localeCompare(a.at));
+}
+const renderChangeTools = (c) => !c ? '' : `<details class="xsteps" data-k="sc-${esc(c.id)}"><summary>Show change</summary><ul class="ops">${c.ops.map(renderOp).join('')}</ul></details>
+  <div class="ractions"><span class="cancel">${c.undone ? '<span class="why">Undone</span>' : `<span class="err" data-err></span><button type="button" class="btn sm" data-undo="${esc(c.id)}" aria-label="Undo: ${esc(c.summary)}">${icon('recover')}Undo${c.ops.length > 1 ? ` (${c.ops.length} changes)` : ''}</button>`}</span></div>`;
+function renderHandled(h, run) {
+  const said = h.note ? `<q>${esc(h.note)}</q>` : h.edited ? 'your edit' : 'your decision';
+  const general = h.outcome !== 'situational' ? '' : h.generalizedBy ? ' · <span class="why">sent back as a rule</span>'
+    : ` · <button type="button" class="link" data-general="${esc(run.id)}" data-entry="${esc(h.id)}">Make it the rule</button>`;
+  return `<li><p class="note">${h.personName ? `<b>${esc(h.personName)}</b> · ` : ''}${said}</p>
+    <p class="why">→ <b>${OUTCOME[h.outcome] || h.outcome}</b>${h.what ? ` · ${esc(h.what)}` : ''}${general}</p></li>`;
+}
+function renderRun({ run, change }) {
+  if (change) {
+    return `<li class="card past" id="lr-${esc(change.id)}"><h3><span class="name">Copilot · ${esc(change.trigger.personName || '')}</span>${timeTag(change.at, ago(change.at))}</h3>
+      <p class="note">${esc(change.summary)}</p>${renderChangeTools(change)}</li>`;
+  }
+  const h = run.handled, one = h.length === 1 && h[0];
+  const title = run.trigger === 'general' ? 'Made it the rule' : one ? `From your ${one.note ? 'note' : 'edit'}${one.personName ? ` on ${one.personName}` : ''}` : `From ${plural(run.count, 'decision')}`;
+  return `<li class="card past" id="lr-${esc(run.id)}"><h3><span class="name">${esc(title)}</span>${timeTag(run.at, ago(run.at))}</h3>
+    ${h.length ? `<ul class="lessons">${h.map((x) => renderHandled(x, run)).join('')}</ul>` : `<p class="note">${esc(run.summary || 'Changes')}</p>`}
+    ${renderChangeTools(changeOf(run.changeId))}</li>`;
+}
 function renderLearned() {
-  const shown = pb.changes.slice(0, changesShown), left = pb.changes.length - shown.length;
-  return `<h1>What the AI learned</h1>
-    <p class="info">Your decisions on drafts (sent, edited, regenerated, cancelled) are collected; every ${pb.coach.batch} the AI reviews them together and may adjust the playbooks, templates and style guide. Each change says why, and can be undone.</p>
-    <ul class="changes">${shown.map(renderChange).join('')}</ul>
-    ${left ? `<button type="button" class="link" data-pact="more-changes">Show ${Math.min(left, 20)} more (${left} left)</button>` : ''}`;
+  const c = pb.coach, feed = learnFeed(), shown = pb.changes.slice(0, changesShown), left = pb.changes.length - shown.length;
+  const state = c.learning || c.running ? `<p class="working">${SPIN} Learning from your notes…</p>`
+    : c.quietAt ? `<p class="info">Your newest note or edit is learned at ${timeTag(c.quietAt, hhmm(c.quietAt))}.</p>` : '';
+  return `<h1>What I learned</h1>${state}
+    ${feed.length ? `<ul class="changes">${feed.map(renderRun).join('')}</ul>`
+      : '<p class="info">Nothing yet. When you correct a draft (a note, an edit, or in the AI chat), what I did with it shows here.</p>'}
+    ${pb.changes.length ? `<details class="moredetail" data-k="all"><summary>All changes (${pb.changes.length})</summary>
+      <ul class="changes">${shown.map(renderChange).join('')}</ul>
+      ${left ? `<button type="button" class="link" data-pact="more-changes">Show ${Math.min(left, 20)} more (${left} left)</button>` : ''}</details>` : ''}`;
 }
 
 // ---- interactions
@@ -2684,6 +2987,14 @@ $('#view-playbooks').addEventListener('click', async (e) => {
   if (tp) return openTemplate(tp.dataset.tpl);
   const pid = e.target.closest('#peditor [data-pid]');
   if (pid) { psel = pid.dataset.pid; renderPList(); renderPEditor(); return; }
+  const gen = e.target.closest('[data-general]');
+  if (gen) {
+    if (gen.getAttribute('aria-disabled') === 'true') return;
+    gen.setAttribute('aria-disabled', 'true'); gen.textContent = 'Learning it as a rule…';
+    try { pb.coach = await api(`/api/playbooks/learnlog/${enc(gen.dataset.general)}/${enc(gen.dataset.entry)}/general`, { method: 'POST' }); announce('Learning it as a rule'); }
+    catch (er) { gen.removeAttribute('aria-disabled'); gen.textContent = 'Make it the rule'; announce(er.message); }
+    return;
+  }
   const undo = e.target.closest('[data-undo]');
   if (undo) {
     if (undo.getAttribute('aria-disabled') === 'true') return;
@@ -2710,16 +3021,10 @@ $('#view-playbooks').addEventListener('click', async (e) => {
     rebuildAsk = false;
     try { pb.coach = await api('/api/playbooks/build', { method: 'POST' }); $('#announce').textContent = 'Building playbooks. This takes a few minutes.'; }
     catch (er) { $('#announce').textContent = `Could not start: ${er.message}`; }
-    renderPList(); renderPEditor(); clearTimeout(pbTimer); pbTimer = setTimeout(loadPlaybooks, 3000);
+    renderPList(); renderPEditor();
     return;
   }
   if (act === 'more-changes') { changesShown += 20; return renderPEditor(); }
-  if (act === 'learn') {
-    try { pb.coach = await api('/api/playbooks/learn', { method: 'POST' }); announce(`Learning from ${pb.coach.lessons} decisions`); }
-    catch (er) { announce(`Could not start: ${er.message}`); }
-    renderPList(); clearTimeout(pbTimer); pbTimer = setTimeout(loadPlaybooks, 3000);
-    return;
-  }
   if (!p) return;
   const sit = e.target.closest('[data-situation]'), st = e.target.closest('[data-stage]');
   if (sit) { p.situation = sit.dataset.situation; renderPEditor(); savePlaybook(p, true); return document.querySelector(`[data-situation="${p.situation}"]`)?.focus(); }
@@ -2746,7 +3051,7 @@ $('#view-playbooks').addEventListener('click', async (e) => {
     pstatus(`Step moved to ${j + 1}`);
     return refocus(`.step[data-i="${j}"] [data-pact="${act}"]`);
   }
-  if (act === 'del-step') { p.steps.splice(i, 1); renderPEditor(); savePlaybook(p, true); pstatus('Step removed (undo in What the AI learned)'); return refocus('[data-pact=add-step]'); }
+  if (act === 'del-step') { p.steps.splice(i, 1); renderPEditor(); savePlaybook(p, true); pstatus('Step removed (undo in What I learned)'); return refocus('[data-pact=add-step]'); }
   if (act === 'add-step') {
     p.steps.push({ id: `step-${Date.now().toString(36)}`, channel: 'whatsapp', waitDays: 2, ask: '', why: '', templateIds: [] });
     renderPEditor(); savePlaybook(p, true); return refocus(`.step[data-i="${p.steps.length - 1}"] [data-f=ask]`);
@@ -2763,7 +3068,7 @@ $('#view-playbooks').addEventListener('click', async (e) => {
   if (act === 'del-yes') {
     try {
       await api(`/api/playbooks/${encodeURIComponent(p.id)}`, { method: 'DELETE' });
-      $('#announce').textContent = `Deleted ${p.name}. Undo it in What the AI learned.`;
+      $('#announce').textContent = `Deleted ${p.name}. Undo it in What I learned.`;
       psel = LEARNED; await loadPlaybooks();
     } catch (er) { pstatus(`Not deleted: ${er.message}`, true); }
   }
