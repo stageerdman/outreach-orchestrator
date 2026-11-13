@@ -33,9 +33,18 @@ it is and how to access it, the user answers in the chat, and it builds it.
 1. [x] `lib/connections.js` + `GET /api/connections`; tests.
 2. [x] `lib/connect.js`: the CLI conversation (spawn, stream-json → transcript,
    resume, stop, persist), routes, SSE; tests with a fake `claude`.
-3. [ ] UI: rail item, the reactor + nodes, Add connection, the chat (UX agents).
-4. [ ] Verify on the real thing (a real conversation on a test copy), UX review
+3. [x] UI: rail item, the reactor + nodes, Add connection, the chat (UX agents).
+4. [x] Verify on the real thing (a real conversation on a test copy), UX review
    on screenshots, docs.
 
 ## Status
 - 2026-11-13 planned; stream-json + resume checked by hand.
+- 2026-11-13 built: backend + tests (127 pass), UI after 3 UX agents (diagram,
+  chat, critique: finer layered reactor, lines touch it, status line above the
+  button, one --hud accent in the chat, neutral Stop, key card, Restart as a
+  bar). Verified on a copy: a scripted run (steps, key field, done, Restart,
+  paste guard, 420 px) and one real turn — it looked around and asked one
+  plain question ("Google Calendar, iCloud, Outlook, or Calendly?") without
+  changing code. Restart tested (self-respawn); the Mac app rebuilt to restart
+  the server on exit 75. Skipped: a pending node before the restart (the
+  server only knows a connection after loading its code).

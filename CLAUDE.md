@@ -180,7 +180,7 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   `<lid>@lid` chats mapped to that phone in the bridge's `whatsapp.db`
   (`whatsmeow_lid_map`, read-only). CRM phones must include the country code.
 - **Sections:** a left rail switches views (Messages, Tasks, Templates,
-  Playbooks, You (how you think), Settings; ⌘1–6, Messages is the default; there is no separate
+  Playbooks, You (how you think), Connections, Settings; ⌘1–7, Messages is the default; there is no separate
   AI Requests view). Messages = every CRM contact with messages, newest
   first (`/api/chats`), unread pill, with a Requests / Unanswered / All switch
   on top (people with an open draft / unread chats / everyone; localStorage
@@ -274,6 +274,22 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   own words + Answer, or "Not sure"; the count on the You icon. An answer is
   the user's own words (a note, source `answer`); the portrait rebuilds
   when the set is done (not before).
+- **Connections** (`lib/connections.js`, `lib/connect.js`, `/api/connections`,
+  `/api/connect`; the CONNECTIONS update): the orchestrator as a reactor in
+  the middle, what it's wired to around it (`CONNECTIONS`: id, name, what,
+  status → live / off / error + a real number; a new connection adds an
+  entry), "Add connection" opens a chat with Claude Code running **with
+  bypass permissions in this repo** (`claude -p --output-format stream-json`,
+  one process per message, `--session-id` then `--resume`, one turn at a
+  time, Stop, New; transcript in `connect.json`, app data; SSE `connect`).
+  Its appended prompt: one plain question at a time, follow this file,
+  register the connection, secrets only via `[[secret NAME: …]]` → a secure
+  field writes `.env` (`POST /api/connect/secret`, the AI only hears it's
+  saved), say when a restart is needed. `POST /api/restart`: the Mac app
+  (env `OUTREACH_SUPERVISED`) restarts the server when it exits with 75
+  (rebuild the app with `npm run app` for that); otherwise the server starts
+  a copy of itself. Look (after 3 UX agents): one cyan `--hud` accent, glow
+  only in dark mode, slow motion, reduced-motion respected, real numbers only.
 - **Drafts in the UI** live only in Messages (Requests filter) and the chat
   (a draft keeps `channel`, `instruction` and `previousId`, the version it
   replaced, so the chat shows the notes and earlier versions), kept in sync

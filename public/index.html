@@ -20,12 +20,16 @@
     /* Pipeline stage colours, top stage first (each ≥4.5:1 on bg, panel and sel) */
     --st-1: #1a7a45; --st-2: #0e7480; --st-3: #8a6a00; --st-4: #b8461b; --st-5: #1f6aa5;
     --st-6: #5a52c4; --st-7: #8b47ad; --st-8: #776c60; --st-9: #646c78;
+    /* Connections: the HUD accent (≥4.5:1 on bg), its line and wash; glow in dark mode only */
+    --hud: #0a6c86; --hud-dim: color-mix(in srgb, var(--hud) 45%, transparent); --hud-wash: color-mix(in srgb, var(--hud) 8%, transparent);
+    --hud-glow: transparent; --reactor: 168px; --node: 48px;
   }
   @media (prefers-color-scheme: dark) {
     :root { --bg: #161615; --panel: #1f1f1d; --text: #ecebe6; --muted: #a3a29c; --line: #33322f;
       --accent: #7b9cf2; --email: #7b9cf2; --wa: #4cc28a; --me: #252c40; --sel: #252c40; --err: #ff8a80;
       --st-1: #5cc98f; --st-2: #45bccb; --st-3: #d9b440; --st-4: #ff8a5c; --st-5: #5fb0ea;
-      --st-6: #a39af2; --st-7: #cf92e8; --st-8: #ab9f92; --st-9: #959ca8; }
+      --st-6: #a39af2; --st-7: #cf92e8; --st-8: #ab9f92; --st-9: #959ca8;
+      --hud: #5ad1ee; --hud-dim: color-mix(in srgb, var(--hud) 30%, transparent); --hud-wash: color-mix(in srgb, var(--hud) 11%, transparent); --hud-glow: color-mix(in srgb, var(--hud) 55%, transparent); }
   }
   * { box-sizing: border-box; }
   body { margin: 0; font: var(--fs)/1.45 -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text);
@@ -309,6 +313,97 @@
   .composer .ib { height: calc(1.45em + 2 * var(--s2) + 2px); }
   #chint { margin: 0; }
 
+  /* Connections: the orchestrator (a reactor) and what it's wired to around it;
+     one accent (--hud), glow only in dark mode, real numbers only. The chat on
+     the right builds new connections. */
+  .xsplit { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); }
+  .xsplit.open { grid-template-columns: minmax(0, 1fr) minmax(var(--chat-min), 440px); }
+  .xmap { overflow-y: auto; padding: var(--s5) var(--s4); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100%; }
+  .xmap h1 { align-self: stretch; max-width: 600px; margin: 0 auto; width: 100%; }
+  .cstage { position: relative; width: min(520px, 100%); aspect-ratio: 1.1; margin: 0 auto; flex: none;
+    background: radial-gradient(circle, var(--hud-wash), transparent 62%); }
+  .clines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .clines line { stroke-width: 1.25; transition: stroke .15s; }
+  .clines [data-state=live] { stroke: var(--hud-dim); }
+  .clines [data-state=off] { stroke: var(--line); stroke-width: 1; stroke-dasharray: 1 5; }
+  .clines [data-state=error] { stroke: var(--err); stroke-width: 1; stroke-dasharray: 3 4; }
+  .clines .pulse { stroke: var(--hud); stroke-width: 1.5; opacity: .9; stroke-linecap: round; stroke-dasharray: 28 400; animation: pulse 2.8s linear infinite; }
+  .xsplit.busy .clines .pulse { animation-duration: 1.2s; }
+  .clines line.hot { stroke: var(--hud); }
+  @keyframes pulse { from { stroke-dashoffset: 28; } to { stroke-dashoffset: -400; } }
+  .reactor { all: unset; position: absolute; left: 50%; top: 50%; width: var(--reactor); aspect-ratio: 1; transform: translate(-50%, -50%);
+    border-radius: 50%; cursor: default; }
+  .reactor.go { cursor: pointer; }
+  .reactor:focus-visible { outline: 2px solid var(--accent); outline-offset: 6px; }
+  .reactor svg { width: 100%; height: 100%; display: block; color: var(--hud); }
+  .reactor .r2, .reactor .r3, .reactor .r4 { transform-box: fill-box; transform-origin: center; }
+  .reactor .r2 { animation: turn 60s linear infinite; } .reactor .r4 { animation: turn 40s linear infinite; } .reactor .r3 { animation: turn 120s linear infinite reverse; }
+  .reactor .core { filter: drop-shadow(0 0 8px var(--hud-glow)); animation: breathe 4s ease-in-out infinite; }
+  .reactor.busy .r2 { animation-duration: 6s; } .reactor.busy .r3 { animation-duration: 12s; } .reactor.busy .r4 { animation-duration: 5s; } .reactor.busy .core { animation-duration: 2s; }
+  @keyframes turn { to { transform: rotate(1turn); } }
+  @keyframes breathe { 50% { opacity: .75; } }
+  .xstat { margin: var(--s2) 0 var(--s3); font-size: var(--fs-sm); color: var(--muted); }
+  .xstat.bad { color: var(--err); }
+  .cnode { all: unset; box-sizing: border-box; position: absolute; left: var(--x); top: var(--y); width: 124px; transform: translate(-50%, calc(var(--node) / -2));
+    display: flex; flex-direction: column; align-items: center; gap: var(--s1); text-align: center; cursor: pointer; }
+  .cnode .ring { width: var(--node); height: var(--node); border-radius: 50%; display: grid; place-items: center; position: relative;
+    background: var(--panel); border: 1.5px solid var(--line); color: var(--muted); transition: background .15s, border-color .2s; }
+  .cnode .ring svg { width: var(--icon); height: var(--icon); }
+  .cnode[data-state=live] .ring { border-color: var(--hud); color: var(--hud); }
+  .cnode[data-state=off] .ring svg { opacity: .55; }
+  .cnode[data-state=error] .ring { border-color: var(--err); color: var(--err); }
+  .cnode[data-state=error] .ring::after { content: ''; position: absolute; top: 0; right: 0; width: 8px; height: 8px; border-radius: 50%; background: var(--err); }
+  .cnode:hover .ring { background: var(--sel); }
+  .cnode:focus-visible { outline: none; } .cnode:focus-visible .ring { outline: 2px solid var(--accent); outline-offset: 4px; }
+  .cnode .nm { font-size: var(--fs-sm); font-weight: 600; }
+  .cnode .dt { font-size: var(--fs-sm); color: var(--muted); font-variant-numeric: tabular-nums; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cnode[data-state=error] .dt { color: var(--err); }
+  .xadd { all: unset; box-sizing: border-box; height: var(--gh); padding: 0 var(--s4); border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--hud-dim); color: var(--hud); display: inline-flex; align-items: center; gap: var(--s1); font-weight: 600; }
+  .xadd:hover { background: var(--hud-wash); border-color: var(--hud); }
+  @media (min-width: 901px) { .xsplit.open .xadd { visibility: hidden; } }
+  .xadd:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .xadd svg { width: var(--fs-lg); height: var(--fs-lg); }
+  @media (prefers-reduced-motion: reduce) {
+    .reactor .r2, .reactor .r3, .reactor .r4, .reactor .core { animation: none; } .clines .pulse { display: none; }
+    .clines [data-state=live] { stroke: var(--hud); }
+  }
+  /* The chat that builds a connection (same bubbles as a conversation) */
+  .xchat { border-left: 1px solid var(--line); }
+  .xchat .rc { background: var(--hud); }
+  .xchat .rc.no { width: var(--hit); height: var(--hit); background: transparent; border: 1px solid var(--line); color: var(--text); }
+  .xchat .btn.primary { background: var(--hud); border-color: var(--hud); }
+  .xlive .spin { color: var(--hud); }
+  .xchat .chead { display: flex; align-items: center; gap: var(--s2); }
+  .xchat .chead h2 { flex: 1; margin: 0; font-size: var(--fs-lg); }
+  .xchat .msg { border-left-color: var(--hud); white-space: normal; }
+  .xchat .msg p { margin: 0; } .xchat .msg p + p, .xchat .msg ul, .xchat .msg ol { margin: var(--s2) 0 0; }
+  .xchat .msg ul, .xchat .msg ol { padding-left: 1.2em; }
+  .xchat .msg code { font-size: .92em; background: var(--bg); padding: 0 3px; border-radius: 3px; overflow-wrap: anywhere; }
+  .xchat li.me .msg { border-left-color: var(--accent); white-space: pre-wrap; }
+  .xchat .msg.bad { border-left-color: var(--err); }
+  .xsteps { font-size: var(--fs-sm); color: var(--muted); }
+  .xsteps summary { cursor: pointer; } .xsteps ul { margin: var(--s1) 0 0; padding-left: 1.2em; }
+  .xlive { font-size: var(--fs-sm); color: var(--muted); display: flex; align-items: center; gap: var(--s2); }
+  .xstarters { display: flex; flex-wrap: wrap; gap: var(--s2); }
+  .xstarters button { font: inherit; font-size: var(--fs-sm); padding: var(--s1) var(--s3); border-radius: 99px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--text); cursor: pointer; text-align: left; }
+  .xstarters button:hover { border-color: var(--hud); }
+  .xsecret { width: min(100%, 26em); display: grid; gap: var(--s2); border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); padding: var(--s3); margin: 0; }
+  .xsecret .xrow { display: flex; gap: var(--s1); }
+  .xsecret input { flex: 1; min-width: 0; } .xsecret .xrow > * { height: var(--gh); }
+  .xdone { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; margin-top: var(--s2); }
+  .xrestart { display: grid; gap: var(--s1); } .xrestart .btn { height: var(--gh); font-weight: 600; color: var(--panel); }
+  .xwarn { color: var(--err); font-size: var(--fs-sm); margin: 0; }
+  .xwarn .link { color: var(--err); text-decoration: underline; margin: 0 0 0 var(--s1); }
+  .xchat .back { display: none; }
+  @media (max-width: 900px) {
+    .xsplit.open { grid-template-columns: minmax(0, 1fr); }
+    .xsplit.open[data-pane=chat] > .xmap, .xsplit[data-pane=map] > .xchat { display: none; }
+    .xchat .back { display: inline-block; }
+  }
+  @media (max-width: 520px) { :root { --reactor: 112px; --node: 40px; } .cnode { width: 96px; } .cnode .dt { white-space: normal; } .xmap { padding: var(--s4) var(--s2); } }
+
   /* You: the portrait of how you think — one reading column, one line per
      item (details open on click), one surface per section, the score, facts */
   #personal { align-items: center; gap: 0; padding: var(--s5) var(--s5) calc(3 * var(--s5)); }
@@ -460,7 +555,10 @@
   <a href="#personal" data-section="personal" aria-keyshortcuts="Meta+5" title="Personalization (⌘5)">
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="6.5" r="3"/><path d="M4 17c.6-3.2 3-5 6-5s5.4 1.8 6 5"/></svg>
     <span>You</span><span class="count-badge" id="ybadge" aria-hidden="true" hidden></span></a>
-  <a href="#settings" data-section="settings" aria-keyshortcuts="Meta+6" title="Settings (⌘6)">
+  <a href="#connections" data-section="connections" aria-keyshortcuts="Meta+6" title="Connections (⌘6)">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10.5" r="2.5"/><circle cx="10" cy="3.5" r="1.5"/><circle cx="16" cy="14.5" r="1.5"/><circle cx="4" cy="14.5" r="1.5"/><path d="M10 5v3M14.7 13.7l-2.5-1.9M5.3 13.7l2.5-1.9"/></svg>
+    <span>Connections</span></a>
+  <a href="#settings" data-section="settings" aria-keyshortcuts="Meta+7" title="Settings (⌘7)">
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h5M12 5h5M3 10h9M16 10h1M3 15h2M9 15h8"/><circle cx="10" cy="5" r="2"/><circle cx="14" cy="10" r="2"/><circle cx="7" cy="15" r="2"/></svg>
     <span>Settings</span></a>
 </nav>
@@ -523,6 +621,12 @@
 </div>
 <div class="view" id="view-personal" hidden>
   <div class="editor settings" id="personal"></div>
+</div>
+<div class="view" id="view-connections" hidden>
+  <div class="xsplit" id="xsplit" data-pane="map">
+    <div class="xmap" id="xmap"></div>
+    <section class="chat xchat" id="xchat" aria-label="Add a connection" hidden></section>
+  </div>
 </div>
 <div class="view" id="view-settings" hidden>
   <div class="editor settings" id="settings"></div>
@@ -1329,7 +1433,7 @@ async function startRefresh() {
 const soonTimers = {};
 const soon = (key, fn, ms = 200) => { clearTimeout(soonTimers[key]); soonTimers[key] = setTimeout(fn, ms); };
 let newIds = [];
-async function onSnapshot() { checkSync(); await loadPeople(); loadChats(); if (chat) loadChat(true); }
+async function onSnapshot() { checkSync(); await loadPeople(); loadChats(); if (chat) loadChat(true); if (section === 'connections') loadConnections(); }
 async function onMessages() {
   const ids = newIds;
   newIds = [];
@@ -1353,6 +1457,7 @@ function connectEvents() {
   es.addEventListener('messages', (e) => { newIds.push(...JSON.parse(e.data).ids); soon('messages', onMessages); });
   es.addEventListener('requests', () => soon('requests', loadRequests));
   es.addEventListener('personal', () => soon('personal', loadPersonal));
+  es.addEventListener('connect', () => { if (xconv) soon('connect', loadConnect, 100); });
 }
 
 // ---- events: Tasks
@@ -1947,7 +2052,7 @@ $('#personal').addEventListener('focusout', () => setTimeout(() => { if (section
 $('#personal').addEventListener('input', (e) => { if (e.target.id === 'qtext') qpick.text = e.target.value; });
 
 // ---- sections (the last one is remembered per browser)
-const SECTIONS = ['messages', 'tasks', 'templates', 'playbooks', 'personal', 'settings'];
+const SECTIONS = ['messages', 'tasks', 'templates', 'playbooks', 'personal', 'connections', 'settings'];
 const SEARCH = { messages: '#mq', tasks: '#q', templates: '#tq' };
 let section = 'messages';
 function showSection(name, focus = false) {
@@ -1963,6 +2068,7 @@ function showSection(name, focus = false) {
   if (name === 'playbooks') { loadTemplates(); loadPlaybooks(); }
   if (name === 'personal') { if (pers) renderPersonal(); loadPersonal(); }
   if (name === 'settings') loadSettings();
+  if (name === 'connections') loadConnections();
   // Messages and Tasks share the chat column; each list keeps its own selection.
   if (name === 'messages' || name === 'tasks') {
     splitOf(name).append($('#chat'));
@@ -2705,6 +2811,263 @@ $('#peditor').addEventListener('keydown', (e) => {
     if (btn && btn.getAttribute('aria-disabled') !== 'true') { e.preventDefault(); btn.click(); }
   }
   if (e.key === 'Escape' && ppane === 'editor') { ppane = 'list'; $('#psplit').dataset.pane = 'list'; document.querySelector('#plist .trow[aria-current]')?.focus(); }
+});
+
+// ---- Connections: the orchestrator in the middle, what it's wired to around it,
+// and the chat with Claude Code that builds new connections (lib/connect.js).
+let conns = null, xconv = null, xopen = null, xpane = 'map', xguard = false, xtick;
+const XICON = { crm: 'M3 4.5h14v11H3zM6 8.5a1.6 1.6 0 1 0 3.2 0 1.6 1.6 0 1 0-3.2 0M5 13c.4-1.2 1.4-1.9 2.6-1.9s2.2.7 2.6 1.9M12 8h3M12 11h3',
+  whatsapp: ICONS.wa, email: ICONS.mail, other: 'M7.5 3v4M12.5 3v4M5.5 7h9v3a4.5 4.5 0 0 1-9 0zM10 14.5V18' };
+const xicon = (id) => `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${XICON[id] || XICON.other}"/></svg>`;
+const PLUS = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M10 4v12M4 10h12"/></svg>';
+const STOP = '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><rect x="5.5" y="5.5" width="9" height="9" rx="1.5"/></svg>';
+const REACTOR = `<svg viewBox="-100 -100 200 200" fill="none" stroke="currentColor" aria-hidden="true">
+  <defs><radialGradient id="xcore"><stop offset="0" stop-color="currentColor" stop-opacity=".5"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></radialGradient></defs>
+  <circle r="96" stroke-width=".75" opacity=".3"/>
+  <circle class="r2" r="88" stroke-width="2" stroke-dasharray="48 6 10 6 4 6"/>
+  <circle class="r4" r="80" stroke-width="1" stroke-dasharray="120 383" opacity=".7"/>
+  <circle class="r3" r="70" stroke-width="6" stroke-dasharray=".6 4.2" opacity=".35"/>
+  <circle r="56" stroke-width="1" opacity=".3"/>
+  <circle r="36" fill="url(#xcore)" stroke="none"/>
+  <circle r="22" stroke-width="1.5" opacity=".7"/>
+  <circle class="core" r="12" fill="currentColor" stroke="none"/></svg>`;
+
+async function loadConnections() {
+  try { [conns, xconv] = await Promise.all([api('/api/connections'), api('/api/connect')]); } catch (e) { conns ??= []; xconv ??= { items: [] }; }
+  if (xopen === null) xopen = xconv.items.length > 0;
+  renderConnections();
+}
+async function loadConnect() {
+  const was = xconv?.running;
+  try { xconv = await api('/api/connect'); } catch { return; }
+  if (was && !xconv.running) { try { conns = await api('/api/connections'); } catch {} renderMap(); }
+  renderReactor(); renderXThread(); renderXComposer();
+}
+
+function renderConnections() {
+  if (!conns) return;
+  $('#xsplit').classList.toggle('open', xopen);
+  $('#xsplit').dataset.pane = xopen ? xpane : 'map';
+  $('#xchat').hidden = !xopen;
+  renderMap();
+  if (xopen) { renderXChat(); }
+}
+
+// N nodes on a circle: 3 → top, lower right, lower left; an even N starts half a step over.
+const ORBIT = 38;
+function renderMap() {
+  const n = conns.length, step = 360 / Math.max(n, 1), start = -90 + (n % 2 ? 0 : step / 2);
+  const at = conns.map((_, i) => { const a = (start + i * step) * Math.PI / 180; return [Math.cos(a), Math.sin(a)]; });
+  const live = conns.filter((c) => c.state === 'live').length, bad = conns.filter((c) => c.state === 'error').length;
+  const line = (c, [x, y], i) => {
+    const r0 = 82, r1 = ORBIT * 6 - 30 - Math.max(0, -y) * 52, p = (r) => `x1="${300 + x * r1}" y1="${300 + y * r1}" x2="${300 + x * r0}" y2="${300 + y * r0}"`;
+    return `<line data-k="${esc(c.id)}" data-state="${c.state}" ${p()}/>${c.state === 'live' ? `<line class="pulse" ${p()} style="animation-delay: ${(i * .45).toFixed(2)}s"/>` : ''}`;
+  };
+  $('#xmap').innerHTML = `<h1 class="sr-only">Connections</h1>
+    <div class="cstage">
+      <svg class="clines" viewBox="0 0 600 600" aria-hidden="true">${conns.map((c, i) => line(c, at[i], i)).join('')}</svg>
+      <button type="button" class="reactor" id="reactor" aria-label="Orchestrator"></button>
+      ${conns.map((c, i) => `<button type="button" class="cnode" data-k="${esc(c.id)}" data-state="${c.state}"
+          style="--x: ${(50 + at[i][0] * ORBIT).toFixed(2)}%; --y: ${(50 + at[i][1] * ORBIT).toFixed(2)}%"
+          title="${esc(c.what)}" aria-label="${esc(`${c.name}: ${c.what}. ${c.state === 'live' ? 'Connected' : c.state === 'off' ? 'Not set up' : 'Not working'}, ${c.detail}`)}">
+          <span class="ring">${xicon(c.id)}</span><span class="nm">${esc(c.name)}</span><span class="dt">${esc(c.detail)}</span></button>`).join('')}
+    </div>
+    <p class="xstat" id="xstat"></p>
+    <button type="button" class="xadd" id="xadd">${PLUS}${xconv?.items.length ? 'Continue setup' : 'Add connection'}</button>`;
+  $('#xmap').dataset.summary = bad ? `${bad} need${bad > 1 ? '' : 's'} attention` : live === conns.length ? `All ${live} connections live` : `${live} of ${conns.length} connections live`;
+  renderReactor();
+}
+function renderReactor() {
+  const r = $('#reactor'), l = $('#xstat');
+  if (!r) return;
+  const running = Boolean(xconv?.running), bad = /need/.test($('#xmap').dataset.summary);
+  if (!r.innerHTML) r.innerHTML = REACTOR;
+  r.classList.toggle('busy', running); r.classList.toggle('go', running && !xopen);
+  r.setAttribute('aria-label', running ? 'Orchestrator: working on a new connection. Open the chat' : 'Orchestrator');
+  l.textContent = running ? 'Building a connection…' : $('#xmap').dataset.summary; l.classList.toggle('bad', bad && !running);
+  $('#xsplit').classList.toggle('busy', running);
+  const add = $('#xadd'); if (add) add.lastChild.textContent = xconv?.items.length ? 'Continue setup' : 'Add connection';
+}
+function openX(text) {
+  xopen = true; xpane = 'chat'; renderConnections();
+  const ta = $('#xtext');
+  if (text != null) { ta.value = text; grow(ta); saveXDraft(); }
+  ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+}
+$('#xmap').addEventListener('click', (e) => {
+  if (e.target.closest('#xadd')) return openX();
+  if (e.target.closest('.reactor.go')) return openX();
+  const n = e.target.closest('.cnode');
+  if (!n) return;
+  const c = conns.find((x) => x.id === n.dataset.k);
+  openX(c.state === 'error' ? `${c.name} isn't working: “${c.detail}”. Can you fix it?` : c.state === 'off' ? `Set up ${c.name}: ` : `About ${c.name}: `);
+});
+for (const ev of ['pointerover', 'pointerout', 'focusin', 'focusout']) $('#xmap').addEventListener(ev, (e) => {
+  const n = e.target.closest('.cnode'); if (!n) return;
+  document.querySelector(`.clines line[data-k="${CSS.escape(n.dataset.k)}"]`)?.classList.toggle('hot', ev === 'pointerover' || ev === 'focusin');
+});
+
+// The chat: header, thread (re-rendered on every change), composer (rendered once).
+const XSTARTERS = ['Let the AI see my calendar and book meetings', 'Add Instagram messages to the timeline', 'Read leads from a Google Sheet'];
+function renderXChat() {
+  if (!$('#xthread')) {
+    $('#xchat').innerHTML = `<div class="chead"><button type="button" class="link back" data-xact="back">‹ Connections</button>
+        <h2>Add a connection</h2>
+        <button type="button" class="btn sm" data-xact="new">New</button>
+        <button type="button" class="ib" data-xact="close" aria-label="Close the chat" title="Close (it keeps working)">${icon('cancel')}</button></div>
+      <div class="thread" id="xthread" tabindex="-1" aria-live="polite"></div>
+      <div class="composer" id="xcomp">
+        <div class="xrestart" id="xrestart" hidden><button type="button" class="btn primary" data-xact="restart">Restart Outreach</button><p class="info">Your messages and drafts stay.</p></div>
+        <p class="info" id="xtrust">This builds the feature by changing Outreach's own code on this Mac. Every change is saved and can be undone.</p>
+        <p class="xwarn" id="xwarn" hidden>This looks like a password or key. Use the secure field instead so it isn't saved in the chat.<button type="button" class="link" data-xact="anyway">Send anyway</button></p>
+        <div class="cline"><textarea class="input ctext" id="xtext" rows="1" aria-label="Message to the connection builder"></textarea>
+          <button type="button" class="ib rb" id="xsend"></button></div>
+        <p class="info" id="xhint"></p></div>`;
+    try { $('#xtext').value = localStorage.getItem('xdraft') || ''; } catch {}
+    grow($('#xtext'));
+  }
+  renderXThread(); renderXComposer();
+}
+
+// Minimal Markdown for the AI's replies: paragraphs, lists, `code`, **bold**, links.
+function xmd(s) {
+  const inline = (t) => esc(t).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+    .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g, '$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+  return s.split(/\n{2,}/).map((b) => {
+    const ls = b.split('\n');
+    if (ls.every((l) => /^\s*[-*] /.test(l))) return `<ul>${ls.map((l) => `<li>${inline(l.replace(/^\s*[-*] /, ''))}</li>`).join('')}</ul>`;
+    if (ls.every((l) => /^\s*\d+[.)] /.test(l))) return `<ol>${ls.map((l) => `<li>${inline(l.replace(/^\s*\d+[.)] /, ''))}</li>`).join('')}</ol>`;
+    return `<p>${ls.map(inline).join('<br>')}</p>`;
+  }).join('');
+}
+const SECRET = /\[\[secret ([A-Z][A-Z0-9_]*):?\s*([^\]]*)\]\]/g, SAVED = /^\[([A-Z][A-Z0-9_]*) saved to \.env\]$/;
+const pretty = (name) => name.toLowerCase().split('_').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
+const clock = (ms) => `${Math.floor(ms / 6e4)}:${String(Math.floor(ms / 1e3) % 60).padStart(2, '0')}`;
+
+function renderXThread() {
+  const t = $('#xthread');
+  if (!t || !xconv) return;
+  const bottom = t.scrollHeight - t.scrollTop - t.clientHeight < 40;
+  const open = new Set([...t.querySelectorAll('details[open]')].map((d) => d.dataset.k));
+  const items = xconv.items, saved = new Set(items.map((i) => i.kind === 'user' && i.text.match(SAVED)?.[1]).filter(Boolean));
+  const out = [];
+  if (!items.length) out.push(`<li><div class="msg"><p>Tell me what you'd like Outreach to connect to, and I'll set it up. I may ask a few questions along the way.</p></div></li>
+    <li><div class="xstarters">${XSTARTERS.map((s) => `<button type="button" data-starter>${esc(s)}</button>`).join('')}</div></li>`);
+  let steps = [];
+  const flush = (live) => {
+    if (!steps.length) return;
+    const last = steps.at(-1);
+    if (live) out.push(`<li><p class="xlive">${SPIN}<span>${esc(last.text)}</span><span id="xclock"></span></p></li>`);
+    else out.push(`<li><details class="xsteps" data-k="${last.id}"${open.has(last.id) ? ' open' : ''}><summary>${steps.length} step${steps.length > 1 ? 's' : ''}</summary>
+      <ul>${steps.map((s) => `<li title="${esc(s.detail || '')}">${esc(s.text)}</li>`).join('')}</ul></details></li>`);
+    steps = [];
+  };
+  const lastUser = items.findLast((i) => i.kind === 'user' && !SAVED.test(i.text));
+  items.forEach((it, i) => {
+    if (it.kind === 'tool') return steps.push(it);
+    flush(false);
+    if (it.kind === 'user') {
+      const s = SAVED.test(it.text);
+      if (!s) out.push(`<li class="me"><div class="msg">${esc(it.text)}</div></li>`); // a saved secret shows on its card
+    } else if (it.kind === 'ai') {
+      const secrets = [...it.text.matchAll(SECRET)], text = it.text.replace(SECRET, '').trim();
+      out.push(`<li><div class="msg">${xmd(text)}</div></li>`);
+      for (const [, name, what] of secrets) out.push(saved.has(name) ? `<li><p class="info">✓ ${esc(pretty(name))} saved</p></li>`
+        : `<li><form class="xsecret" data-secret="${esc(name)}"><b>${esc(pretty(name))}</b>${what ? `<span class="info">${esc(what)}</span>` : ''}
+          <div class="xrow"><input class="input" type="password" autocomplete="off" placeholder="Paste key" aria-label="${esc(pretty(name))}" required><button type="button" class="btn sm" data-xact="show">Show</button>
+          <button type="submit" class="btn primary sm">Save securely</button></div>
+          <span class="info">Stored only in .env on this Mac. The AI never sees it.</span></form></li>`);
+    } else if (it.kind === 'error') {
+      out.push(`<li><div class="msg bad"><p>${/not found|CLAUDE_BIN|not logged in|login/i.test(it.text) ? "Claude Code isn't available on this Mac, or isn't logged in." : 'Something went wrong and I stopped.'}</p>
+        <p class="info">${esc(it.text)}</p>${lastUser && i === items.length - 1 ? '<div class="xdone"><button type="button" class="btn sm" data-xact="retry">Try again</button></div>' : ''}</div></li>`);
+    } else if (it.kind === 'note') out.push(`<li><p class="info center">Stopped. Nothing after this point was done.</p></li>`);
+  });
+  if (xconv.running && !steps.length) steps.push({ id: 'think', text: 'Thinking…' });
+  flush(xconv.running);
+  if (xconv.running) out.push(`<li><p class="info" id="xslow" hidden>Bigger changes can take a few minutes. You can leave this open or close it.</p></li>`);
+  t.innerHTML = `<ul class="msgs">${out.join('')}</ul>`;
+  if (bottom || xconv.running) t.scrollTop = t.scrollHeight;
+  clearInterval(xtick);
+  if (xconv.running) { tickX(); xtick = setInterval(tickX, 1000); }
+}
+// Elapsed time since the user's message, only once it's slow.
+function tickX() {
+  const since = xconv.items.findLast((i) => i.kind === 'user')?.at, ms = since ? Date.now() - new Date(since) : 0;
+  if ($('#xclock')) $('#xclock').textContent = ms > 20e3 ? `· ${clock(ms)}` : '';
+  if ($('#xslow')) $('#xslow').hidden = ms < 90e3;
+}
+function renderXComposer() {
+  const b = $('#xsend'), ta = $('#xtext');
+  if (!b) return;
+  const running = Boolean(xconv?.running), empty = !xconv?.items.length;
+  b.className = `ib rb${running ? '' : ''}`;
+  b.innerHTML = `<span class="rc${running ? ' no' : ''}">${running ? STOP : `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICONS.up}"/></svg>`}</span>`;
+  b.setAttribute('aria-label', running ? 'Stop' : 'Send'); b.title = running ? 'Stop' : 'Send (Enter)';
+  ta.placeholder = running ? 'Working… you can reply when it’s done' : empty ? 'What should Outreach connect to?' : 'Reply…';
+  $('#xtrust').hidden = !empty;
+  $('#xhint').textContent = '';
+  const last = xconv?.items.at(-1);
+  $('#xrestart').hidden = running || last?.kind !== 'ai' || !/restart/i.test(last.text);
+  document.querySelector("#xchat [data-xact=new]").hidden = empty; document.querySelector("#xchat [data-xact=new]").disabled = running;
+}
+
+const LOOKS_SECRET = /\b(sk-[\w-]{16,}|AIza[\w-]{20,}|gh[pousr]_\w{20,}|xox[abp]-[\w-]{10,}|ya29\.[\w-]{20,})|\b(?=[\w-]*\d)(?=[\w-]*[A-Za-z])[\w-]{32,}\b|\b(password|heslo)\s*[:=]/i;
+const saveXDraft = () => { try { localStorage.setItem('xdraft', $('#xtext').value); } catch {} };
+async function sendX(text = $('#xtext').value, force = false) {
+  text = text.trim();
+  if (!text || xconv?.running) return;
+  if (!force && LOOKS_SECRET.test(text)) { $('#xwarn').hidden = false; return; }
+  $('#xwarn').hidden = true;
+  $('#xtext').value = ''; grow($('#xtext')); saveXDraft();
+  try { xconv = await api('/api/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) }); }
+  catch (e) { $('#xtext').value = text; grow($('#xtext')); $('#xhint').textContent = e.message; return; }
+  renderXThread(); renderXComposer(); renderReactor();
+}
+async function restartApp() {
+  const t = $('#xthread');
+  t.querySelector('.msgs').insertAdjacentHTML('beforeend', '<li><p class="xlive">' + SPIN + '<span>Restarting… Your messages and drafts stay.</span></p></li>');
+  t.scrollTop = t.scrollHeight;
+  try { await api('/api/restart', { method: 'POST' }); } catch {}
+  await new Promise((r) => setTimeout(r, 1500));
+  for (let i = 0; i < 120; i++) {
+    try { await api('/api/status'); return location.reload(); } catch { await new Promise((r) => setTimeout(r, 500)); }
+  }
+  $('#xhint').textContent = 'Outreach didn’t come back. Quit it (⌘Q) and open it again.';
+}
+$('#xchat').addEventListener('click', async (e) => {
+  const s = e.target.closest('[data-starter]');
+  if (s) { const ta = $('#xtext'); ta.value = s.textContent; grow(ta); saveXDraft(); ta.focus(); return; }
+  if (e.target.closest('#xsend')) {
+    if (xconv?.running) { try { await api('/api/connect/stop', { method: 'POST' }); } catch {} return; }
+    return sendX();
+  }
+  const a = e.target.closest('[data-xact]')?.dataset.xact;
+  if (a === 'close') { xopen = false; renderConnections(); $('#xadd')?.focus(); }
+  if (a === 'back') { xpane = 'map'; renderConnections(); }
+  if (a === 'anyway') sendX(undefined, true);
+  if (a === 'retry') sendX(xconv.items.findLast((i) => i.kind === 'user' && !SAVED.test(i.text)).text, true);
+  if (a === 'restart') restartApp();
+  if (a === 'show') { const inp = e.target.closest('form').querySelector('input'); inp.type = inp.type === 'password' ? 'text' : 'password'; e.target.textContent = inp.type === 'password' ? 'Show' : 'Hide'; }
+  if (a === 'new') {
+    const b = e.target.closest('button');
+    if (b.dataset.sure) { try { xconv = await api('/api/connect/reset', { method: 'POST' }); } catch {} renderXThread(); renderXComposer(); renderMap(); $('#xtext').focus(); }
+    else { b.dataset.sure = '1'; b.textContent = 'Start over?'; b.title = 'This conversation will be cleared'; setTimeout(() => { delete b.dataset.sure; b.textContent = 'New'; }, 4000); }
+  }
+});
+$('#xchat').addEventListener('submit', async (e) => {
+  const f = e.target.closest('[data-secret]');
+  if (!f) return;
+  e.preventDefault();
+  const inp = f.querySelector('input'), btn = f.querySelector('[type=submit]');
+  btn.disabled = true;
+  try { await api('/api/connect/secret', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: f.dataset.secret, value: inp.value }) }); inp.value = ''; }
+  catch (err) { btn.disabled = false; f.insertAdjacentHTML('beforeend', `<span class="xwarn">${esc(err.message)}</span>`); }
+});
+$('#xchat').addEventListener('input', (e) => { if (e.target.id === 'xtext') { grow(e.target); saveXDraft(); $('#xwarn').hidden = true; } });
+$('#xchat').addEventListener('keydown', (e) => {
+  if (e.target.id !== 'xtext' || e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
+  e.preventDefault(); sendX();
 });
 
 // First load: the last snapshot (the server refreshes on start), then live updates.
