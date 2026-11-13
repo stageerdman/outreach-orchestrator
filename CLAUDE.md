@@ -277,8 +277,9 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
 - **Connections** (`lib/connections.js`, `lib/connect.js`, `/api/connections`,
   `/api/connect`; the CONNECTIONS update): the orchestrator as a reactor in
   the middle, what it's wired to around it (`CONNECTIONS`: id, name, what,
-  status → live / off / error + a real number; a new connection adds an
-  entry), "Add connection" opens a chat with Claude Code running **with
+  flow `in` / `out` / `both` (a status may narrow it), status → live / off /
+  error + a real number; a new connection adds an entry; one line per
+  direction, its pulse running inward for reads, outward for writes), "Add connection" opens a chat with Claude Code running **with
   bypass permissions in this repo** (`claude -p --output-format stream-json`,
   one process per message, `--session-id` then `--resume`, one turn at a
   time, Stop, New; transcript in `connect.json`, app data; SSE `connect`).

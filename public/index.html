@@ -2859,9 +2859,17 @@ function renderMap() {
   const n = conns.length, step = 360 / Math.max(n, 1), start = -90 + (n % 2 ? 0 : step / 2);
   const at = conns.map((_, i) => { const a = (start + i * step) * Math.PI / 180; return [Math.cos(a), Math.sin(a)]; });
   const live = conns.filter((c) => c.state === 'live').length, bad = conns.filter((c) => c.state === 'error').length;
+  // One line per direction the information goes: in = node → middle (the pulse runs
+  // inward), out = middle → node; both = two lines side by side, GAP apart.
+  const GAP = 4;
   const line = (c, [x, y], i) => {
-    const r0 = 82, r1 = ORBIT * 6 - 30 - Math.max(0, -y) * 85, p = (r) => `x1="${300 + x * r1}" y1="${300 + y * r1}" x2="${300 + x * r0}" y2="${300 + y * r0}"`;
-    return `<line data-k="${esc(c.id)}" data-state="${c.state}" ${p()}/>${c.state === 'live' ? `<line class="pulse" ${p()} style="animation-delay: ${(i * .45).toFixed(2)}s"/>` : ''}`;
+    const r0 = 82, r1 = ORBIT * 6 - 30 - Math.max(0, -y) * 85;
+    const dirs = c.flow === 'both' ? [['in', -GAP], ['out', GAP]] : [[c.flow === 'out' ? 'out' : 'in', 0]];
+    return dirs.map(([d, o], j) => {
+      const ox = -y * o, oy = x * o, [a, b] = d === 'out' ? [r0, r1] : [r1, r0];
+      const p = `x1="${300 + x * a + ox}" y1="${300 + y * a + oy}" x2="${300 + x * b + ox}" y2="${300 + y * b + oy}"`;
+      return `<line data-k="${esc(c.id)}" data-state="${c.state}" ${p}/>${c.state === 'live' ? `<line class="pulse" ${p} style="animation-delay: ${(i * .45 + j * 1.4).toFixed(2)}s"/>` : ''}`;
+    }).join('');
   };
   $('#xmap').innerHTML = `<h1 class="sr-only">Connections</h1>
     <div class="cstage">
@@ -2869,7 +2877,7 @@ function renderMap() {
       <button type="button" class="reactor" id="reactor" aria-label="Orchestrator"></button>
       ${conns.map((c, i) => `<button type="button" class="cnode" data-k="${esc(c.id)}" data-state="${c.state}"
           style="--x: ${(50 + at[i][0] * ORBIT).toFixed(2)}%; --y: ${(50 + at[i][1] * ORBIT).toFixed(2)}%"
-          title="${esc(c.what)}" aria-label="${esc(`${c.name}: ${c.what}. ${c.state === 'live' ? 'Connected' : c.state === 'off' ? 'Not set up' : 'Not working'}, ${c.detail}`)}">
+          title="${esc(c.what)}" aria-label="${esc(`${c.name}: ${c.what}. ${({ in: 'Reads from it', out: 'Sends to it', both: 'Reads and sends' })[c.flow] ?? ''}. ${c.state === 'live' ? 'Connected' : c.state === 'off' ? 'Not set up' : 'Not working'}, ${c.detail}`)}">
           <span class="ring">${xicon(c.id)}</span><span class="nm">${esc(c.name)}</span><span class="dt">${esc(c.detail)}</span></button>`).join('')}
     </div>
     <p class="xstat" id="xstat"></p>
@@ -2904,7 +2912,7 @@ $('#xmap').addEventListener('click', (e) => {
 });
 for (const ev of ['pointerover', 'pointerout', 'focusin', 'focusout']) $('#xmap').addEventListener(ev, (e) => {
   const n = e.target.closest('.cnode'); if (!n) return;
-  document.querySelector(`.clines line[data-k="${CSS.escape(n.dataset.k)}"]`)?.classList.toggle('hot', ev === 'pointerover' || ev === 'focusin');
+  document.querySelectorAll(`.clines line[data-k="${CSS.escape(n.dataset.k)}"]`).forEach((l) => l.classList.toggle('hot', ev === 'pointerover' || ev === 'focusin'));
 });
 
 // The chat: header, thread (re-rendered on every change), composer (rendered once).

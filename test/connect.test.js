@@ -85,8 +85,10 @@ test('a secret goes into .env (replaced in place, quoted when needed), never int
 test('connections: one plain object each; a status that throws shows as an error', () => {
   const list = listConnections({ people: [], errors: {} }, [
     { id: 'a', name: 'A', what: 'w', status: () => ({ state: 'live', detail: '2 things' }) },
-    { id: 'b', name: 'B', what: 'w', status: () => { throw new Error('boom'); } },
+    { id: 'b', name: 'B', what: 'w', flow: 'both', status: () => { throw new Error('boom'); } },
+    { id: 'c', name: 'C', what: 'w', flow: 'both', status: () => ({ state: 'live', detail: 'Sending only', flow: 'out' }) },
   ]);
-  assert.deepEqual(list, [{ id: 'a', name: 'A', what: 'w', state: 'live', detail: '2 things' }, { id: 'b', name: 'B', what: 'w', state: 'error', detail: 'boom' }]);
+  assert.deepEqual(list, [{ id: 'a', name: 'A', what: 'w', flow: 'in', state: 'live', detail: '2 things' }, { id: 'b', name: 'B', what: 'w', flow: 'both', state: 'error', detail: 'boom' },
+    { id: 'c', name: 'C', what: 'w', flow: 'out', state: 'live', detail: 'Sending only' }]);
   assert.deepEqual(listConnections({ people: [], errors: {} }).map((x) => x.id), ['crm', 'whatsapp', 'email', 'calendar']);
 });
