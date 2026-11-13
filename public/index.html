@@ -10,6 +10,7 @@
     --accent: #2f5bd3; --email: #2f5bd3; --wa: #1f7f50; --me: #eef2fd; --sel: #eef2fd; --err: #b3261e;
     --draft-row: color-mix(in srgb, var(--accent) 9%, transparent); /* rows with an AI draft waiting */
     --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px;
+    --measure: 720px; --fs-xl: 22px; /* reading width, the largest type (You) */
     --fs-sm: 12px; --fs: 14px; --fs-lg: 16px; --radius: 6px; --width: 860px; --gh: 32px;
     --rail: 72px; --list-w: 280px; --feed-w: 380px; --feed-min: 240px; --feed-max: 640px; --chat-min: 360px; --icon: 20px; --hit: 28px; --badge: 16px;
     /* Fronta group colours (A, B; C is a hollow dot) and the gray of an AI draft */
@@ -308,22 +309,90 @@
   .composer .ib { height: calc(1.45em + 2 * var(--s2) + 2px); }
   #chint { margin: 0; }
 
-  /* Personalization: the portrait of how you think, what you told it, facts */
-  .psh { font-size: var(--fs); margin: var(--s4) 0 var(--s1); flex: 1; }
-  #personal .changes { margin-bottom: var(--s2); }
-  .lead { font-size: var(--fs-lg); line-height: 1.5; margin: var(--s2) 0 var(--s3); }
-  .mcard h3 { display: block; }
-  .mcard p { margin: var(--s1) 0 0; }
-  .mcard .lbl, .lens { color: var(--muted); font-size: var(--fs-sm); }
-  .lens { display: block; font-weight: 600; }
-  .mcard details { margin-top: var(--s1); }
-  .quotes { margin: var(--s1) 0 0; padding: 0; list-style: none; display: grid; gap: var(--s1); }
-  .quotes li { padding: var(--s1) var(--s3); background: var(--bg); border-radius: var(--radius); overflow-wrap: anywhere; }
-  .score { font-size: var(--fs-lg); font-weight: 600; }
-  .rule.edit { box-shadow: inset 3px 0 var(--accent); }
+  /* You: the portrait of how you think — one reading column, one line per
+     item (details open on click), one surface per section, the score, facts */
+  #personal { align-items: center; gap: 0; padding: var(--s5) var(--s5) calc(3 * var(--s5)); }
+  #personal > * { max-width: var(--measure); }
+  #personal h1 { flex: none; font-size: var(--fs-xl); font-weight: 700; letter-spacing: -0.01em; }
+  #personal > .info { margin-top: var(--s1); }
+  .lead { font-size: var(--fs-lg); line-height: 1.6; margin: var(--s5) 0 0; }
+  #personal section { margin-top: calc(2 * var(--s5)); }
+  #personal .lead + section { margin-top: var(--s5); }
+  .psh { font-size: var(--fs-lg); font-weight: 600; margin: 0 0 var(--s3); flex: 1; }
+  #personal .lrow { margin-bottom: var(--s3); } #personal .lrow .psh { margin: 0; }
+  #personal section > .info { margin: calc(-1 * var(--s2)) 0 var(--s3); }
+  .sub { margin: var(--s4) 0 var(--s2); font-size: var(--fs-sm); font-weight: 600; color: var(--muted); }
+
+  /* a list = one surface, hairlines between rows; a row opens in place */
+  .plist { list-style: none; margin: 0; padding: 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .plist > li + li { border-top: 1px solid var(--line); }
+  .plist.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line); }
+  .plist.grid > li { background: var(--panel); border: 0; }
+  .plist.grid > li:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .it > summary { list-style: none; cursor: pointer; padding: var(--s3) var(--s4); display: flex; gap: var(--s2); align-items: baseline; }
+  .it > summary::-webkit-details-marker { display: none; }
+  .it > summary::after { content: '›'; margin-left: auto; color: var(--muted); transition: transform .15s; }
+  .it[open] > summary::after { transform: rotate(90deg); }
+  .it > summary:hover { background: color-mix(in srgb, var(--muted) 7%, transparent); }
+  .it > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .it .hl { overflow-wrap: anywhere; }
+  .it:not([open]) .hl { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .it .n { flex: none; width: var(--s4); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .it .tag { flex: none; font-size: var(--fs-sm); color: var(--accent); }
+  .row { padding: var(--s3) var(--s4); overflow-wrap: anywhere; }
+  .more { padding: 0 var(--s4) var(--s4); display: grid; gap: var(--s2); }
+  .more p { margin: 0; }
+  .lens { display: block; font-size: var(--fs-sm); font-weight: 600; color: var(--muted); }
+  .wn { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--s1) var(--s3); margin: 0; }
+  .wn dt { font-size: var(--fs-sm); color: var(--muted); } .wn dd { margin: 0; }
+  .quotes { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--s1); }
+  .quotes li { padding: var(--s2) var(--s3); background: var(--bg); border-radius: var(--radius); font-size: var(--fs-sm); overflow-wrap: anywhere; }
+  .showall { margin-top: var(--s2); }
+  .moredetail > summary { list-style: none; cursor: pointer; color: var(--muted); font-weight: 600; display: inline-flex; gap: var(--s2); }
+  .moredetail > summary::-webkit-details-marker { display: none; }
+  .moredetail > summary::after { content: '›'; transition: transform .15s; }
+  .moredetail[open] > summary::after { transform: rotate(90deg); }
+  .moredetail > summary:hover { color: var(--text); }
+  .moredetail[open] > summary { margin-bottom: var(--s3); }
+
+  /* Correct it: the one obvious input */
+  #personal .tell { padding: var(--s4); background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+  #personal .tell .psh { margin-bottom: var(--s1); }
+  #personal .tell > .info { margin: 0 0 var(--s3); }
+  #tell { display: block; width: 100%; min-height: calc(3 * 1.45em + 2 * var(--s2)); resize: vertical; field-sizing: content; background: var(--bg); }
+  #tell:hover { border-color: var(--muted); }
+  #tell:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 var(--s1) color-mix(in srgb, var(--accent) 20%, transparent); }
+  #personal .tell .ractions { margin-top: var(--s3); flex-direction: row-reverse; gap: var(--s3); }
+  #personal .tell .btn.primary { padding: var(--s2) var(--s4); font-weight: 600; }
+  .pending { margin: var(--s3) 0 0; padding: var(--s2) var(--s3); background: var(--bg); border-radius: var(--radius); overflow-wrap: anywhere; }
+  .pending .why { display: block; margin-top: var(--s1); }
+  #personal .tell details { margin-top: var(--s3); }
+
+  /* Does it help: one big number, two bars */
+  .fitn { margin: 0 0 var(--s3); display: flex; align-items: baseline; gap: var(--s2); flex-wrap: wrap; }
+  .big { font-size: var(--fs-xl); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .fitn .up { color: var(--ok); font-size: var(--fs-sm); font-weight: 600; }
+  .fitn .even { color: var(--muted); font-size: var(--fs-sm); }
+  .mrow { display: grid; grid-template-columns: 5em minmax(0, 1fr) 2em; align-items: center; gap: var(--s3); font-size: var(--fs-sm); color: var(--muted); margin-bottom: var(--s2); }
+  .mrow i { height: var(--s2); border-radius: var(--s1);
+    background: linear-gradient(to right, var(--c, var(--accent)) calc(var(--v) * 1%), color-mix(in srgb, var(--muted) 15%, transparent) 0); }
+  .mrow b { text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
+  .mrow.off { --c: var(--muted); }
+  #ph-fit ~ details ul { margin: var(--s2) 0 0; padding-left: var(--s4); display: grid; gap: var(--s1); color: var(--muted); }
+
+  /* facts */
+  .rule.edit { padding: var(--s3) var(--s4); background: var(--bg); display: grid; gap: var(--s2); }
   .rule.edit .pt { border-color: var(--line); background: var(--panel); }
-  .rtext { cursor: text; border-radius: var(--radius); overflow-wrap: anywhere; }
-  .rtext:hover { box-shadow: 0 0 0 var(--s1) color-mix(in srgb, var(--muted) 12%, transparent); }
+  .rtext { cursor: text; overflow-wrap: anywhere; }
+  .rtext:hover { background: color-mix(in srgb, var(--muted) 7%, transparent); }
+  .rtext:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+  @media (max-width: 700px) {
+    #personal { padding: var(--s4) var(--s4) calc(2 * var(--s5)); }
+    #personal section { margin-top: calc(var(--s5) + var(--s4)); }
+    .plist.grid { grid-template-columns: minmax(0, 1fr); }
+    #personal .tell .btn.primary { min-height: 44px; }
+  }
 
   @media (max-width: 900px) {
     .csplit { grid-template-columns: minmax(0, 1fr); }
@@ -1582,105 +1651,140 @@ $('#settings').addEventListener('click', async (e) => {
 });
 addEventListener('pagehide', () => { for (const t of Object.values(settingTimers)) clearTimeout(t); });
 
-// ---- Personalization: the portrait of how you think (lib/mind.js), built
-// from your own conversations and corrections and kept current on its own;
-// what you told it; how well it predicts you; facts about your offer.
-let pers = null, persError = '', persTimer, redit = null;
+// ---- You: the portrait of how you think (lib/mind.js), built from your own
+// conversations and corrections and kept current on its own. One line per
+// item, the reasoning and your quotes one click away; "Correct it" in your own
+// words; does it help (a blind test); facts about the offer. Live through the
+// SSE `personal` event only (no polling); what's open survives the updates.
+let pers = null, persError = '', redit = null, allHeur = false, seen = null, lastBuilt = null, lastMap = null;
 const ruleLine = (r) => `${r.when ? `When ${r.when}: ` : ''}${r.text}`; // also the Playbooks log
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 // "5m ago", "just now", "on 3 Nov": for sentences.
 const since = (at) => { const a = ago(at); return timeTag(at, a === 'now' ? 'just now' : /^\d+[mhd]$/.test(a) ? `${a} ago` : `on ${a}`); };
-const LENS = { probing: 'What you ask', 'challenge-support': 'Challenge vs. support', specifics: 'Pinning things down', resistance: 'When he resists',
-  reframing: 'Turning it around', arc: 'How a conversation goes', closing: 'How you close', signals: 'What you read in him' };
-const LABEL_EV = { said: 'you said', observed: 'you did', inferred: 'the AI reads' };
+const lc = (t) => (t ? t[0].toLowerCase() + t.slice(1) : '').replace(/\.$/, '');
+const LENS = { probing: 'Questions', 'challenge-support': 'Push or support', specifics: 'Pinning down', resistance: 'Pushback',
+  reframing: 'Reframing', arc: 'The usual arc', closing: 'Closing', signals: 'Reading him' };
+const LABEL_EV = { said: 'you said', observed: 'you did', inferred: 'its guess' };
+const HEUR_SHOWN = 5;
 
 async function loadPersonal() {
   try { pers = await api('/api/personal'); persError = ''; } catch (e) { persError = e.message; }
+  trackChanges();
   if (section === 'personal') renderPersonal(false);
-  clearTimeout(persTimer);
-  if (pers?.mind.building) persTimer = setTimeout(loadPersonal, 3000);
 }
+
+// Items new or changed since you last looked get an "updated" tag for this
+// visit; after a rebuild in this session, against the portrait before it.
+const itemsOf = (p) => (p ? ['models', 'heuristics', 'conversation', 'values', 'never', 'tensions'].flatMap((k) => p[k].map((x) => [x.id, JSON.stringify([x.headline, x.line, x.then, x.text, x.between])])) : []);
+function trackChanges() {
+  const m = pers?.mind;
+  if (!m?.portrait) return;
+  const now = Object.fromEntries(itemsOf(m.portrait));
+  if (seen === null) { try { seen = JSON.parse(localStorage.getItem('youSeen') || 'null'); } catch { seen = null; } seen ??= now; }
+  else if (lastBuilt && m.builtAt !== lastBuilt) seen = lastMap;
+  lastBuilt = m.builtAt; lastMap = now;
+  try { localStorage.setItem('youSeen', JSON.stringify(now)); } catch {}
+}
+const updated = (x) => seen && seen[x.id] !== JSON.stringify([x.headline, x.line, x.then, x.text, x.between]);
 
 // force = false for background refreshes: never re-render under the user's hands.
 function renderPersonal(force = true) {
   const el = $('#personal');
   if (!force && el.contains(document.activeElement) && document.activeElement.matches('textarea, input')) return;
-  if (!pers) { el.innerHTML = persError ? `<p class="empty err">Could not load: ${esc(persError)}</p>` : ''; return; }
+  if (!pers) { el.innerHTML = persError ? `<p class="empty err">Couldn't load: ${esc(persError)}</p>` : ''; return; }
+  const open = new Set([...el.querySelectorAll('details[open][data-k]')].map((d) => d.dataset.k));
+  const focus = document.activeElement?.closest('#personal [data-k]')?.dataset.k;
   const m = pers.mind, p = m.portrait;
   el.innerHTML = `<h1>How you think</h1>
-    <p class="info" role="status">${renderMindStatus(m)}</p>
+    <p class="info" role="status" aria-live="polite">${renderMindStatus(m)}</p>
     ${p ? `<p class="lead">${esc(p.identity)}</p>` : ''}
     ${renderTell(m)}
     ${p ? renderPortrait(p) : ''}
-    ${renderFit()}
+    ${renderFit(p)}
     ${renderFacts()}`;
+  for (const d of el.querySelectorAll('details[data-k]')) if (open.has(d.dataset.k)) d.open = true;
+  if (focus) el.querySelector(`[data-k="${CSS.escape(focus)}"] > summary`)?.focus();
 }
 
 function renderMindStatus(m) {
-  if (m.building) return `${SPIN} ${esc(m.step || 'Working')}… (a few minutes; the app keeps working meanwhile)`;
-  const err = m.error ? `<span class="err">The last update failed: ${esc(m.error)}. The portrait below is still in use.</span> ` : '';
-  if (!m.portrait) return `${err}No portrait yet. It's built from your conversations a few minutes after the app starts. <button type="button" class="quiet" data-pp="build">Build it now</button>`;
+  if (m.building) return `${SPIN} ${esc(m.step || 'Working')}… Takes a few minutes. Keep working.`;
+  const err = m.error ? `<span class="err">Couldn't update: ${esc(m.error)}.</span> Drafts still use the version below. <button type="button" class="quiet" data-pp="build">Retry</button>` : '';
+  if (!m.portrait) return err || `Not built yet. It starts on its own in a few minutes. <button type="button" class="quiet" data-pp="build">Build now</button>`;
+  if (err) return err;
   const b = m.basis || {}, n = (k) => b[k]?.used ?? 0;
-  return `${err}Learned ${since(m.builtAt)} from ${plural(n('hard') + n('replies') + n('quiet'), 'moment')} in your conversations and ${plural(n('decisions'), 'correction')} of drafts. `
-    + `It updates itself as you work. <button type="button" class="quiet" data-pp="build">Update now</button>`;
+  return `Learned from ${plural(n('hard') + n('replies') + n('quiet'), 'moment')} and ${plural(n('decisions'), 'draft correction')} · updated ${since(m.builtAt)} · <button type="button" class="quiet" data-pp="build">Update</button>`;
 }
 
-// One box: correct it or add something, in your own words. It outranks everything it read.
+// The page's one action: correct it in your own words. Your newest words show
+// at once, with where they are (updating / in since …).
 function renderTell(m) {
-  const notes = m.notes || [];
-  return `<section aria-labelledby="ph-tell"><h2 class="psh" id="ph-tell">Tell it something</h2>
-    <p class="info">Wrong or missing? Say it the way you'd tell a new colleague: how you see a situation and what you do. It rebuilds the portrait with your words on top.</p>
-    <textarea class="input pt" id="tell" rows="2" aria-label="Tell it how you think" placeholder="e.g. When someone…, I…, because…"></textarea>
-    <div class="ractions"><button type="button" class="btn sm primary" data-pp="tell" title="Tell it (⌘Enter)">Tell it</button><span class="err" data-err></span></div>
-    ${notes.length ? `<details><summary class="link">What you told it (${notes.length})</summary><ul class="quotes">${notes.slice().reverse()
-      .map((n) => `<li>${esc(n.text)} <span class="why">· ${timeTag(n.at, ago(n.at))}${n.at > (m.builtAt || '') ? ' · not in the portrait yet' : ''}</span></li>`).join('')}</ul></details>` : ''}</section>`;
+  const notes = m.notes || [], waiting = notes.filter((n) => n.at > (m.builtAt || '')), done = notes.filter((n) => n.at <= (m.builtAt || ''));
+  return `<section class="tell" aria-labelledby="ph-tell"><h2 class="psh" id="ph-tell">Correct it</h2>
+    <p class="info">Your words outrank everything it read.</p>
+    <textarea class="input" id="tell" rows="3" aria-label="Correct it in your own words" placeholder="Something wrong or missing? Say it like you'd tell a new colleague."></textarea>
+    <div class="ractions"><button type="button" class="btn primary" data-pp="tell" aria-keyshortcuts="Meta+Enter" title="Tell it (⌘↵)">Tell it</button>
+      <span class="why">⌘↵</span><span class="err" data-err></span></div>
+    ${waiting.map((n) => `<p class="pending">“${esc(n.text)}”<span class="why">${m.building ? `${SPIN} Updating with this…` : 'In the next update'}</span></p>`).join('')}
+    ${done.length ? `<details data-k="notes"><summary class="link">Your corrections (${done.length})</summary><ul class="quotes">${done.slice().reverse()
+      .map((n) => `<li>${esc(n.text)} <span class="why">· ${since(n.at)}</span></li>`).join('')}</ul></details>` : ''}</section>`;
 }
 
-// One card per item, evidence folded away.
-const evidence = (ev) => (ev?.length ? `<details><summary class="link">Why it thinks so (${ev.length})</summary><ul class="quotes">${ev
-  .map((e) => `<li lang="cs">${esc(e.quote)} <span class="why">· ${LABEL_EV[e.label] || e.label}</span></li>`).join('')}</ul></details>` : '');
-const mcard = (title, body, ev) => `<li class="card mcard"><h3>${title}</h3>${body}${evidence(ev)}</li>`;
-const block = (id, title, items, f, intro = '') => (items?.length ? `<section aria-labelledby="ph-${id}"><h2 class="psh" id="ph-${id}">${title}</h2>${intro}
-  <ul class="changes">${items.map(f).join('')}</ul></section>` : '');
+// One row: the headline; open it for the reasoning and the quotes.
+const quotes = (ev) => (ev?.length ? `<ul class="quotes">${ev.map((e) => `<li lang="cs">${esc(e.quote)} <span class="why">· ${LABEL_EV[e.label] || e.label}</span></li>`).join('')}</ul>` : '');
+const item = (x, head, more, lead = '') => `<li><details class="it" data-k="${esc(x.id)}"><summary>${lead}<span class="hl">${head}</span>${updated(x) ? '<span class="tag">updated</span>' : ''}</summary>
+  <div class="more">${more}${quotes(x.evidence)}</div></details></li>`;
+const list = (items, f, cls = '') => `<ul class="plist ${cls}">${items.map(f).join('')}</ul>`;
+const sec = (id, title, body, intro = '') => `<section aria-labelledby="ph-${id}"><h2 class="psh" id="ph-${id}">${title}</h2>${intro}${body}</section>`;
 
 function renderPortrait(p) {
-  return [
-    block('models', 'How you see clients', p.models, (x) => mcard(esc(x.name), `<p>${esc(x.line)}</p><p><span class="lbl">When:</span> ${esc(x.apply)}</p><p><span class="lbl">Not when:</span> ${esc(x.limits)}</p>`, x.evidence)),
-    block('heur', 'Your rules of thumb', p.heuristics, (x) => mcard(`When ${esc(x.when.replace(/\.$/, ''))}`, `<p>${esc(x.then)}</p>${x.case ? `<p class="why">For example: ${esc(x.case)}</p>` : ''}`, x.evidence)),
-    block('conv', 'How you lead a conversation', p.conversation, (x) => mcard(`<span class="lens">${esc(LENS[x.lens] || x.lens)}${x.thin ? ' · little evidence' : ''}</span>`, `<p>${esc(x.text)}</p>`, x.evidence)),
-    block('values', 'What matters to you', p.values, (x, i) => mcard(`${i + 1}. ${esc(x.text)}`, '', x.evidence)),
-    block('never', 'What you never do', p.never, (x) => mcard(esc(x.text), '', x.evidence)),
-    block('tensions', 'Where you pull both ways', p.tensions, (x) => mcard(esc(x.between), `<p>${esc(x.text)}</p>`, x.evidence),
-      '<p class="info">Both sides are real; drafts follow whichever wins in the situation.</p>'),
-    p.limits?.length ? `<section aria-labelledby="ph-limits"><h2 class="psh" id="ph-limits">What it doesn't know yet</h2><ul class="info">${p.limits.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></section>` : '',
-  ].join('');
+  const heur = allHeur ? p.heuristics : p.heuristics.slice(0, HEUR_SHOWN);
+  const out = [
+    p.models?.length && sec('models', 'How I see clients', list(p.models, (x) => item(x, `<b>${esc(x.name)}</b> — ${esc(x.headline || x.line)}`,
+      `${x.headline ? `<p>${esc(x.line)}</p>` : ''}<dl class="wn"><dt>When</dt><dd>${esc(x.apply)}</dd><dt>Except</dt><dd>${esc(x.limits)}</dd></dl>`))),
+    p.heuristics?.length && sec('heur', 'My rules of thumb', list(heur, (x) => item(x, esc(x.headline || `${lc(x.when)} → ${lc(x.then)}`),
+      `${x.headline ? `<dl class="wn"><dt>When</dt><dd>${esc(lc(x.when))}</dd><dt>I</dt><dd>${esc(lc(x.then))}</dd></dl>` : ''}${x.case ? `<p class="why">Example: ${esc(x.case)}</p>` : ''}`))
+      + (p.heuristics.length > HEUR_SHOWN ? `<button type="button" class="quiet showall" data-pp="allheur">${allHeur ? 'Show fewer' : `Show all ${p.heuristics.length}`}</button>` : '')),
+    (p.values?.length || p.never?.length) && sec('stand', 'What I stand for',
+      (p.values?.length ? list(p.values, (x, i) => item(x, esc(x.text), '', `<span class="n">${i + 1}</span>`)) : '')
+      + (p.never?.length ? `<h3 class="sub">Never</h3>${list(p.never, (x) => item(x, esc(x.headline || x.text), x.headline ? `<p>${esc(x.text)}</p>` : ''), 'grid')}` : '')),
+    p.tensions?.length && sec('calls', 'Judgment calls', list(p.tensions, (x) => item(x, esc(x.between), `<p>${esc(x.text)}</p>`)),
+      '<p class="info">Two things you care about that clash. Open one to see which wins when.</p>'),
+    p.conversation?.length && `<section><details class="moredetail" data-k="moredetail"><summary>How I lead a conversation · ${p.conversation.length}</summary>
+      ${list(p.conversation, (x) => item(x, `${esc(x.headline || x.text)}${x.thin ? ' <span class="why">· less sure</span>' : ''}`, x.headline ? `<p>${esc(x.text)}</p>` : '', `<span class="lens">${esc(LENS[x.lens] || x.lens)}</span>`))}</details></section>`,
+  ];
+  return out.filter(Boolean).join('');
 }
 
-// How well it knows you: blind test on moments it never saw, and drafts sent as written.
+// Does it help: a blind test on moments it never saw, honest about noise.
 const pctOf = (a, n) => (n ? `${Math.round((100 * a) / n)}%` : '–');
-function renderFit() {
+function renderFit(p) {
   const v = pers.mind.validation, f = pers.fidelity || [], scores = pers.mind.scores || [];
-  const wk = (d) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en', { day: 'numeric', month: 'short' });
-  const test = v ? `<p><span class="score">${v.with} / 100</span> <span class="why">with the portrait · ${v.without} without it</span></p>
-    <p class="info">Tested ${since(v.at)} on ${plural(v.n, 'recent moment')} it never saw: it predicts what you did and why, and a separate AI grades it blind against what you really did. One test moves by about ±5.${scores.length > 1 ? ` Earlier: ${scores.slice(-6, -1).reverse().map((s) => `${s.with} vs. ${s.without}`).join(', ')}.` : ''}</p>` : '';
-  const sent = f.length ? `<p class="info">Drafts you sent as the AI wrote them: ${f.slice(0, 3).map((w) => `${pctOf(w.asIs, w.decided)} in the week of ${wk(w.week)} (${w.asIs} of ${w.decided})`).join(' · ')}</p>` : '';
-  return test || sent ? `<section aria-labelledby="ph-fit"><h2 class="psh" id="ph-fit">How well it knows you</h2>${test}${sent}</section>` : '';
+  const wk = (d, i) => (i === 0 ? 'this week' : `week of ${new Date(`${d}T12:00:00Z`).toLocaleDateString('en', { day: 'numeric', month: 'short' })}`);
+  const gap = v ? v.with - v.without : 0;
+  const test = v ? `<p class="fitn"><b class="big">${v.with}</b><span class="why">with the portrait</span>
+      <span class="${gap >= 5 ? 'up' : 'even'}">${gap >= 5 ? `+${gap} vs. without` : `${gap >= 0 ? '+' : ''}${gap} vs. without · about even so far`}</span></p>
+    <div class="mrow"><span>With</span><i style="--v:${v.with}"></i><b>${v.with}</b></div>
+    <div class="mrow off"><span>Without</span><i style="--v:${v.without}"></i><b>${v.without}</b></div>
+    <p class="info">Tested ${since(v.at)} on ${plural(v.n, 'recent moment')} it never saw. A second AI scored its guesses against what you actually did. Runs vary by about ±5, so a gap under 5 is noise.${scores.length > 1 ? ` Before: ${scores.slice(-6, -1).reverse().map((x) => `${x.with} vs. ${x.without}`).join(' · ')}.` : ''}</p>` : '';
+  const sent = f.length ? `<p class="info">Sent unedited: ${f.slice(0, 2).map((w, i) => `${pctOf(w.asIs, w.decided)} ${wk(w.week, i)} (${w.asIs} of ${w.decided})`).join(' · ')}</p>` : '';
+  const blind = p?.limits?.length ? `<details data-k="blind"><summary class="link">Blind spots (${p.limits.length})</summary><ul>${p.limits.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></details>` : '';
+  return test || sent || blind ? sec('fit', 'Does it help?', `${test}${sent}${blind}`) : '';
 }
 
-// ---- facts about your offer: added and edited by hand, every draft respects them
+// ---- facts about the offer: added and edited in place; every draft respects them
 function renderFacts() {
   const facts = pers.facts.filter((r) => r.status !== 'rejected');
   const edit = redit === 'new-fact' ? renderFactEdit({ id: '', text: '' }) : '';
-  return `<section aria-labelledby="ph-facts"><div class="lrow"><h2 class="psh" id="ph-facts">About your offer${facts.length ? ` · ${facts.length}` : ''}</h2>
-    <button type="button" class="btn sm" data-pp="new-fact" title="Add a fact (⌘N)">+ Add a fact</button></div>
-    <ul class="changes">${edit}${facts.map((r) => (redit === r.id ? renderFactEdit(r) : `<li class="card rule" data-rule="${esc(r.id)}" id="rule-${esc(r.id)}">
-      <div class="rtext" tabindex="0" role="button" data-pp="edit" aria-label="Edit: ${esc(r.text)}">${esc(r.text)}</div></li>`)).join('')}</ul>
-    ${facts.length || edit ? '' : `<p class="info">What's true about your offer, e.g. “The free consultation is free only for a limited time.” Every draft respects it.</p>`}</section>`;
+  const rows = facts.map((r) => (redit === r.id ? renderFactEdit(r) : `<li class="rule" data-rule="${esc(r.id)}" id="rule-${esc(r.id)}">
+      <div class="rtext row" tabindex="0" role="button" data-pp="edit" aria-label="Edit: ${esc(r.text)}">${esc(r.text)}</div></li>`)).join('');
+  return `<section aria-labelledby="ph-facts"><div class="lrow"><h2 class="psh" id="ph-facts">Facts about the offer</h2>
+    <button type="button" class="btn sm" data-pp="new-fact" title="Add fact (⌘N)">Add fact</button></div>
+    ${edit || rows ? `<ul class="plist">${edit}${rows}</ul>` : `<p class="info">What every draft must get right, e.g. “The free consultation is free only for a limited time.”</p>`}</section>`;
 }
-const renderFactEdit = (r) => `<li class="card rule edit" data-rule="${esc(r.id)}">
-  <label class="why" for="re-text">A fact about your offer</label>
-  <textarea class="input pt" id="re-text" data-rf="text" rows="2">${esc(r.text)}</textarea>
-  <div class="ractions"><button type="button" class="btn sm primary" data-pp="save" title="Save (⌘Enter)">Save</button><button type="button" class="quiet" data-pp="cancel-edit">Cancel</button>
+const renderFactEdit = (r) => `<li class="rule edit" data-rule="${esc(r.id)}">
+  <label class="why" for="re-text">Fact</label>
+  <textarea class="input" id="re-text" data-rf="text" rows="2">${esc(r.text)}</textarea>
+  <div class="ractions"><button type="button" class="btn sm primary" data-pp="save" title="Save (⌘↵)">Save</button><button type="button" class="quiet" data-pp="cancel-edit">Cancel</button>
     <span class="err" data-err></span>${r.id ? '<span class="cancel"><button type="button" class="quiet danger" data-pp="delete">Delete</button></span>' : ''}</div></li>`;
 function editRule(id) {
   redit = id === 'new-rule' ? 'new-fact' : id; renderPersonal();
@@ -1691,20 +1795,20 @@ async function factCall(method, id, body, msg, card) {
     const out = await api(`/api/rules${id ? `/${encodeURIComponent(id)}` : ''}`, { method, ...(body && { headers: JSON_HEADERS, body: JSON.stringify(body) }) });
     redit = null; announce(msg);
     await loadPersonal(); renderPersonal();
-    (document.querySelector(`#rule-${CSS.escape(out.ops?.[0]?.id ?? id ?? '')} .rtext`) || $('#ph-facts'))?.focus();
+    (document.querySelector(`#rule-${CSS.escape(out.ops?.[0]?.id ?? id ?? '')} .rtext`) || $('[data-pp=new-fact]'))?.focus();
   } catch (e) { const err = card?.querySelector('[data-err]'); if (err) err.textContent = e.message; else announce(e.message); }
 }
 async function saveFact(card) {
   const text = card.querySelector('[data-rf=text]').value.trim(), id = card.dataset.rule;
   if (!text) { card.querySelector('[data-err]').textContent = 'Write the fact first'; return card.querySelector('[data-rf=text]').focus(); }
-  await factCall(id ? 'PUT' : 'POST', id, { kind: 'fact', text, status: 'active', source: 'stated', when: '', because: '', stages: [] }, id ? 'Saved' : 'Fact added', card);
+  await factCall(id ? 'PUT' : 'POST', id, { kind: 'fact', text, status: 'active', source: 'stated', when: '', because: '', stages: [] }, id ? 'Saved' : 'Added', card);
 }
 async function tell() {
-  const box = $('#tell'), text = box.value.trim(), err = box.parentElement.querySelector('[data-err]');
+  const box = $('#tell'), text = box.value.trim(), err = box.closest('section').querySelector('[data-err]');
   if (!text) return box.focus();
   try {
     await api('/api/mind/notes', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ text }) });
-    box.value = ''; announce('Noted. Rebuilding the portrait with it.');
+    box.value = ''; announce('Got it. Updating.');
     await loadPersonal(); renderPersonal(); $('#tell')?.focus();
   } catch (e) { err.textContent = e.message; }
 }
@@ -1715,14 +1819,15 @@ $('#personal').addEventListener('click', async (e) => {
   const card = e.target.closest('[data-rule]'), r = card && pers.facts.find((x) => x.id === card.dataset.rule);
   if (act === 'build') {
     try { pers.mind = await api('/api/mind/build', { method: 'POST' }); } catch (er) { announce(er.message); }
-    announce('Updating the portrait'); renderPersonal(); return loadPersonal();
+    announce('Updating'); return renderPersonal();
   }
   if (act === 'tell') return tell();
+  if (act === 'allheur') { allHeur = !allHeur; renderPersonal(); return $('[data-pp=allheur]')?.focus(); }
   if (act === 'new-fact') return editRule('new-fact');
   if (act === 'edit' && r) return editRule(r.id);
-  if (act === 'cancel-edit') { const was = redit; redit = null; renderPersonal(); return (document.querySelector(`#rule-${CSS.escape(was)} .rtext`) || $('#ph-facts'))?.focus(); }
+  if (act === 'cancel-edit') { const was = redit; redit = null; renderPersonal(); return (document.querySelector(`#rule-${CSS.escape(was)} .rtext`) || $('[data-pp=new-fact]'))?.focus(); }
   if (act === 'save') return saveFact(card);
-  if (act === 'delete' && card?.dataset.rule) return factCall('DELETE', card.dataset.rule, null, 'Deleted; undo it in Playbooks → What the AI learned', card);
+  if (act === 'delete' && card?.dataset.rule) return factCall('DELETE', card.dataset.rule, null, 'Deleted. Undo in Playbooks → What the AI learned.', card);
 });
 $('#personal').addEventListener('keydown', (e) => {
   if (e.target.id === 'tell' && (e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); return tell(); }
