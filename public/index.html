@@ -344,7 +344,7 @@
   @keyframes breathe { 50% { opacity: .75; } }
   .xstat { margin: var(--s2) 0 var(--s3); font-size: var(--fs-sm); color: var(--muted); }
   .xstat.bad { color: var(--err); }
-  .cnode { all: unset; box-sizing: border-box; position: absolute; left: var(--x); top: var(--y); width: 124px; transform: translate(-50%, calc(var(--node) / -2));
+  .cnode { all: unset; box-sizing: border-box; position: absolute; left: var(--x); top: var(--y); width: 148px; transform: translate(-50%, calc(var(--node) / -2));
     display: flex; flex-direction: column; align-items: center; gap: var(--s1); text-align: center; cursor: pointer; }
   .cnode .ring { width: var(--node); height: var(--node); border-radius: 50%; display: grid; place-items: center; position: relative;
     background: var(--panel); border: 1.5px solid var(--line); color: var(--muted); transition: background .15s, border-color .2s; }
@@ -2817,7 +2817,7 @@ $('#peditor').addEventListener('keydown', (e) => {
 // and the chat with Claude Code that builds new connections (lib/connect.js).
 let conns = null, xconv = null, xopen = null, xpane = 'map', xguard = false, xtick;
 const XICON = { crm: 'M3 4.5h14v11H3zM6 8.5a1.6 1.6 0 1 0 3.2 0 1.6 1.6 0 1 0-3.2 0M5 13c.4-1.2 1.4-1.9 2.6-1.9s2.2.7 2.6 1.9M12 8h3M12 11h3',
-  whatsapp: ICONS.wa, email: ICONS.mail, other: 'M7.5 3v4M12.5 3v4M5.5 7h9v3a4.5 4.5 0 0 1-9 0zM10 14.5V18' };
+  whatsapp: ICONS.wa, email: ICONS.mail, calendar: 'M3.5 5h13v11.5h-13zM3.5 8.5h13M7 3v3.5M13 3v3.5M7 11.5h1.5M11.5 11.5H13M7 14h1.5', other: 'M7.5 3v4M12.5 3v4M5.5 7h9v3a4.5 4.5 0 0 1-9 0zM10 14.5V18' };
 const xicon = (id) => `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${XICON[id] || XICON.other}"/></svg>`;
 const PLUS = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M10 4v12M4 10h12"/></svg>';
 const STOP = '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><rect x="5.5" y="5.5" width="9" height="9" rx="1.5"/></svg>';
@@ -2860,7 +2860,7 @@ function renderMap() {
   const at = conns.map((_, i) => { const a = (start + i * step) * Math.PI / 180; return [Math.cos(a), Math.sin(a)]; });
   const live = conns.filter((c) => c.state === 'live').length, bad = conns.filter((c) => c.state === 'error').length;
   const line = (c, [x, y], i) => {
-    const r0 = 82, r1 = ORBIT * 6 - 30 - Math.max(0, -y) * 52, p = (r) => `x1="${300 + x * r1}" y1="${300 + y * r1}" x2="${300 + x * r0}" y2="${300 + y * r0}"`;
+    const r0 = 82, r1 = ORBIT * 6 - 30 - Math.max(0, -y) * 85, p = (r) => `x1="${300 + x * r1}" y1="${300 + y * r1}" x2="${300 + x * r0}" y2="${300 + y * r0}"`;
     return `<line data-k="${esc(c.id)}" data-state="${c.state}" ${p()}/>${c.state === 'live' ? `<line class="pulse" ${p()} style="animation-delay: ${(i * .45).toFixed(2)}s"/>` : ''}`;
   };
   $('#xmap').innerHTML = `<h1 class="sr-only">Connections</h1>
