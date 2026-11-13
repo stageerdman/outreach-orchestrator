@@ -1844,8 +1844,9 @@ function showSection(name, focus = false) {
   }
   if (focus && SEARCH[name]) $(SEARCH[name]).focus();
 }
-$('.rail').addEventListener('click', (e) => {
-  const a = e.target.closest('[data-section]');
+// The rail and in-page links (e.g. Playbooks → Personalization) alike.
+document.addEventListener('click', (e) => {
+  const a = e.target.closest('a[data-section]');
   if (a) { e.preventDefault(); showSection(a.dataset.section); }
 });
 

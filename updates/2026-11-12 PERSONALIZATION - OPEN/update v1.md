@@ -61,9 +61,9 @@ changed something. Method in `research-personalization.md`.
 4. [x] Questions (kept in `lib/rules.js`; answer/skip in `lib/coach.js`) + API: list / answer / skip; answers update the
    rule (source, support/against) and queue a lesson. Tests.
 5. [x] Drafting: rules in the system prompt, `ruleIds` on the draft. Tests.
-6. [~] Personalization tab (UX agents: questions cards, rules list, change
+6. [x] Personalization tab (UX agents: questions cards, rules list, change
    log). Rail dot, ⌘ shortcuts.
-7. [ ] Verify on real data: distill on a copy of the app data, read the
+7. [x] Verify on real data: distill on a copy of the app data, read the
    rules, answer questions, draft → the rule is cited.
 8. [ ] Replay check (later): a separate run predicts held-out past decisions
    with/without the rules; a rule that doesn't help stays `testing`. A
@@ -93,7 +93,19 @@ changed something. Method in `research-personalization.md`.
   ⌘6, dot when a question waits), `#view-personal` (Asking you, How you
   decide by stage, About your offer, Still testing, Rejected, Recent
   learning with the log + Undo), rule edit in place. Script syntax checks.
-- Paused here at the user's request. Next:
+- 2026-11-13 phases 6–7 verified on a copy of the app data (port 3102,
+  headless Chrome over CDP; the Chrome extension wasn't connected): tab,
+  rail dot, keys 1–4, answer → rule confirmed + lesson, add fact, edit,
+  reject, Undo (merged edits undo together), delete, ≤900px without
+  horizontal scroll, no console errors. Fixed: in-page `data-section` links
+  (Playbooks → Personalization) now switch sections; an AI run adding
+  evidence demoted the migrated active rules to testing (now an active rule
+  stays active until a case against); migrated rules' "when" no longer
+  repeats the playbook name. Distill over 49 past decisions: 4 new testing
+  rules with the user's own reasons, 2 facts, 1 question, ~20 s. A draft
+  cited `thinking-3` and `tykani`. Next: phase 8 (replay check, fidelity
+  number).
+- (2026-11-12, kept for history) Paused here at the user's request. Next:
   1. Run the app on a copy of the app data (port 3102), open
      Personalization: migration result, add a fact, edit/confirm/reject,
      Undo, a fake question (answer, skip, keys 1–4), ≤900px.

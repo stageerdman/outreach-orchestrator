@@ -107,8 +107,12 @@ test("once: the playbooks' lessons become rules scoped to the playbook, the play
   assert.equal(c.trigger.kind, 'migrate');
   assert.deepEqual(pb.getPlaybook('nb').lessons, []);
   const r = rules.getRule('nb-2');
-  assert.deepEqual([r.text, r.stages, r.status, r.source], ['Two slots', ['No show'], 'active', 'inferred']);
+  assert.deepEqual([r.when, r.text, r.stages, r.status, r.source], ['the client stopped replying', 'Two slots', ['No show'], 'active', 'inferred']);
   assert.equal(coach.migrateLessons(), null, 'only once');
+  setRule({ id: 'nb-2', evidence: ev(1) });
+  assert.equal(rules.getRule('nb-2').status, 'active', 'support from a run keeps a migrated rule active');
+  setRule({ id: 'nb-2', evidence: ev(0, 1) });
+  assert.equal(rules.getRule('nb-2').status, 'testing', 'a case against puts it back to testing');
 });
 
 test('distill reads past decisions with a note or an edit and keeps only rule operations and questions', async () => {
