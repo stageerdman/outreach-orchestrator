@@ -129,3 +129,15 @@ before/after of the changed field · Undo (N changes) on the run), Style guide �
 …, Already a rule · …, Kept for this chat only · <why> + **Make it the rule**
 (re-runs that lesson as general). Runs that changed nothing from plain
 sends/cancels get no entry.
+
+- 2026-11-17 "stuck in thinking" after a playbook change (Jan Šafra's turn):
+  the server finished it in 27 s (reply, draft, playbook change saved, final
+  `running: false` sent); a fresh load shows it fine. "Thinking…" only shows
+  while the client's last item is the user's message, so the page missed the
+  end. Not reproduced in headless Chrome (it quits there on its own). Fix:
+  the UI re-asks `GET /api/copilot/:id` when the window becomes visible and
+  when a running turn is quiet for 20 s; a GET answer can't bring a finished
+  turn back to running (a turn is over once anything follows the user's
+  message). UI errors now go to the server log (`POST /api/client-error`,
+  ≤20 per load, `~/Library/Logs/Outreach/server.log`). Next: if it happens
+  again, read that log.

@@ -222,6 +222,13 @@ const server = createServer(async (req, res) => {
       return json(res, 200, c[2] === 'read' ? { id: person.id, readAt: markRead(person) } : { id: person.id, markedAt: markUnread(person) });
     }
     if (url.pathname === '/api/events') return stream(req, res);
+    // The UI's own errors, so a stuck screen leaves a trace (public/index.html → report).
+    if (url.pathname === '/api/client-error' && req.method === 'POST') {
+      let b = {};
+      try { b = await readBody(req); } catch {}
+      console.error(`UI error${b.at ? ` (${String(b.at).slice(0, 40)})` : ''}: ${String(b.message ?? '').slice(0, 500)}\n${String(b.stack ?? '').slice(0, 2000)}`);
+      res.writeHead(204); return res.end();
+    }
     // Connections: what the orchestrator is wired to, and the chat that adds more.
     if (url.pathname === '/api/connections') return json(res, 200, listConnections({ people: snapshotPeople(), errors: syncState().errors ?? {} }));
     // What one connection gave the AI lately and what went out through it.

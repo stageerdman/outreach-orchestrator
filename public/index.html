@@ -682,6 +682,11 @@
 import { placeholders, hasGender, resolve, htmlToText } from '/resolve.js';
 import { inHistory } from '/sent.js';
 const $ = (s) => document.querySelector(s);
+// UI errors go to the server's log (server.log in the Mac app), at most 20 per load.
+let reported = 0;
+const report = (message, stack) => { if (reported++ < 20) try { navigator.sendBeacon('/api/client-error', JSON.stringify({ message: String(message), stack: String(stack || ''), at: location.hash })); } catch {} };
+addEventListener('error', (e) => report(e.message, e.error?.stack));
+addEventListener('unhandledrejection', (e) => report(e.reason?.message || e.reason, e.reason?.stack));
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const CHANNELS = { email: 'Email', whatsapp: 'WhatsApp' };
 const RECENT = 50;
@@ -1704,11 +1709,27 @@ try { copSeen = Boolean(localStorage.getItem('copSeen')); } catch {}
 const byAt = (a, b) => a.at.localeCompare(b.at);
 const mergeItems = (a, b) => [...new Map([...a, ...b].map((i) => [i.id, i])).values()].sort(byAt);
 async function loadCopilot(id) {
-  try { const c = await api(`/api/copilot/${enc(id)}`); cops.set(id, { ...copOf(id), items: mergeItems(copOf(id).items, c.items), running: c.running }); }
+  // A turn always starts with the user's message, so once something follows it the
+  // turn is over, even if this answer left the server before the end did.
+  try {
+    const c = await api(`/api/copilot/${enc(id)}`), items = mergeItems(copOf(id).items, c.items), running = c.running && items.at(-1)?.kind === 'user';
+    cops.set(id, { ...copOf(id), items, running, ...(!running && { live: null }) });
+  }
   catch (e) { cops.set(id, { ...copOf(id), error: e.message }); }
   if (chat?.id === id) renderCopilot();
 }
+// A turn whose end never arrived (the live stream stalled, the window slept)
+// would show "Thinking…" forever: ask the server again when the window comes
+// back, and when a running turn has been quiet for 20 s.
+let copHeard = 0;
+const recheckCopilots = () => { for (const [id, c] of cops) if (c.running) loadCopilot(id); };
+document.addEventListener('visibilitychange', () => { if (!document.hidden) recheckCopilots(); });
+setInterval(() => {
+  if (Date.now() - copHeard < 20e3 || ![...cops.values()].some((c) => c.running)) return;
+  copHeard = Date.now(); recheckCopilots();
+}, 5e3);
 function onCopilot(d) {
+  copHeard = Date.now();
   if (!cops.has(d.personId)) return; // fetched when the chat opens
   const c = { ...copOf(d.personId) };
   if (d.cleared) c.items = [];
@@ -1795,6 +1816,7 @@ async function copilotGo(fromKey = false) {
   await sayCopilot(id, text, () => { ta.value = text; grow(ta); });
 }
 async function sayCopilot(id, text, undo = () => {}) {
+  copHeard = Date.now();
   cops.set(id, { ...copOf(id), running: true, error: '' });
   renderCopilot();
   try { const out = await api(`/api/copilot/${enc(id)}`, { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ text }) }); cops.set(id, { ...copOf(id), items: mergeItems(copOf(id).items, out.items) }); }

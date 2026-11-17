@@ -67,7 +67,7 @@ it is and how to access it, the user answers in the chat, and it builds it.
      out (email, WhatsApp). `GET /api/connections/:id/log`, SSE `connlog`.
   4. [x] UI: a node opens its panel ("What the AI gets" / "What went out",
      samples folded, the newest open; "Change it with the AI" → the chat).
-  5. [x] Tests (164 pass). Verified: the real Copilot turn on a copy of the
+  5. [x] Tests (161 pass). Verified: the real Copilot turn on a copy of the
      app data found today's meeting and put its Meet link in the draft;
      the restarted app logs sends. Not yet looked at in a browser (the
      extension wasn't connected).
