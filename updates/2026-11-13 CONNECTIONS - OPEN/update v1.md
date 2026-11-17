@@ -49,7 +49,31 @@ it is and how to access it, the user answers in the chat, and it builds it.
   the server on exit 75. Skipped: a pending node before the restart (the
   server only knows a connection after loading its code).
 
+- 2026-11-17 v1.1, every AI sees every connection + a log per connection.
+  Why: the Copilot answered "I have no access to your calendar" when asked
+  for the Google Meet link — it had the free windows, but the calendar only
+  ever gave busy/free, never the client's meeting. Done:
+  1. [x] `lib/calendar.js`: SUMMARY, LOCATION, ATTENDEE/ORGANIZER, Meet link
+     (X-GOOGLE-CONFERENCE, else the description); `occurrences()`;
+     `clientMeetings()` (attendee email, or full name as attendee / in the
+     title; −30…+60 days); `calendarForAI(person)` = free windows + those
+     meetings, or a plain "couldn't be read (…)".
+  2. [x] `CONNECTIONS[].ai` (`where` = already in the context, or `section`),
+     `connectionsForAI` / `renderConnections`: a "# Your connections" block
+     in drafts and the Copilot ("never say you have no access"), via
+     `gatherConnections` in `lib/assistant.js`.
+  3. [x] `lib/connlog.js` (`connlog.json`, app data, last 10 per direction):
+     per prompt, the exact part each connection gave; per send, what went
+     out (email, WhatsApp). `GET /api/connections/:id/log`, SSE `connlog`.
+  4. [x] UI: a node opens its panel ("What the AI gets" / "What went out",
+     samples folded, the newest open; "Change it with the AI" → the chat).
+  5. [x] Tests (164 pass). Verified: the real Copilot turn on a copy of the
+     app data found today's meeting and put its Meet link in the draft;
+     the restarted app logs sends. Not yet looked at in a browser (the
+     extension wasn't connected).
+
 ## Next (when we come back)
+- Look at the connection panel in the app (wide, ≤900px).
 - The user tries it in the real app: quit + reopen Outreach (the rebuilt
   ~/Applications/Outreach.app sets OUTREACH_SUPERVISED, so Restart = exit 75 →
   the app starts the server again and reloads). Not yet tried in the real app.

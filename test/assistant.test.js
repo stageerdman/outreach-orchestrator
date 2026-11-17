@@ -244,7 +244,7 @@ test('a regenerate sees every earlier version: each instruction, the AI text and
 
 test('free calendar time reaches the prompt only when there is some', () => {
   const person = { id: 'p', name: 'A', phones: [], emails: ['a@x.cz'], messages: [] };
-  assert.ok(ai.contextPrompt({ person, availability: 'Mon 16/11: 09:00–12:00' }).includes('# My free time'));
+  assert.ok(ai.contextPrompt({ person, connections: [{ id: 'calendar', name: 'Google Calendar', what: 'x', text: '## My free time\nMon 16/11: 09:00–12:00' }] }).includes('# Google Calendar\n## My free time'));
   assert.ok(!ai.contextPrompt({ person }).includes('# My free time'));
 });
 

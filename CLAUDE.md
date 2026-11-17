@@ -114,7 +114,7 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   holds every CRM contact.
 - **Events:** `lib/events.js`, served as SSE at `GET /api/events`:
   `snapshot {at, stage}`, `messages {ids}`, `requests {id, personId, status}`,
-  `personal`, `connect`, `copilot` (see Copilot), `playbooks {}` (a playbook
+  `personal`, `connect`, `copilot` (see Copilot), `connlog {id, dir}`, `playbooks {}` (a playbook
   change or the coach's state / learning log; the Playbooks view, no polling).
 - **Messages** (`lib/chats.js`, `/api/chats`): every CRM contact with
   messages; read state in `reads.json` (app data folder); unread = client
@@ -335,10 +335,22 @@ merged into one timeline. Plain Node HTTP server, no framework, no build step.
   only in dark mode, slow motion, reduced-motion respected, real numbers only.
 - **Calendar** (`lib/calendar.js`, read-only): Google calendars through their
   secret iCal addresses (`GOOGLE_CALENDAR_ICS`, space-separated), parsed and
-  recurrence-expanded in-house (no dependency), cached 5 min. Drafts get only
+  recurrence-expanded in-house (no dependency), cached 5 min. The AI gets the
   free windows (working hours `CALENDAR_HOURS`, default 9-18, Mon–Fri, Prague,
-  next 14 days, ≥30 min), never event titles; the AI offers times inside them
-  and can't book. Busy = opaque, not cancelled.
+  next 14 days, ≥30 min) and the meetings with that one client
+  (`clientMeetings`: attendee email, or full name as attendee / in the title;
+  last 30 days, next 60; time, title, Google Meet link), never other events'
+  details; it offers times inside the windows and can't book. Busy = opaque,
+  not cancelled.
+- **Every AI sees every connection** (2026-11-17): each `CONNECTIONS` entry
+  has `ai` — `where` (its data is already in the client's context) or
+  `section(person)` (its own prompt section). `gatherConnections` (assistant)
+  feeds drafts and the Copilot a "# Your connections" block (never "no
+  access"; say what's missing). A new connection that the AI should use adds
+  an `ai` entry. `lib/connlog.js` (`connlog.json`, app data, last 10 per
+  direction) keeps what each connection gave the AI per prompt and what went
+  out through it per send; clicking a node in Connections shows it
+  (`GET /api/connections/:id/log`, SSE `connlog`).
 - **Drafts in the UI** live only in Messages (Requests filter) and the chat:
   one gray bubble, the current version only (a draft keeps `channel`,
   `instruction`, `previousId` and its recorded `scenario`; the notes and

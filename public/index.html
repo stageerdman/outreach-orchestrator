@@ -396,7 +396,7 @@
   .xadd { all: unset; box-sizing: border-box; height: var(--gh); padding: 0 var(--s4); border-radius: 999px; cursor: pointer;
     border: 1px solid var(--hud-dim); color: var(--hud); display: inline-flex; align-items: center; gap: var(--s1); font-weight: 600; }
   .xadd:hover { background: var(--hud-wash); border-color: var(--hud); }
-  @media (min-width: 901px) { .xsplit.open .xadd { visibility: hidden; } }
+  @media (min-width: 901px) { .xsplit.open:not(.info) .xadd { visibility: hidden; } }
   .xadd:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .xadd svg { width: var(--fs-lg); height: var(--fs-lg); }
   @media (prefers-reduced-motion: reduce) {
@@ -431,6 +431,15 @@
   .xrestart { display: grid; gap: var(--s1); } .xrestart .btn { height: var(--gh); font-weight: 600; color: var(--panel); }
   .xwarn { color: var(--err); font-size: var(--fs-sm); margin: 0; }
   .xwarn .link { color: var(--err); text-decoration: underline; margin: 0 0 0 var(--s1); }
+  /* One connection: what it gave the AI lately and what went out through it */
+  .xinfo .thread { gap: var(--s3); }
+  .xinfo h3 { margin: var(--s3) 0 0; font-size: var(--fs); }
+  .xlog { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+  .xlog > summary { cursor: pointer; padding: var(--s2) var(--s3); display: flex; gap: var(--s2); align-items: baseline; }
+  .xlog > summary b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+  .xlog > summary span { color: var(--muted); font-size: var(--fs-sm); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .xlog > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .xlog .xtext { margin: 0; padding: 0 var(--s3) var(--s3); white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; font-size: var(--fs-sm); max-height: 24em; overflow-y: auto; }
   .xchat .back { display: none; }
   @media (max-width: 900px) {
     .xsplit.open { grid-template-columns: minmax(0, 1fr); }
@@ -661,6 +670,7 @@
   <div class="xsplit" id="xsplit" data-pane="map">
     <div class="xmap" id="xmap"></div>
     <section class="chat xchat" id="xchat" aria-label="Add a connection" hidden></section>
+    <section class="chat xchat xinfo" id="xinfo" aria-label="Connection" hidden></section>
   </div>
 </div>
 <div class="view" id="view-settings" hidden>
@@ -1511,6 +1521,7 @@ function connectEvents() {
   es.addEventListener('connect', () => { if (xconv) soon('connect', loadConnect, 100); });
   es.addEventListener('copilot', (e) => onCopilot(JSON.parse(e.data)));
   es.addEventListener('playbooks', () => soon('playbooks', loadPlaybooks));
+  es.addEventListener('connlog', (e) => { if (xinfo === JSON.parse(e.data).id) soon('connlog', loadXLog, 300); });
 }
 
 // ---- events: Tasks
@@ -3142,7 +3153,7 @@ $('#peditor').addEventListener('keydown', (e) => {
 
 // ---- Connections: the orchestrator in the middle, what it's wired to around it,
 // and the chat with Claude Code that builds new connections (lib/connect.js).
-let conns = null, xconv = null, xopen = null, xpane = 'map', xguard = false, xtick;
+let conns = null, xconv = null, xopen = null, xpane = 'map', xguard = false, xtick, xinfo = null, xlog = null;
 const XICON = { crm: 'M3 4.5h14v11H3zM6 8.5a1.6 1.6 0 1 0 3.2 0 1.6 1.6 0 1 0-3.2 0M5 13c.4-1.2 1.4-1.9 2.6-1.9s2.2.7 2.6 1.9M12 8h3M12 11h3',
   whatsapp: ICONS.wa, email: ICONS.mail, calendar: 'M3.5 5h13v11.5h-13zM3.5 8.5h13M7 3v3.5M13 3v3.5M7 11.5h1.5M11.5 11.5H13M7 14h1.5', other: 'M7.5 3v4M12.5 3v4M5.5 7h9v3a4.5 4.5 0 0 1-9 0zM10 14.5V18' };
 const xicon = (id) => `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${XICON[id] || XICON.other}"/></svg>`;
@@ -3171,13 +3182,55 @@ async function loadConnect() {
   renderReactor(); renderXThread(); renderXComposer();
 }
 
+// The right column: one connection's log (xinfo = its id) or the setup chat (xopen).
 function renderConnections() {
   if (!conns) return;
-  $('#xsplit').classList.toggle('open', xopen);
-  $('#xsplit').dataset.pane = xopen ? xpane : 'map';
-  $('#xchat').hidden = !xopen;
+  const side = Boolean(xinfo || xopen);
+  $('#xsplit').classList.toggle('open', side);
+  $('#xsplit').classList.toggle('info', Boolean(xinfo));
+  $('#xsplit').dataset.pane = side ? xpane : 'map';
+  $('#xchat').hidden = !xopen || Boolean(xinfo);
+  $('#xinfo').hidden = !xinfo;
   renderMap();
-  if (xopen) { renderXChat(); }
+  if (xinfo) renderXInfo();
+  else if (xopen) renderXChat();
+}
+async function openInfo(id) {
+  xinfo = id; xpane = 'chat'; xlog = null; renderConnections();
+  $('#xinfo .thread')?.focus();
+  await loadXLog();
+}
+async function loadXLog() {
+  if (!xinfo) return;
+  const id = xinfo;
+  try { const l = await api(`/api/connections/${encodeURIComponent(id)}/log`); if (xinfo === id) { xlog = l; renderXInfo(); } } catch {}
+}
+const PURPOSE = { draft: 'Draft', copilot: 'Copilot', send: 'Sent' };
+// One sample: who it was for, why, when; the text exactly as the AI got it / as it went out.
+const logEntry = (e, i, open) => `<details class="xlog" data-k="${esc(e.at)}"${open.has(e.at) || (!open.size && i === 0) ? ' open' : ''}>
+  <summary><b>${esc(e.person || '')}</b><span>${esc(PURPOSE[e.purpose] || '')} · <time datetime="${esc(e.at)}" title="${esc(fullDate(new Date(e.at)))}">${esc(ago(e.at))}</time></span></summary>
+  <pre class="xtext">${e.to ? `To: ${esc(e.to)}\n` : ''}${e.subject ? `Subject: ${esc(e.subject)}\n\n` : ''}${esc(e.text || '')}${e.note ? `\n\n— ${esc(e.note)}` : ''}</pre></details>`;
+function renderXInfo() {
+  const c = conns.find((x) => x.id === xinfo);
+  if (!c) { xinfo = null; return renderConnections(); }
+  const box = $('#xinfo'), t = box.querySelector('.thread');
+  const open = new Set([...(t?.querySelectorAll('details[open]') ?? [])].map((d) => d.dataset.k)), top = t?.scrollTop ?? 0;
+  const list = (items, empty) => items?.length ? items.map((e, i) => logEntry(e, i, open)).join('') : `<p class="info">${empty}</p>`;
+  const sends = c.flow !== 'in';
+  box.innerHTML = `<div class="chead"><button type="button" class="link back" data-xact="back">‹ Connections</button>
+      <h2>${esc(c.name)}</h2>
+      <button type="button" class="ib" data-xact="close" aria-label="Close" title="Close">${icon('cancel')}</button></div>
+    <div class="thread" tabindex="-1">
+      <p class="info">${esc(c.what)} · ${esc(c.state === 'live' ? c.detail : c.state === 'off' ? 'Not set up' : `Not working: ${c.detail}`)}</p>
+      <h3>What the AI gets</h3>
+      <p class="info">For every draft and Copilot reply, exactly what came from ${esc(c.name)} for that client. The last ${xlog ? 10 : '…'}.</p>
+      ${xlog ? list(xlog.toAI, 'Nothing yet. The next draft or Copilot reply shows here.') : `<p class="info">${SPIN} Loading…</p>`}
+      <h3>What went out</h3>
+      ${!sends ? `<p class="info">Nothing. ${esc(c.name)} is read-only: the AI only reads it.</p>`
+        : xlog ? list(xlog.out, 'Nothing sent through it from Outreach yet.') : ''}
+      <div class="xdone"><button type="button" class="btn sm" data-xact="ask">${c.state === 'error' ? 'Fix it with the AI' : c.state === 'off' ? 'Set it up with the AI' : 'Change it with the AI'}</button></div>
+    </div>`;
+  box.querySelector('.thread').scrollTop = top;
 }
 
 // N nodes on a circle: 3 → top, lower right, lower left; an even N starts half a step over.
@@ -3224,7 +3277,7 @@ function renderReactor() {
   const add = $('#xadd'); if (add) add.lastChild.textContent = xconv?.items.length ? 'Continue setup' : 'Add connection';
 }
 function openX(text) {
-  xopen = true; xpane = 'chat'; renderConnections();
+  xopen = true; xinfo = null; xpane = 'chat'; renderConnections();
   const ta = $('#xtext');
   if (text != null) { ta.value = text; grow(ta); saveXDraft(); }
   ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
@@ -3233,9 +3286,13 @@ $('#xmap').addEventListener('click', (e) => {
   if (e.target.closest('#xadd')) return openX();
   if (e.target.closest('.reactor.go')) return openX();
   const n = e.target.closest('.cnode');
-  if (!n) return;
-  const c = conns.find((x) => x.id === n.dataset.k);
-  openX(c.state === 'error' ? `${c.name} isn't working: “${c.detail}”. Can you fix it?` : c.state === 'off' ? `Set up ${c.name}: ` : `About ${c.name}: `);
+  if (n) openInfo(n.dataset.k);
+});
+$('#xinfo').addEventListener('click', (e) => {
+  const a = e.target.closest('[data-xact]')?.dataset.xact, c = conns.find((x) => x.id === xinfo);
+  if (a === 'close') { const id = xinfo; xinfo = null; renderConnections(); document.querySelector(`.cnode[data-k="${CSS.escape(id)}"]`)?.focus(); }
+  if (a === 'back') { xinfo = null; xpane = 'map'; renderConnections(); }
+  if (a === 'ask' && c) { xinfo = null; openX(c.state === 'error' ? `${c.name} isn't working: “${c.detail}”. Can you fix it?` : c.state === 'off' ? `Set up ${c.name}: ` : `About ${c.name}: `); }
 });
 for (const ev of ['pointerover', 'pointerout', 'focusin', 'focusout']) $('#xmap').addEventListener(ev, (e) => {
   const n = e.target.closest('.cnode'); if (!n) return;

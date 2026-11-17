@@ -51,3 +51,22 @@ test('free windows: working days only, from now, 30 min minimum', () => {
   assert.deepEqual(workHours('8:30-17'), [510, 1020]);
   assert.deepEqual(workHours(''), [540, 1080]);
 });
+
+test('meetings with a client: by attendee email or full name, with the Meet link; others stay out', async () => {
+  const ev = parseIcs(ics(
+    ['UID:m1', 'DTSTART:20261117T130000Z', 'DTEND:20261117T140000Z', 'SUMMARY:Konzultace\\, online',
+      'ATTENDEE;CN=Someone;PARTSTAT=ACCEPTED:mailto:Jana@X.cz', 'X-GOOGLE-CONFERENCE:https://meet.google.com/abc-defg-hij'],
+    ['UID:m2', 'DTSTART:20261110T090000Z', 'DTEND:20261110T093000Z', 'SUMMARY:Call s Jana Nováková',
+      'DESCRIPTION:Join: https://meet.google.com/old-link-xyz\\nmore'],
+    ['UID:m3', 'DTSTART:20261118T090000Z', 'DTEND:20261118T100000Z', 'SUMMARY:Dentist'],
+    ['UID:m4', 'DTSTART:20261119T090000Z', 'DTEND:20261119T100000Z', 'SUMMARY:Jana', 'STATUS:CANCELLED', 'ATTENDEE:mailto:jana@x.cz'],
+  ));
+  const { clientMeetings, renderMeetings } = await import('../lib/calendar.js');
+  const now = at('2026-11-16T12:00Z');
+  const m = clientMeetings(ev, { name: 'Jana Novakova', emails: ['jana@x.cz'] }, now);
+  assert.deepEqual(m.map((o) => o.event.uid), ['m2', 'm1']);
+  const text = renderMeetings(m, now);
+  assert.match(text, /2026-11-10 10:00 \(Tue\)–10:30 \(past\): Call s Jana Nováková · Google Meet: https:\/\/meet.google.com\/old-link-xyz/);
+  assert.match(text, /2026-11-17 14:00 \(Tue\)–15:00: Konzultace, online · Google Meet: https:\/\/meet.google.com\/abc-defg-hij/);
+  assert.equal(clientMeetings(ev, { name: 'Jana', emails: [] }, now).length, 0, 'a first name alone matches nothing');
+});

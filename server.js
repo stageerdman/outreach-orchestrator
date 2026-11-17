@@ -15,6 +15,7 @@ import { listRules, getRule } from './lib/rules.js';
 import { scenarioOf } from './lib/scenario.js';
 import * as ai from './lib/assistant.js';
 import { listConnections } from './lib/connections.js';
+import { connectionLog } from './lib/connlog.js';
 import * as connect from './lib/connect.js';
 import * as copilot from './lib/copilot.js';
 import { spawn } from 'node:child_process';
@@ -35,7 +36,7 @@ const feed = (people) => {
 const findPerson = (id) => snapshotPeople().find((p) => p.id === decodeURIComponent(id));
 
 // Server-Sent Events: the UI's live stream (see lib/events.js for the events).
-const STREAM = ['snapshot', 'messages', 'requests', 'personal', 'connect', 'copilot', 'playbooks'];
+const STREAM = ['snapshot', 'messages', 'requests', 'personal', 'connect', 'copilot', 'playbooks', 'connlog'];
 function stream(req, res) {
   res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
   res.write('retry: 3000\n\n');
@@ -223,6 +224,9 @@ const server = createServer(async (req, res) => {
     if (url.pathname === '/api/events') return stream(req, res);
     // Connections: what the orchestrator is wired to, and the chat that adds more.
     if (url.pathname === '/api/connections') return json(res, 200, listConnections({ people: snapshotPeople(), errors: syncState().errors ?? {} }));
+    // What one connection gave the AI lately and what went out through it.
+    const cl = url.pathname.match(/^\/api\/connections\/([^/]+)\/log$/);
+    if (cl) return json(res, 200, connectionLog(decodeURIComponent(cl[1])));
     if (url.pathname === '/api/connect') {
       if (req.method !== 'POST') return json(res, 200, connect.getConversation());
       const { text } = await readBody(req);
