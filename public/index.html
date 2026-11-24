@@ -549,7 +549,8 @@
   .mrow.off { --c: var(--muted); }
   #ph-fit ~ details ul { margin: var(--s2) 0 0; padding-left: var(--s4); display: grid; gap: var(--s1); color: var(--muted); }
 
-  /* facts */
+  /* facts (.rule holds the .row's full-size click layer; without it the layer covered the whole window) */
+  .rule { position: relative; }
   .rule.edit { padding: var(--s3) var(--s4); background: var(--bg); display: grid; gap: var(--s2); }
   .rule.edit .pt { border-color: var(--line); background: var(--panel); }
   .rtext { cursor: text; overflow-wrap: anywhere; }
